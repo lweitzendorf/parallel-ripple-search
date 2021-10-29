@@ -5,3 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(ripple_search main.cpp WeightedGraph.cpp WeightedGraph.h)
 add_executable(graph_generator graph_generator.cpp)
+
+add_subdirectory(raylib)
+add_executable(graph_view graph_view.cpp)
+target_link_libraries(graph_view raylib)
