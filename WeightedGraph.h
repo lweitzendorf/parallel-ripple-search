@@ -50,14 +50,14 @@ private:
           vertex_t m_goal{};
     };
 
-    class distance_heuristic : public boost::astar_heuristic<weighted_graph_t, int>
+    class euclidean_distance_heuristic : public boost::astar_heuristic<weighted_graph_t, double>
     {
       public:
-          distance_heuristic(std::vector<std::pair<int, int>>  l, vertex_t goal) : m_location(std::move(l)), m_goal(goal) {}
-          int operator()(vertex_t u) {
+      euclidean_distance_heuristic(std::vector<std::pair<int, int>>  l, vertex_t goal) : m_location(std::move(l)), m_goal(goal) {}
+          double operator()(vertex_t u) {
             int dx = std::abs(m_location[m_goal].first - m_location[u].first);
             int dy = std::abs(m_location[m_goal].second - m_location[u].second);
-            return dx + dy;
+            return std::sqrt(dx*dx + dy*dy);
           }
       private:
           std::vector<std::pair<int, int>> m_location;
