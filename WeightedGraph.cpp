@@ -1,4 +1,5 @@
 #include "WeightedGraph.h"
+#include "utility.h"
 
 WeightedGraph::WeightedGraph(int num_vertices) {
   g = weighted_graph_t(num_vertices);
@@ -19,6 +20,7 @@ WeightedGraph::WeightedGraph(const char* file_name) {
     graph_file.close();
     return;
   }
+
   while (block != "{") {
     graph_file >> block;
   }
@@ -33,10 +35,8 @@ WeightedGraph::WeightedGraph(const char* file_name) {
 
     graph_file >> label_str >> pos_str;
 
-    pos_str = pos_str.substr(pos_str.find('"') + 1);
-    pos_str = pos_str.substr(0, pos_str.find('"'));
-    int x = stoi(pos_str.substr(0, pos_str.find(',')));
-    int y = stoi(pos_str.substr(pos_str.find(',')+1));
+    int x = stoi(utility::str_between(pos_str, '"', ','));
+    int y = stoi(utility::str_between(pos_str, ',', '"'));
 
     boost::add_vertex(g);
     add_location(x, y);
@@ -55,10 +55,8 @@ WeightedGraph::WeightedGraph(const char* file_name) {
 
   std::string edge_direction;
   graph_file >> edge_direction;
-  edge_direction = edge_direction.substr(edge_direction.find('=') + 1);
-  edge_direction = edge_direction.substr(0, edge_direction.find(']'));
 
-  if (edge_direction != "none") {
+  if (utility::str_between(edge_direction, '=', ']') != "none") {
     std::cout << "Only undirected edges supported." << std::endl;
     graph_file.close();
     return;
@@ -73,12 +71,10 @@ WeightedGraph::WeightedGraph(const char* file_name) {
 
     graph_file >> direction >> node_2;
 
-    std::string descriptor = "node";
-    vertex_t node_nr_1 = stoi(node_1.substr(descriptor.length()));
-    vertex_t node_nr_2 = stoi(node_2.substr(descriptor.length(), node_2.find(';')-descriptor.length()));
+    vertex_t node_nr_1 = stoi(utility::str_after(node_1, "node"));
+    vertex_t node_nr_2 = stoi(utility::str_between(node_2, "node", ";"));
 
-    edge_t e = boost::add_edge(node_nr_1, node_nr_2, g).first;
-    weights[e] = 1;
+    add_edge(node_nr_1, node_nr_2, 1);
   }
   graph_file.close();
 }

@@ -3,8 +3,7 @@ project(DPHPC)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(a_star main.cpp WeightedGraph.cpp WeightedGraph.h)
-
+add_executable(a_star main.cpp WeightedGraph.cpp WeightedGraph.h utility.cpp utility.h utility.h utility.cpp)
 add_executable(graph_generator graph_generator.cpp)
 
 add_subdirectory(raylib)
