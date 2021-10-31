@@ -3,9 +3,12 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/astar_search.hpp>
+#include <iostream>
 #include <list>
 #include <cmath>
 #include <utility>
+#include <string>
+#include <fstream>
 
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                               boost::no_property, boost::property<boost::edge_weight_t, int>> weighted_graph_t;
@@ -18,6 +21,7 @@ typedef boost::graph_traits<weighted_graph_t>::edges_size_type edges_size_t;
 class WeightedGraph {
 public:
     explicit WeightedGraph(int);
+    explicit WeightedGraph(const char*);
 
     bool add_location(int, int);
     bool add_edge(vertex_t, vertex_t, int);

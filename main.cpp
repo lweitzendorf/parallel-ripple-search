@@ -4,13 +4,7 @@
 #include <fstream>
 #include <cstdlib>
 
-int main(int argc, char const *argv[]) {
-  if (argc != 4) {
-    std::cout << "Usage: ./ripple_search <graph_file> <start_node> <goal_node>" << std::endl;
-    return -1;
-  }
-
-  const char* file_name = argv[1];
+WeightedGraph build_from_bitmap(const char* file_name) {
   std::ifstream graph_file(file_name);
 
   int x_size, y_size;
@@ -41,7 +35,18 @@ int main(int argc, char const *argv[]) {
   }
 
   graph_file.close();
-  vertex_t start = strtol(argv[2], nullptr, 10), goal = strtol(argv[3], nullptr, 10);
+  return G;
+}
+
+int main(int argc, char const *argv[]) {
+  if (argc != 4) {
+    std::cout << "Usage: ./ripple_search <graph_file> <start_node> <goal_node>" << std::endl;
+    return -1;
+  }
+
+  WeightedGraph G(argv[1]);
+  vertex_t start = strtol(argv[2], nullptr, 10);
+  vertex_t goal = strtol(argv[3], nullptr, 10);
 
   std::cout << argv[1] << std::endl;
   std::cout << G.num_vertices() << " vertices" << std::endl;
