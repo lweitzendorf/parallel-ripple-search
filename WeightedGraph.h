@@ -3,9 +3,11 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/astar_search.hpp>
+#include <iostream>
 #include <list>
 #include <cmath>
-#include <utility>
+#include <string>
+#include <fstream>
 
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                               boost::no_property, boost::property<boost::edge_weight_t, int>> weighted_graph_t;
@@ -18,6 +20,7 @@ typedef boost::graph_traits<weighted_graph_t>::edges_size_type edges_size_t;
 class WeightedGraph {
 public:
     explicit WeightedGraph(int);
+    explicit WeightedGraph(const char*);
 
     bool add_location(int, int);
     bool add_edge(vertex_t, vertex_t, int);
@@ -47,14 +50,14 @@ private:
           vertex_t m_goal{};
     };
 
-    class distance_heuristic : public boost::astar_heuristic<weighted_graph_t, int>
+    class euclidean_distance_heuristic : public boost::astar_heuristic<weighted_graph_t, double>
     {
       public:
-          distance_heuristic(std::vector<std::pair<int, int>>  l, vertex_t goal) : m_location(std::move(l)), m_goal(goal) {}
-          int operator()(vertex_t u) {
+      euclidean_distance_heuristic(std::vector<std::pair<int, int>>  l, vertex_t goal) : m_location(std::move(l)), m_goal(goal) {}
+          double operator()(vertex_t u) {
             int dx = std::abs(m_location[m_goal].first - m_location[u].first);
             int dy = std::abs(m_location[m_goal].second - m_location[u].second);
-            return dx + dy;
+            return std::sqrt(dx*dx + dy*dy);
           }
       private:
           std::vector<std::pair<int, int>> m_location;
