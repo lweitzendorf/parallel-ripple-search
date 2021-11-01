@@ -3,7 +3,7 @@
 #include <random>
 #include <cstdlib>
 
-#define WALL_PERCENTAGE 10
+#define WALL_PERCENTAGE 30
 
 int main(int argc, char const *argv[]) {
   if (argc != 3) {

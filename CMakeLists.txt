@@ -8,4 +8,7 @@ add_executable(graph_generator graph_generator.cpp)
 
 add_subdirectory(raylib)
 add_executable(graph_view graph_view.cpp)
+add_executable(high_graph high.cpp)
 target_link_libraries(graph_view raylib)
+target_link_libraries(high_graph raylib)
+
