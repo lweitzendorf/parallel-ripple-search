@@ -19,7 +19,8 @@ int main(int argc, char const *argv[]) {
     std::vector<char> map(x_size * y_size);
     for(int y = 0; y < y_size; y++){
         for(int x = 0; x < x_size; x++){
-            graph_file >> map[y*x_size + x];
+            char c; graph_file >> c;
+            map[y*x_size + x] = c == '1';
         }
     }
 
@@ -34,7 +35,7 @@ int main(int argc, char const *argv[]) {
     while(n_points){
         int x = distrib_x(gen);
         int y = distrib_y(gen);
-        if(map[y*x_size + x] == '1'){
+        if(map[y*x_size + x]){
             n_points--;
             std::multimap<int, int> distances;
             for(int i = 0; i < high_nodes.size(); i++){
@@ -57,7 +58,7 @@ int main(int argc, char const *argv[]) {
         
     }
 
-    const int scale = 2;
+    const int scale = 4;
     const int screenWidth = scale * x_size;
     const int screenHeight = scale * y_size;
 
