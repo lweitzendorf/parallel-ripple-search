@@ -12,3 +12,10 @@ add_executable(high_graph high.cpp)
 target_link_libraries(graph_view raylib)
 target_link_libraries(high_graph raylib)
 
+
+include(oneTBB/examples/common/cmake/common.cmake)
+set_common_project_settings(tbb)
+
+add_executable(ripple ripple.cpp)
+target_link_libraries(ripple TBB::tbb Threads::Threads)
+
