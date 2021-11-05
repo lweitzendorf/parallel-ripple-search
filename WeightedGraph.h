@@ -21,7 +21,7 @@ class WeightedGraph {
 public:
     WeightedGraph();
 
-    int add_vertex(int, int);
+    vertex_t add_vertex(int, int);
     bool add_edge(vertex_t, vertex_t, int);
 
     vertices_size_t num_vertices() { return boost::num_vertices(g); }

@@ -19,7 +19,7 @@ bool BitMapParser::build_graph(WeightedGraph& g) {
       bool current_is_path;
       graph_file >> current_is_path;
 
-      int vertex_number = g.add_vertex(x, y);
+      vertex_t vertex_number = g.add_vertex(x, y);
 
       if (current_is_path) {
         if (x > 0 && is_path.at(x - 1))

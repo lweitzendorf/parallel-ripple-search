@@ -5,8 +5,8 @@ WeightedGraph::WeightedGraph() {
   weights = boost::get(boost::edge_weight, g);
 }
 
-int WeightedGraph::add_vertex(int x, int y) {
-  int vertex_nr = boost::add_vertex(g);
+vertex_t WeightedGraph::add_vertex(int x, int y) {
+  vertex_t vertex_nr = boost::add_vertex(g);
   locations.emplace_back(x, y);
   return vertex_nr;
 }
