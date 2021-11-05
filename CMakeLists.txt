@@ -3,8 +3,7 @@ project(DPHPC)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(a_star main.cpp WeightedGraph.cpp WeightedGraph.h FileParser.cpp FileParser.h)
-add_executable(graph_generator graph_generator.cpp)
+add_executable(baseline baseline/baseline.cpp baseline/WeightedGraph.cpp baseline/WeightedGraph.h baseline/FileParser.cpp baseline/FileParser.h)
 
 add_subdirectory(raylib)
 add_executable(graph_view graph_view.cpp)
