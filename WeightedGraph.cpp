@@ -1,92 +1,14 @@
 #include "WeightedGraph.h"
-#include "utility.h"
 
-WeightedGraph::WeightedGraph(int num_vertices) {
-  g = weighted_graph_t(num_vertices);
-  weights = boost::get(boost::edge_weight, g);
-}
-
-WeightedGraph::WeightedGraph(const char* file_name) {
+WeightedGraph::WeightedGraph() {
   g = weighted_graph_t(0);
   weights = boost::get(boost::edge_weight, g);
-
-  std::ifstream graph_file(file_name);
-
-  std::string block;
-  graph_file >> block;
-
-  if (block != "digraph") {
-    std::cout << "Expected digraph, aborting." << std::endl;
-    graph_file.close();
-    return;
-  }
-
-  while (block != "{") {
-    graph_file >> block;
-  }
-
-  while (true) {
-    std::string node_name, label_str, pos_str;
-    graph_file >> node_name;
-
-    if (node_name == "subgraph") {
-      block = "subgraph";
-      break;
-    }
-
-    graph_file >> label_str >> pos_str;
-
-    int x = stoi(utility::str_between(pos_str, '"', ','));
-    int y = stoi(utility::str_between(pos_str, ',', '"'));
-
-    boost::add_vertex(g);
-    add_location(x, y);
-  }
-
-  while (block != "{") {
-    graph_file >> block;
-  }
-  graph_file >> block;
-
-  if (block != "edge") {
-    std::cout << "Expected edge, aborting." << std::endl;
-    graph_file.close();
-    return;
-  }
-
-  std::string edge_direction;
-  graph_file >> edge_direction;
-
-  if (utility::str_between(edge_direction, '=', ']') != "none") {
-    std::cout << "Only undirected edges supported." << std::endl;
-    graph_file.close();
-    return;
-  }
-
-  while (true) {
-    std::string node_1, direction, node_2;
-    graph_file >> node_1;
-
-    if (node_1 == "}")
-      break;
-
-    graph_file >> direction >> node_2;
-
-    vertex_t node_nr_1 = stoi(utility::str_after(node_1, "node"));
-    vertex_t node_nr_2 = stoi(utility::str_between(node_2, "node", ";"));
-
-    add_edge(node_nr_1, node_nr_2, 1);
-  }
-
-  graph_file.close();
 }
 
-bool WeightedGraph::add_location(int x, int y) {
-  if (locations.size() >= num_vertices())
-    return false;
-
+int WeightedGraph::add_vertex(int x, int y) {
+  int vertex_nr = boost::add_vertex(g);
   locations.emplace_back(x, y);
-  return true;
+  return vertex_nr;
 }
 
 bool WeightedGraph::add_edge(vertex_t vertex_1, vertex_t vertex_2, int weight) {

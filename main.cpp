@@ -1,50 +1,18 @@
 #include "WeightedGraph.h"
+#include "FileParser.h"
 
 #include <iostream>
-#include <fstream>
 #include <cstdlib>
-
-WeightedGraph build_from_bitmap(const char* file_name) {
-  std::ifstream graph_file(file_name);
-
-  int x_size, y_size;
-  graph_file >> x_size >> y_size;
-
-  WeightedGraph G(x_size * y_size);
-  std::vector<bool> is_path(x_size);
-
-  int vertex_number = 0;
-
-  for (int y = 0; y < y_size; y++) {
-    for (int x = 0; x < x_size; x++) {
-      bool current_is_path;
-      graph_file >> current_is_path;
-
-      G.add_location(x, y);
-
-      if (current_is_path) {
-        if (x > 0 && is_path.at(x - 1))
-          G.add_edge(vertex_number - 1, vertex_number, 1);
-
-        if (y > 0 && is_path.at(x))
-          G.add_edge(vertex_number - x_size, vertex_number, 1);
-      }
-      is_path.at(x) = current_is_path;
-      vertex_number++;
-    }
-  }
-
-  graph_file.close();
-  return G;
-}
 
 int main(int argc, char const *argv[]) {
   if (argc != 4) {
-    std::cout << "Usage: ./ripple_search <graph_file> <start_node> <goal_node>" << std::endl;
+    std::cout << "Usage: ./a_star <graph_file> <start_node> <goal_node>" << std::endl;
     return -1;
   }
 
-  WeightedGraph G(argv[1]);
+  WeightedGraph G;
+  DotParser(argv[1]).build_graph(G);
+
   vertex_t start = strtol(argv[2], nullptr, 10);
   vertex_t goal = strtol(argv[3], nullptr, 10);
 

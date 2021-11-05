@@ -19,10 +19,9 @@ typedef boost::graph_traits<weighted_graph_t>::edges_size_type edges_size_t;
 
 class WeightedGraph {
 public:
-    explicit WeightedGraph(int);
-    explicit WeightedGraph(const char*);
+    WeightedGraph();
 
-    bool add_location(int, int);
+    int add_vertex(int, int);
     bool add_edge(vertex_t, vertex_t, int);
 
     vertices_size_t num_vertices() { return boost::num_vertices(g); }
