@@ -7,7 +7,6 @@
 class FileParser {
   protected:
     std::string file_path;
-
     static std::string str_between(const std::string&, char, char);
     static std::string str_between(const std::string&, const std::string&, const std::string&);
     static std::string str_after(const std::string&, const std::string&);
@@ -19,13 +18,13 @@ class FileParser {
 
 class BitMapParser : FileParser {
   public:
-    BitMapParser(std::string file_path) : FileParser(std::move(file_path)) {};
+    explicit BitMapParser(std::string file_path) : FileParser(std::move(file_path)) {};
     bool build_graph(WeightedGraph&) override;
 };
 
 class DotParser : FileParser {
   public:
-    DotParser(std::string file_path) : FileParser(std::move(file_path)) {};
+    explicit DotParser(std::string file_path) : FileParser(std::move(file_path)) {};
     bool build_graph(WeightedGraph&) override;
 };
 

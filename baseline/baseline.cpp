@@ -11,7 +11,10 @@ int main(int argc, char const *argv[]) {
   }
 
   WeightedGraph G;
-  DotParser(argv[1]).build_graph(G);
+  if (!DotParser(argv[1]).build_graph(G)) {
+    std::cout << "Invalid file!" << std::endl;
+    return -2;
+  }
 
   vertex_t source = strtol(argv[2], nullptr, 10);
   vertex_t target = strtol(argv[3], nullptr, 10);
