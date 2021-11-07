@@ -27,7 +27,7 @@ public:
     vertices_size_t num_vertices() { return boost::num_vertices(g); }
     edges_size_t num_edges() { return boost::num_edges(g); }
 
-    std::list<vertex_t> a_star_search(vertex_t start, vertex_t goal);
+    std::list<vertex_t> a_star_search(vertex_t, vertex_t);
 
 private:
     weighted_graph_t g;
@@ -52,12 +52,12 @@ private:
     class euclidean_distance_heuristic : public boost::astar_heuristic<weighted_graph_t, double>
     {
       public:
-      euclidean_distance_heuristic(std::vector<std::pair<int, int>>  l, vertex_t goal) : m_location(std::move(l)), m_goal(goal) {}
-          double operator()(vertex_t u) {
-            int dx = std::abs(m_location[m_goal].first - m_location[u].first);
-            int dy = std::abs(m_location[m_goal].second - m_location[u].second);
-            return std::sqrt(dx*dx + dy*dy);
-          }
+        euclidean_distance_heuristic(std::vector<std::pair<int, int>>  l, vertex_t goal) : m_location(std::move(l)), m_goal(goal) {}
+            double operator()(vertex_t u) {
+              int dx = std::abs(m_location[m_goal].first - m_location[u].first);
+              int dy = std::abs(m_location[m_goal].second - m_location[u].second);
+              return std::sqrt(dx*dx + dy*dy);
+            }
       private:
           std::vector<std::pair<int, int>> m_location;
           vertex_t m_goal;

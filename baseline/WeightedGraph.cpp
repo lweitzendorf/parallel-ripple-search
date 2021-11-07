@@ -21,6 +21,9 @@ bool WeightedGraph::add_edge(vertex_t vertex_1, vertex_t vertex_2, int weight) {
 }
 
 std::list<vertex_t> WeightedGraph::a_star_search(vertex_t start, vertex_t goal) {
+  if (start < 0 || goal < 0 || start >= num_vertices() || goal >= num_vertices())
+    return { };
+
   std::vector<vertex_t> p(num_vertices());
   std::vector<int> d(num_vertices());
 

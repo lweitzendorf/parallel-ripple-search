@@ -1,6 +1,5 @@
 #include "FileParser.h"
 #include <fstream>
-#include <utility>
 
 FileParser::FileParser(std::string file_path) {
   this->file_path = std::move(file_path);
@@ -42,8 +41,8 @@ bool DotParser::build_graph(WeightedGraph& g) {
   std::string block;
   graph_file >> block;
 
-  if (block != "digraph") {
-    std::cout << "Expected digraph, aborting." << std::endl;
+  if (block != "graph") {
+    std::cout << "Expected graph, aborting." << std::endl;
     graph_file.close();
     return false;
   }
@@ -56,12 +55,12 @@ bool DotParser::build_graph(WeightedGraph& g) {
     std::string node_name, label_str, pos_str;
     graph_file >> node_name;
 
-    if (node_name == "subgraph") {
-      block = "subgraph";
+    if (node_name == "edge") {
+      block = node_name;
       break;
     }
 
-    graph_file >> label_str >> pos_str;
+    graph_file >> label_str >> pos_str >> block;
 
     int x = stoi(str_between(pos_str, '"', ','));
     int y = stoi(str_between(pos_str, ',', '"'));
@@ -69,25 +68,7 @@ bool DotParser::build_graph(WeightedGraph& g) {
     g.add_vertex(x, y);
   }
 
-  while (block != "{") {
-    graph_file >> block;
-  }
-  graph_file >> block;
-
-  if (block != "edge") {
-    std::cout << "Expected edge, aborting." << std::endl;
-    graph_file.close();
-    return false;
-  }
-
-  std::string edge_direction;
-  graph_file >> edge_direction;
-
-  if (str_between(edge_direction, '=', ']') != "none") {
-    std::cout << "Only undirected edges supported." << std::endl;
-    graph_file.close();
-    return false;
-  }
+  graph_file >> block >> block;
 
   while (true) {
     std::string node_1, direction, node_2;
@@ -96,7 +77,7 @@ bool DotParser::build_graph(WeightedGraph& g) {
     if (node_1 == "}")
       break;
 
-    graph_file >> direction >> node_2;
+    graph_file >> direction >> node_2 >> block >> block;
 
     vertex_t node_nr_1 = stoi(str_after(node_1, "node"));
     vertex_t node_nr_2 = stoi(str_between(node_2, "node", ";"));
