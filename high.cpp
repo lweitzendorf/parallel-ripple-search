@@ -58,7 +58,7 @@ int main(int argc, char const *argv[]) {
         
     }
 
-    const int scale = 4;
+    const int scale = 2;
     const int screenWidth = scale * x_size;
     const int screenHeight = scale * y_size;
 
