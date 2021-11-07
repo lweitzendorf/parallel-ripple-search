@@ -57,7 +57,7 @@ bool DotParser::build_graph(WeightedGraph& g) {
     graph_file >> node_name;
 
     if (node_name == "subgraph") {
-      block = "subgraph";
+      block = node_name;
       break;
     }
 
