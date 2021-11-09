@@ -4,7 +4,7 @@ project(DPHPC)
 set(CMAKE_CXX_STANDARD 20)
 #set(CMAKE_BUILD_TYPE Debug)
 
-add_executable(baseline baseline/baseline.cpp baseline/WeightedGraph.cpp baseline/WeightedGraph.h baseline/FileParser.cpp baseline/FileParser.h baseline/Timer.cpp baseline/Timer.h)
+add_executable(baseline baseline/main.cpp baseline/WeightedGraph.cpp baseline/WeightedGraph.h baseline/FileParser.cpp baseline/FileParser.h baseline/Timer.cpp baseline/Timer.h)
 
 add_subdirectory(raylib)
 
