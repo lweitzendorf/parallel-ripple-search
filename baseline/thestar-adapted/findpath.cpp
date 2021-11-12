@@ -342,7 +342,7 @@ int main( int argc, char *argv[] )
 
 		// Display the number of loops the search went through
 		cout << "SearchSteps : " << SearchSteps << "\n";
-		cout << "Search Time: " << timer.get_ms() << "ms" << std::endl;
+		cout << "Search Time: " << timer.get_milliseconds() << "ms" << std::endl;
 		SearchCount ++;
 
 		astarsearch.EnsureMemoryFreed();
