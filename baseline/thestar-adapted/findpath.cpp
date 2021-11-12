@@ -9,7 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "stlastar.h" // See header for copyright and usage information
-#include "Timer.cpp"
+#include "../Timer.cpp" // Make sure the Timer is in the parent directory
 
 #include <iostream>
 #include <stdio.h>
