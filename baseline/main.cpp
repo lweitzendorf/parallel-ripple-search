@@ -17,7 +17,7 @@ int main(int argc, char const *argv[]) {
   timer.start();
   bool valid = DotParser(argv[1]).build_graph(G);
   timer.stop();
-  std::cout << "Parsed in " << timer.get_ms() << "ms" << std::endl;
+  std::cout << "Parsed in " << timer.get_milliseconds() << "ms" << std::endl;
 
   if (!valid) {
     std::cout << "Invalid file!" << std::endl;
@@ -35,7 +35,15 @@ int main(int argc, char const *argv[]) {
   timer.start();
   std::list<vertex_t> path = G.a_star_search(source, target);
   timer.stop();
-  std::cout << "Found path in " << timer.get_ms() << "ms" << std::endl;
+
+  long time = timer.get_microseconds();
+  std::cout << "Found path in ";
+  if (time < 10000) {
+    std::cout << time << "μs";
+  } else {
+    std::cout << time / 1000 << "ms";
+  }
+  std::cout << std::endl;
 
   if (path.empty()) {
     std::cout << "No path found!";

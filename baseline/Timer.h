@@ -11,7 +11,8 @@ class Timer {
   public:
     void start();
     void stop();
-    long get_ms();
+    long get_milliseconds();
+    long get_microseconds();
 };
 
 #endif //DPHPC_TIMER_H
