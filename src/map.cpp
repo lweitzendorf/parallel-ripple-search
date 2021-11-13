@@ -3,6 +3,14 @@
 #include <raylib.h>
 #include <cmath>
 
+
+Point neighbour_offsets[4] = {
+    {1, 0},
+    {0, 1},
+    {-1, 0},
+    {0, -1},
+};
+
 char Map::get(int x, int y) {
     return data[y * width + x];
 }

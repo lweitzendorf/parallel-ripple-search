@@ -10,6 +10,8 @@
 #include "Timer.h"
 #include "WeightedGraph.h"
 
+#include "Astar.cpp"
+
 void check_source_and_goal(Map& map, Node source, Node goal) {
     // bounds check on source and goal
     if(source < 0 || source >= map.data.size()) {
@@ -105,13 +107,6 @@ Image test_fringe_search(Map& map, Node source, Node goal) {
     t.stop();
     printf("Fringe search time: %.3fms\n", t.get_microseconds() / 1000.0);
 
-    // Initialization
-    const int screen_width = 1000;
-    const int screen_height = 1000;
-
-    InitWindow(screen_width, screen_height, "Graph View");
-    SetTargetFPS(60);
-
     // Create image and draw walls
     Image img = GenImageColor(map.width, map.height, WHITE);
     draw_walls(img, map);
@@ -141,6 +136,42 @@ Image test_fringe_search(Map& map, Node source, Node goal) {
     return img;
 }
 
+
+Image test_Astar(Map& map, Node source, Node goal) {
+    // Run fringe search
+    Timer t;
+    t.start();
+    
+    std::vector<Node> came_from (map.width * map.height);
+    std::vector<double> cost_so_far (map.width * map.height, -1);
+    a_star_search(map, source, goal, came_from, cost_so_far);
+    std::vector<Node> path = reconstruct_path(source, goal, came_from);
+    
+
+    t.stop();
+    printf("Astar search time: %.3fms\n", t.get_microseconds() / 1000.0);
+
+    // Create image and draw walls
+    Image img = GenImageColor(map.width, map.height, WHITE);
+    draw_walls(img, map);
+
+
+    // Draw path
+    for(auto it: path) {
+        Point p = map.node_to_point(it);
+        ImageDrawPixel(&img, p.x, p.y, RED);       
+    }
+
+    // Draw source and goal
+    Point sp = map.node_to_point(source);
+    Point gp = map.node_to_point(goal);
+    ImageDrawPixel(&img, sp.x, sp.y, GREEN);
+    ImageDrawPixel(&img, gp.x, gp.y, YELLOW);
+
+    return img;
+}
+
+
 int main(int argc, char** argv)
 {
     //Disable raylib log
@@ -164,6 +195,8 @@ int main(int argc, char** argv)
     // Run fringe search
     Image fringe_img = test_fringe_search(map, goal, source);
 
+    Image Astar_img = test_Astar(map, goal, source);
+
     // Initialization
     const int screen_width = 1000;
     const int screen_height = 1000;
@@ -174,6 +207,7 @@ int main(int argc, char** argv)
     Texture2D textures[] = {
         LoadTextureFromImage(boost_img),
         LoadTextureFromImage(fringe_img),
+        LoadTextureFromImage(Astar_img),
     };
     int texture_index = 0;
     int texture_count = sizeof(textures) / sizeof(textures[0]);

@@ -2,16 +2,10 @@
 
 #include <limits.h>
 
-Point neighbour_offsets[4] = {
-    {1, 0},
-    {0, 1},
-    {-1, 0},
-    {0, -1},
-};
 
 std::list<Node> FringeSearch::search(Map& map, Node source, Node goal) {
     cache.clear();
-    cache.resize(map.width * map.height);
+    cache.resize(map.width * map.height, {});
 
     fringe_list.clear();
 

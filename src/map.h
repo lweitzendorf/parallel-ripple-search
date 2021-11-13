@@ -8,6 +8,18 @@ typedef int Node;
 struct Point {
     int x;
     int y;
+
+    inline bool operator== (const Point& p1) const {
+        return this->x == p1.x && this->y == p1.y;
+    }
+
+    inline bool operator!= (const Point& p1) const {
+        return this->x != p1.x || this->y != p1.y;
+    }
+
+    inline bool operator<(const Point& p1) const {
+        return false;
+    }
 };
 
 class Map {
@@ -25,3 +37,5 @@ public:
 
 
 int distance(Point a, Point b);
+
+extern Point neighbour_offsets[4];
