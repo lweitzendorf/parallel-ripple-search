@@ -1,5 +1,7 @@
 #pragma once
 
+#include <queue>
+#include <vector>
 #include "map.h"
 
 template<typename T, typename priority_t>
@@ -29,3 +31,8 @@ void a_star_search
    Node goal,
    std::vector<Node>& came_from,
    std::vector<double>& cost_so_far);
+
+std::vector<Node> reconstruct_path(
+   Node start, Node goal,
+   std::vector<Node>& came_from
+);

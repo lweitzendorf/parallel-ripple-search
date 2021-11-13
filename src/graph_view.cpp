@@ -10,7 +10,7 @@
 #include "Timer.h"
 #include "WeightedGraph.h"
 
-#include "Astar.cpp"
+#include "Astar.h"
 
 void check_source_and_goal(Map& map, Node source, Node goal) {
     // bounds check on source and goal

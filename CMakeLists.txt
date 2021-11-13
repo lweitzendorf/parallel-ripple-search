@@ -14,7 +14,7 @@ set_common_project_settings(tbb)
 # internal
 add_executable(baseline baseline/main.cpp baseline/WeightedGraph.cpp baseline/FileParser.cpp baseline/Timer.cpp)
 
-add_executable(graph_view src/graph_view.cpp src/map.cpp src/fringe.cpp baseline/Timer.cpp baseline/WeightedGraph.cpp)
+add_executable(graph_view src/graph_view.cpp src/map.cpp src/fringe.cpp baseline/Timer.cpp baseline/WeightedGraph.cpp src/Astar.cpp)
 target_include_directories(graph_view PUBLIC baseline src)
 target_link_libraries(graph_view raylib)
 

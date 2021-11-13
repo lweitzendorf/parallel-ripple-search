@@ -1,7 +1,6 @@
-#include <queue>
-#include <unordered_map>
-#include "map.h"
 #include <algorithm>
+
+#include "map.h"
 #include "Astar.h"
 
 void a_star_search
