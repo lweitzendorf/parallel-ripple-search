@@ -11,6 +11,7 @@
 #include "WeightedGraph.h"
 
 #include "Astar.h"
+#include "findpath.cpp"
 
 void check_source_and_goal(Map& map, Node source, Node goal) {
     // bounds check on source and goal
@@ -171,6 +172,36 @@ Image test_Astar(Map& map, Node source, Node goal) {
     return img;
 }
 
+Image test_Astar_2(Map& map, Node source, Node goal) {
+    // Run fringe search
+    Timer t;
+    t.start();
+    
+    //auto path = search(map, source, goal);
+    std::list<Node> path; //placeholder
+
+    t.stop();
+    printf("Astar 2 search time: %.3fms\n", t.get_microseconds() / 1000.0);
+
+    // Create image and draw walls
+    Image img = GenImageColor(map.width, map.height, WHITE);
+    draw_walls(img, map);
+
+
+    // Draw path
+    for(auto it: path) {
+        Point p = map.node_to_point(it);
+        ImageDrawPixel(&img, p.x, p.y, RED);       
+    }
+
+    // Draw source and goal
+    Point sp = map.node_to_point(source);
+    Point gp = map.node_to_point(goal);
+    ImageDrawPixel(&img, sp.x, sp.y, GREEN);
+    ImageDrawPixel(&img, gp.x, gp.y, YELLOW);
+
+    return img;
+}
 
 int main(int argc, char** argv)
 {
@@ -190,12 +221,14 @@ int main(int argc, char** argv)
     check_source_and_goal(map, source, goal);
 
     // Run Boost A*
-    Image boost_img = test_boost_a_star(map, goal, source);
+    Image boost_img = test_boost_a_star(map, source, goal);
 
     // Run fringe search
-    Image fringe_img = test_fringe_search(map, goal, source);
+    Image fringe_img = test_fringe_search(map, source, goal);
 
-    Image Astar_img = test_Astar(map, goal, source);
+    Image Astar_img = test_Astar(map, source, goal);
+
+    Image Astar2_img = test_Astar_2(map, source, goal);
 
     // Initialization
     const int screen_width = 1000;
@@ -208,6 +241,7 @@ int main(int argc, char** argv)
         LoadTextureFromImage(boost_img),
         LoadTextureFromImage(fringe_img),
         LoadTextureFromImage(Astar_img),
+        LoadTextureFromImage(Astar2_img),
     };
     int texture_index = 0;
     int texture_count = sizeof(textures) / sizeof(textures[0]);
