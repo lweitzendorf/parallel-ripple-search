@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(DPHPC)
 
 set(CMAKE_CXX_STANDARD 20)
-#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Debug)
 
 # raylib
 add_subdirectory(raylib)
@@ -18,7 +18,7 @@ add_executable(graph_view src/graph_view.cpp src/map.cpp src/fringe.cpp baseline
 target_include_directories(graph_view PUBLIC baseline src)
 target_link_libraries(graph_view raylib)
 
-add_executable(high_graph src/high.cpp src/map.cpp)
+add_executable(high_graph src/high.cpp src/map.cpp src/Astar_high.cpp)
 target_link_libraries(high_graph raylib)
 
 add_executable(ripple src/ripple.cpp)

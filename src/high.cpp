@@ -6,10 +6,12 @@
 #include <map>
 #include <unordered_map>
 #include "map.h"
+#include "Astar_high.h"
 
 #include "raylib.h"
 
 #define K 5
+#define N_POINTS 50
 
 int main(int argc, char const *argv[]) {
     if(argc < 4) {
@@ -34,16 +36,20 @@ int main(int argc, char const *argv[]) {
     std::uniform_int_distribution<> distrib_x(0, map.width-1);
     std::uniform_int_distribution<> distrib_y(0, map.height-1);
     int size = map.height* map.width;
-    int n_points = 10;
+
     std::vector<Point> high_nodes;
     std::vector<std::vector<int>> knn_adj;
-    while(n_points){
+
+    high_nodes.push_back(source_p);
+    knn_adj.push_back(std::vector<int> ());
+    int iter = 1;
+    while(iter < N_POINTS+1){ //add early stop
         int x = distrib_x(gen);
         int y = distrib_y(gen);
         if(map.get(x, y )){
             std::multimap<int, int> distances;
             bool already_sampled = false;
-            for(int i = 0; i < high_nodes.size(); i++){
+            for(int i = 1; i < high_nodes.size(); i++){
                 int diff_x = high_nodes[i].x - x;
                 int diff_y = high_nodes[i].y - y;
                 int distance = diff_x*diff_x + diff_y*diff_y;
@@ -58,20 +64,21 @@ int main(int argc, char const *argv[]) {
             std::vector<int> adj;
             for(auto it = distances.begin(); it != distances.end(); it++){
                 adj.push_back(it->second);
+                knn_adj[it->second].push_back(iter);
                 k++;
                 if(k == K)
                     break;
             }
             knn_adj.push_back(adj);
             high_nodes.push_back(Point(x, y));
-            n_points--;
+            iter++;
         } 
         
     }
 
     //add source and goal
     std::multimap<int, int> distances_source;
-    for(int i = 0; i < high_nodes.size(); i++){
+    for(int i = 1; i < high_nodes.size(); i++){
         int diff_x = high_nodes[i].x - source_p.x;
         int diff_y = high_nodes[i].y - source_p.y;
         int distance = diff_x*diff_x + diff_y*diff_y;
@@ -81,11 +88,12 @@ int main(int argc, char const *argv[]) {
     std::vector<int> adj_source;
     for(auto it = distances_source.begin(); it != distances_source.end(); it++){
         adj_source.push_back(it->second);
+        knn_adj[it->second].push_back(0);
         k_source++;
         if(k_source == K)
             break;
     }
-    knn_adj.push_back(adj_source);
+    knn_adj[0] = adj_source;
 
     std::multimap<int, int> distances_goal;
     for(int i = 0; i < high_nodes.size(); i++){
@@ -98,14 +106,35 @@ int main(int argc, char const *argv[]) {
     std::vector<int> adj_goal;
     for(auto it = distances_goal.begin(); it != distances_goal.end(); it++){
         adj_goal.push_back(it->second);
+        knn_adj[it->second].push_back(high_nodes.size());
         k_goal++;
         if(k_goal == K)
             break;
     }
     knn_adj.push_back(adj_goal);
 
-    high_nodes.push_back(source_p);
     high_nodes.push_back(goal_p);
+
+    std::cout << "graph:" << std::endl;
+    for(int i = 0; i < high_nodes.size(); i++){
+        std::cout << i << std::endl;
+        for(int j = 0; j < knn_adj[i].size(); j++){
+            std::cout << "\t" << knn_adj[i][j] << std::endl;
+        }
+    }
+    std::cout << std::endl;
+    //ASTAR
+    std::vector<Node> came_from (high_nodes.size());
+    std::vector<double> cost_so_far (high_nodes.size(), -1);
+    a_star_search(high_nodes, knn_adj, 0, high_nodes.size()-1, came_from, cost_so_far);
+    for(auto a : came_from){
+        std::cout << a << " ";
+    }
+    std::cout << std::endl;
+    std::vector<Node> path = reconstruct_path(0, high_nodes.size()-1, came_from);
+    for(auto a : path){
+        std::cout << a << std::endl;
+    }
 
     const int screen_width = 1000;
     const int screen_height = 1000;
@@ -122,22 +151,27 @@ int main(int argc, char const *argv[]) {
         }  
     }
 
-    for(int i = 0; i < high_nodes.size() - 2; i++) {
+    for(int i = 1; i < high_nodes.size() - 1; i++) {
         auto p = high_nodes[i];
         ImageDrawCircle(&img, p.x, p.y, 5.0f, BLUE);
+        char buff[30];
+        snprintf(buff, sizeof(buff), "%d", i);
+        ImageDrawText(&img, buff, p.x + 10, p.y + 10, 30, BLACK);
 
         for(int j = 0; j < knn_adj[i].size(); j++){
             auto adj = high_nodes[knn_adj[i][j]];
+
+
             ImageDrawLine(&img, p.x, p.y, adj.x , adj.y, BLUE);
         }
     }
 
 
-    auto high_source = high_nodes[high_nodes.size()-2];
+    auto high_source = high_nodes[0];
     ImageDrawCircle(&img, high_source.x, high_source.y, 50.0f, GREEN);
 
-    for(int j = 0; j < knn_adj[high_nodes.size()-2].size(); j++){
-        auto adj = high_nodes[knn_adj[high_nodes.size()-2][j]];
+    for(int j = 0; j < knn_adj[0].size(); j++){
+        auto adj = high_nodes[knn_adj[0][j]];
         ImageDrawLine(&img, high_source.x, high_source.y, adj.x , adj.y, BLUE);
     }
 
@@ -148,6 +182,16 @@ int main(int argc, char const *argv[]) {
         auto adj = high_nodes[knn_adj[high_nodes.size()-1][j]];
         ImageDrawLine(&img, high_goal.x, high_goal.y, adj.x , adj.y, BLUE);
     }
+
+    for(int i = 0; i < path.size(); i++){
+        auto p = high_nodes[path[i]];
+        ImageDrawCircle(&img, p.x, p.y, 10.0f, RED);
+        if(i < path.size()-1){
+            auto p2 = high_nodes[path[i+1]];
+            ImageDrawLine(&img, p.x, p.y, p2.x , p2.y, RED);
+        }
+    }
+
     Texture2D texture = LoadTextureFromImage(img);
 
     while (!WindowShouldClose())    // Detect window close button or ESC key

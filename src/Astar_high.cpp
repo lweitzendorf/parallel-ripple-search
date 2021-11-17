@@ -1,10 +1,12 @@
 #include <algorithm>
-
 #include "map.h"
 #include "Astar.h"
+#include <vector>
+#include <iostream>
 
 void a_star_search
-  (Map& graph,
+  (std::vector<Point> &high_nodes,
+  std::vector<std::vector<int>> &knn_adj,
    Node start,
    Node goal,
    std::vector<Node>& came_from,
@@ -16,7 +18,7 @@ void a_star_search
   came_from[start] = start;
   cost_so_far[start] = 0;
   
-  Point goal_p = graph.node_to_point(goal);
+  Point goal_p = high_nodes[goal];
   while (!frontier.empty()) {
     Node current = frontier.get();
 
@@ -24,29 +26,17 @@ void a_star_search
       break;
     }
 
-    Point np = graph.node_to_point(current);
-    // For each neighbour
-    for(int i = 0; i < 4; i++) {
-      Point neigh = neighbour_offsets[i];
-      neigh.x += np.x;
-      neigh.y += np.y;
-
-      if(neigh.x >= 0 && neigh.x < graph.width && neigh.y >= 0 && neigh.y < graph.height) {
-        Node s = graph.point_to_node(neigh);
-        if(!graph.data[s]) {
-            continue;
-        }
-        
-        double new_cost = cost_so_far[current] + 1;
-        if (cost_so_far[s] == -1
-            || new_cost < cost_so_far[s]) {
-          cost_so_far[s] = new_cost;
-          double priority = new_cost + distance(neigh, goal_p);
-          frontier.put(s, priority);
-          came_from[s] = current;
-        }
+    for(auto i : knn_adj[current]){
+      Point neigh = high_nodes[i];
+      double new_cost = cost_so_far[current] + distance(neigh, high_nodes[current]);
+      if(cost_so_far[i] == -1 || new_cost < cost_so_far[i]){
+        cost_so_far[i] = new_cost;
+        double priority = new_cost + distance(neigh, goal_p);
+        frontier.put(i, priority);
+        came_from[i] = current;
       }
     }
+    
   }
 }
 

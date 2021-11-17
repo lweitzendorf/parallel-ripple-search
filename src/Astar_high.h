@@ -26,7 +26,8 @@ struct PriorityQueue {
 };
 
 void a_star_search
-  (Map& graph,
+  (std::vector<Point> &high_nodes,
+   std::vector<std::vector<int>> &knn_adj,
    Node start,
    Node goal,
    std::vector<Node>& came_from,
