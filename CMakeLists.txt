@@ -18,7 +18,7 @@ add_executable(graph_view src/graph_view.cpp src/map.cpp src/fringe.cpp baseline
 target_include_directories(graph_view PUBLIC baseline src)
 target_link_libraries(graph_view raylib)
 
-add_executable(high_graph src/high.cpp)
+add_executable(high_graph src/high.cpp src/map.cpp)
 target_link_libraries(high_graph raylib)
 
 add_executable(ripple src/ripple.cpp)
