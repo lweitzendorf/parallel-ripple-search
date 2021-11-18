@@ -11,6 +11,7 @@
 #include "fringe.h"
 #include "ripple.h"
 #include "WeightedGraph.h"
+#include "FileParser.h"
 
 //#include "Astar.h"
 
@@ -290,7 +291,20 @@ int main(int argc, char** argv)
     }
 
     Map map;
-    map.load_from_image_file(argv[1]);
+
+    std::string file_path(argv[1]);
+
+    if (file_path.ends_with(".png")) {
+      map.load_from_image_file(argv[1]);
+    } else if (file_path.ends_with(".dot"))  {
+      WeightedGraph graph;
+      DotParser parser(argv[1]);
+      parser.build_graph(graph);
+      map = graph.create_map();
+    } else {
+      std::cout << "Unsupported file type!" << std::endl;
+    }
+
     Node source = strtol(argv[2], nullptr, 10);
     Node goal = strtol(argv[3], nullptr, 10);
 

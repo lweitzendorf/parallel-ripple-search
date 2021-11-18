@@ -3,7 +3,7 @@
 #include <vector>
 
 typedef int Node;
-#define INVALID_NODE -1
+#define INVALID_NODE (-1)
 
 struct Point {
     int x;
@@ -30,10 +30,14 @@ struct Point {
 
 class Map {
 public:
+    Map(int width = 0, int height = 0);
+
     std::vector<char> data;
     int width, height;
 
     char get(int x, int y);
+    void set(int x, int y, char c);
+
     void load_from_image_file(const char* path);
     
     Point node_to_point(Node i);

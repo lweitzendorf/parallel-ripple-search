@@ -1,8 +1,6 @@
 #include "map.h"
 
 #include <raylib.h>
-#include <cmath>
-
 
 Point neighbour_offsets[4] = {
     {1, 0},
@@ -11,8 +9,18 @@ Point neighbour_offsets[4] = {
     {0, -1},
 };
 
+Map::Map(int width, int height) {
+  this->width = width;
+  this->height = height;
+  this->data.resize(width * height);
+}
+
 char Map::get(int x, int y) {
     return data[y * width + x];
+}
+
+void Map::set(int x, int y, char c) {
+  data[y * width + x] = c;
 }
 
 void Map::load_from_image_file(const char* path) {
@@ -23,7 +31,7 @@ void Map::load_from_image_file(const char* path) {
     this->data.resize(img.width * img.height);
     for(int y = 0; y < img.height; y++) {
         for(int x = 0; x < img.width; x++) {
-            this->data[y * img.width + x] = GetImageColor(img, x, y).r != 0;
+          set(x, y, GetImageColor(img, x, y).r != 0);
         }
     }
 
@@ -37,7 +45,6 @@ Point Map::node_to_point(Node i) {
 
     return p;
 };
-
 
 Node Map::point_to_node(Point i){
     return i.y * width + i.x;

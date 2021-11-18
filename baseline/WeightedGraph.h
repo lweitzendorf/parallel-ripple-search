@@ -1,6 +1,8 @@
 #ifndef DPHPC_WEIGHTEDGRAPH_H
 #define DPHPC_WEIGHTEDGRAPH_H
 
+#include "../src/map.h"
+
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/astar_search.hpp>
 #include <iostream>
@@ -28,6 +30,8 @@ public:
     edges_size_t num_edges() { return boost::num_edges(g); }
 
     std::list<vertex_t> a_star_search(vertex_t, vertex_t);
+
+    Map create_map();
 
 private:
     weighted_graph_t g;
