@@ -9,7 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "stlastar.h" // See header for copyright and usage information
-#include "../Timer.cpp" // Make sure the Timer is in the parent directory
+#include "Timer.h" // Make sure the Timer is in the parent directory
 
 #include <iostream>
 #include <stdio.h>
@@ -202,16 +202,14 @@ bool MapSearchNode::GetSuccessors( AStarSearch<MapSearchNode> *astarsearch, MapS
 // given this node, what does it cost to move to successor. In the case
 // of our map the answer is the map terrain value at this node since that is 
 // conceptually where we're moving
-
 float MapSearchNode::GetCost( MapSearchNode &successor )
 {
 	return (float) GetMap( x, y );
 
 }
 
-
+#if 0
 // Main
-
 int main( int argc, char *argv[] )
 {
 
@@ -350,5 +348,5 @@ int main( int argc, char *argv[] )
 	
 	return 0;
 }
-
+#endif
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////

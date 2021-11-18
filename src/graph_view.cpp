@@ -2,16 +2,17 @@
 #include <iostream>
 #include <vector>
 
-#include "raylib.h"
+#include <raylib.h>
+
+#include "Timer.h"
+#include "findpath.cpp"
 
 #include "map.h"
 #include "fringe.h"
-
-#include "Timer.h"
+#include "ripple.h"
 #include "WeightedGraph.h"
 
-#include "Astar.h"
-#include "findpath.cpp"
+//#include "Astar.h"
 
 void check_source_and_goal(Map& map, Node source, Node goal) {
     // bounds check on source and goal
@@ -102,8 +103,23 @@ Image test_fringe_search(Map& map, Node source, Node goal) {
     // Run fringe search
     Timer t;
     t.start();
-    FringeSearch fringe;
-    auto shortest_path = fringe.search(map, source, goal);
+
+    
+    FringeSearch fringe(map);
+    fringe.init(source, goal);
+    #if 0
+    auto shortest_path = fringe.search();
+    #else
+    FringeSearchStep step;
+    do {
+        step = fringe.step();
+    } while(step.state == FringeSearchStepState::OK);
+
+    std::list<Node> shortest_path;
+    if(step.state == FringeSearchStepState::FOUND) {
+        shortest_path = fringe.finalize_path();
+    }
+    #endif
 
     t.stop();
     printf("Fringe search time: %.3fms\n", t.get_microseconds() / 1000.0);
@@ -137,7 +153,7 @@ Image test_fringe_search(Map& map, Node source, Node goal) {
     return img;
 }
 
-
+#if 0
 Image test_Astar(Map& map, Node source, Node goal) {
     // Run fringe search
     Timer t;
@@ -171,6 +187,7 @@ Image test_Astar(Map& map, Node source, Node goal) {
 
     return img;
 }
+#endif
 
 Image test_Astar_2(Map& map, Node source, Node goal) {
     // Run fringe search
@@ -203,6 +220,65 @@ Image test_Astar_2(Map& map, Node source, Node goal) {
     return img;
 }
 
+
+Image test_ripple(Map& map, Node source, Node goal) {
+    // Run fringe search
+    Timer t;
+    t.start();
+    
+    RippleSearch ripple(map);
+    ripple.search(source, goal);
+
+    std::list<Node> path; //placeholder
+
+    t.stop();
+    printf("Ripple search time: %.3fms\n", t.get_microseconds() / 1000.0);
+
+    // Create image and draw walls
+    Image img = GenImageColor(map.width, map.height, WHITE);
+    draw_walls(img, map);
+
+    
+    Color colors[NUM_THREADS] = {
+        YELLOW,
+        DARKGREEN,
+        DARKPURPLE,
+        MAGENTA,
+        //SKYBLUE,
+        //MAROON,
+        //ORANGE,
+        //LIME
+    }; 
+
+    // Draw cache
+    std::atomic_thread_fence(std::memory_order_seq_cst);
+
+    for(int y = 0; y < map.height; y++) {
+        for(int x = 0; x < map.width; x++) {
+            int index = y * map.width + x;
+            auto id = ripple.cache[index].thread.load(std::memory_order_relaxed);
+            if(id != THREAD_NONE) {
+                ImageDrawPixel(&img, x, y, colors[id]);
+            }
+        }
+    }
+
+    // Draw path
+    for(auto it: path) {
+        Point p = map.node_to_point(it);
+        ImageDrawPixel(&img, p.x, p.y, RED);       
+    }
+
+    // Draw source and goal
+    Point sp = map.node_to_point(source);
+    Point gp = map.node_to_point(goal);
+    ImageDrawPixel(&img, sp.x, sp.y, GREEN);
+    ImageDrawPixel(&img, gp.x, gp.y, YELLOW);
+
+    return img;
+}
+
+
 int main(int argc, char** argv)
 {
     //Disable raylib log
@@ -226,9 +302,14 @@ int main(int argc, char** argv)
     // Run fringe search
     Image fringe_img = test_fringe_search(map, source, goal);
 
-    Image Astar_img = test_Astar(map, source, goal);
+    // Run our a star
+    //Image Astar_img = test_Astar(map, source, goal);
 
-    Image Astar2_img = test_Astar_2(map, source, goal);
+    // Run reference a star
+    //Image Astar2_img = test_Astar_2(map, source, goal);
+
+    // Run ripple
+    Image ripple_img = test_ripple(map, source, goal);
 
     // Initialization
     const int screen_width = 1000;
@@ -238,10 +319,11 @@ int main(int argc, char** argv)
     SetTargetFPS(60);
 
     Texture2D textures[] = {
+        LoadTextureFromImage(ripple_img),
         LoadTextureFromImage(boost_img),
         LoadTextureFromImage(fringe_img),
-        LoadTextureFromImage(Astar_img),
-        LoadTextureFromImage(Astar2_img),
+        //LoadTextureFromImage(Astar_img),
+        //LoadTextureFromImage(Astar2_img),
     };
     int texture_index = 0;
     int texture_count = sizeof(textures) / sizeof(textures[0]);

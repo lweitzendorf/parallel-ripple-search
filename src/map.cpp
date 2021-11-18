@@ -43,6 +43,10 @@ Node Map::point_to_node(Point i){
     return i.y * width + i.x;
 };
 
+int Map::distance(Node a, Node b) {
+    return ::distance(node_to_point(a), node_to_point(b));
+}
+
 
 int distance(Point a, Point b) {
     return abs(b.x - a.x) + abs(b.y - a.y);

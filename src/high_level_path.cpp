@@ -7,12 +7,118 @@
 #include <unordered_map>
 #include "map.h"
 #include "Astar_high.h"
-
 #include "raylib.h"
+
+#include "high_level_path.h"
 
 #define K 5
 #define N_POINTS 50
 
+std::vector<Node> create_high_level_path(Map& map, Node source, Node goal) {
+    Point source_p = map.node_to_point(source);
+    Point goal_p = map.node_to_point(goal);
+
+    //change rng
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> distrib_x(0, map.width-1);
+    std::uniform_int_distribution<> distrib_y(0, map.height-1);
+    int size = map.height* map.width;
+
+    std::vector<Point> high_nodes;
+    std::vector<std::vector<int>> knn_adj;
+
+    high_nodes.push_back(source_p);
+    knn_adj.push_back(std::vector<int> ());
+    int iter = 1;
+    //TODO: stop if a maximum number of points have been tried
+    while(iter < N_POINTS+1){ 
+        int x = distrib_x(gen);
+        int y = distrib_y(gen);
+        if(map.get(x, y )){
+            std::multimap<int, int> distances;
+            bool already_sampled = false;
+            for(int i = 1; i < high_nodes.size(); i++){
+                int diff_x = high_nodes[i].x - x;
+                int diff_y = high_nodes[i].y - y;
+                int distance = diff_x*diff_x + diff_y*diff_y;
+                if(distance == 0){
+                    already_sampled = true; break;
+                }
+                distances.insert(std::make_pair(distance, i));
+            }
+            if(already_sampled)
+                continue;
+            int k = 0;
+            std::vector<int> adj;
+            for(auto it = distances.begin(); it != distances.end(); it++){
+                adj.push_back(it->second);
+                knn_adj[it->second].push_back(iter);
+                k++;
+                if(k == K)
+                    break;
+            }
+            knn_adj.push_back(adj);
+            high_nodes.push_back(Point(x, y));
+            iter++;
+        } 
+        
+    }
+
+    //add source and goal
+    std::multimap<int, int> distances_source;
+    for(int i = 1; i < high_nodes.size(); i++){
+        int diff_x = high_nodes[i].x - source_p.x;
+        int diff_y = high_nodes[i].y - source_p.y;
+        int distance = diff_x*diff_x + diff_y*diff_y;
+        distances_source.insert(std::make_pair(distance, i));
+    }
+    int k_source = 0;
+    std::vector<int> adj_source;
+    for(auto it = distances_source.begin(); it != distances_source.end(); it++){
+        adj_source.push_back(it->second);
+        knn_adj[it->second].push_back(0);
+        k_source++;
+        if(k_source == K)
+            break;
+    }
+    knn_adj[0] = adj_source;
+
+    std::multimap<int, int> distances_goal;
+    for(int i = 0; i < high_nodes.size(); i++){
+        int diff_x = high_nodes[i].x - goal_p.x;
+        int diff_y = high_nodes[i].y - goal_p.y;
+        int distance = diff_x*diff_x + diff_y*diff_y;
+        distances_goal.insert(std::make_pair(distance, i));
+    }
+    int k_goal = 0;
+    std::vector<int> adj_goal;
+    for(auto it = distances_goal.begin(); it != distances_goal.end(); it++){
+        adj_goal.push_back(it->second);
+        knn_adj[it->second].push_back(high_nodes.size());
+        k_goal++;
+        if(k_goal == K)
+            break;
+    }
+    knn_adj.push_back(adj_goal);
+
+    high_nodes.push_back(goal_p);
+
+
+    //Find high level path
+    std::vector<Node> came_from (high_nodes.size());
+    std::vector<double> cost_so_far (high_nodes.size(), -1);
+    a_star_search(high_nodes, knn_adj, 0, high_nodes.size()-1, came_from, cost_so_far);
+    
+    std::vector<Node> path = reconstruct_path(0, high_nodes.size()-1, came_from);
+    for(auto& n: path) {
+        n = map.point_to_node(high_nodes[n]);
+    }
+
+    return path;
+}
+
+#if 0
 int main(int argc, char const *argv[]) {
     if(argc < 4) {
         std::cout << "Usage: " << argv[0] << " PATH START GOAL" << std::endl;
@@ -214,3 +320,5 @@ int main(int argc, char const *argv[]) {
 
     return 0;
 }
+
+#endif
