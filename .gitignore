@@ -2,4 +2,5 @@ cmake-build-debug/
 .idea/
 graph.in
 build/
+_build/
 .vscode/

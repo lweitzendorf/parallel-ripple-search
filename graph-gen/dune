@@ -1,0 +1,3 @@
+(executable
+ (libraries ocamlgraph cmdliner graphics)
+ (name c_grph))
