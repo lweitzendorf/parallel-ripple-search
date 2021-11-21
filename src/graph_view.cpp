@@ -17,23 +17,23 @@
 
 void check_source_and_goal(Map& map, Node source, Node goal) {
     // bounds check on source and goal
-    if(source < 0 || source >= map.data.size()) {
+    if(source < 0 || source >= map.size()) {
         std::cout << "Source node out of bounds" << std::endl;
         exit(1);
     }
 
-    if(goal < 0 || goal >= map.data.size()) {
+    if(goal < 0 || goal >= map.size()) {
         std::cout << "Goal node out of bounds" << std::endl;
         exit(1);
     }
 
     // check that both goal and source are not walls
-    if(!map.data[source]) {
+    if(!map.get(source)) {
         std::cout << "Source is a wall" << std::endl;
         exit(1);
     }
 
-    if(!map.data[goal]) {
+    if(!map.get(goal)) {
         std::cout << "Goal is a wall" << std::endl;
         exit(1);
     }
@@ -222,13 +222,18 @@ Image test_ripple(Map& map, Node source, Node goal) {
     RippleSearch ripple(map);
     Path path = ripple.search(source, goal);
 
-    for (Node n : path) {
-      std::cout << n << " ";
-    }
-    std::cout << std::endl;
-
     t.stop();
     printf("Ripple search time: %.3fms\n", t.get_microseconds() / 1000.0);
+
+    std::cout << std::endl;
+    if (!path.empty()) {
+      for (Node n: path) {
+        std::cout << n << " ";
+      }
+    } else {
+      std::cout << "No path found!";
+    }
+    std::cout << std::endl;
 
     // Create image and draw walls
     Image img = GenImageColor(map.width, map.height, WHITE);

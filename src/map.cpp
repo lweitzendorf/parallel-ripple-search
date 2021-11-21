@@ -18,15 +18,23 @@ Map::Map(int width, int height) {
   this->data.resize(width * height);
 }
 
+char Map::get(int n) {
+    return data[n];
+}
+
 char Map::get(int x, int y) {
-    return data[y * width + x];
+  return data[y * width + x];
+}
+
+void Map::set(int n, char c) {
+  data[n] = c;
 }
 
 void Map::set(int x, int y, char c) {
   data[y * width + x] = c;
 }
 
-size_t Map::size() {
+size_t Map::size() const {
     return width * height;
 }
 
@@ -45,7 +53,7 @@ void Map::load_from_image_file(const char* path) {
     UnloadImage(img);
 }
 
-Point Map::node_to_point(Node i) {
+Point Map::node_to_point(Node i) const {
     Point p;
     p.x = i % width;
     p.y = i / width;
@@ -53,7 +61,7 @@ Point Map::node_to_point(Node i) {
     return p;
 };
 
-Node Map::point_to_node(Point i){
+Node Map::point_to_node(Point i) const {
     return i.y * width + i.x;
 };
 
@@ -61,7 +69,7 @@ double Map::cost(Node from, Node to) {
     return 1;
 }
 
-int Map::distance(Node a, Node b) {
+int Map::distance(Node a, Node b) const {
     return ::distance(node_to_point(a), node_to_point(b));
 }
 
@@ -72,7 +80,7 @@ int distance(Point a, Point b) {
 
 // Iterator for generic path finding algorithms
 MapNeighbours Map::neighbours(Node i) {
-    return MapNeighbours(*this, i);
+    return {*this, i };
 }
 
 MapNeighbours::MapNeighbours(Map& map, Node node) : map(map) {
@@ -104,11 +112,9 @@ void MapIterator::update_current() {
         //Check that neighbour at index exists
         Point p = center + neighbour_offsets[index];
         if(p.x >= 0 && p.x < map.width && p.y >= 0 && p.y < map.height) {
-            Node pnode = map.point_to_node(p);
-
             // If it does set current node
-            if(map.data[pnode]) {
-                this->current_node = pnode;
+            if(map.get(p.x, p.y)) {
+                this->current_node = map.point_to_node(p);
                 break;
             }
         }
@@ -118,10 +124,10 @@ void MapIterator::update_current() {
     }
 }
 
-bool MapIterator::operator!=(MapIterator& other) {
+bool MapIterator::operator!=(MapIterator& other) const {
     return this->index != other.index;
 }
 
-Node MapIterator::operator*() {
+Node MapIterator::operator*() const {
     return current_node;
 }

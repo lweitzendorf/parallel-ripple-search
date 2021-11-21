@@ -52,7 +52,8 @@ std::list<Node> FringeSearch::search() {
 
                 if(neigh.x >= 0 && neigh.x < map.width && neigh.y >= 0 && neigh.y < map.height) {
                     Node s = map.point_to_node(neigh);
-                    if(!map.data[s]) {
+
+                    if(!map.get(neigh.x, neigh.y)) {
                         continue;
                     }
 
@@ -147,7 +148,7 @@ FringeSearchStep FringeSearch::step() {
 
                 if(neigh.x >= 0 && neigh.x < map.width && neigh.y >= 0 && neigh.y < map.height) {
                     Node s = map.point_to_node(neigh);
-                    if(!map.data[s]) {
+                    if(!map.get(neigh.x, neigh.y)) {
                         continue;
                     }
 

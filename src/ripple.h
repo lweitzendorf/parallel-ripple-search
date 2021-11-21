@@ -108,11 +108,13 @@ private:
     // This graph is only read and written by the source thread
     std::vector<std::vector<Collision>>& collision_graph;
 
-    // path from source to goal1 excluding start and end
+    Collision forward_collision = { THREAD_NONE, INVALID_NODE };
+
+    // path from source to goal1 collision excluding start and end
     // no backward path for source thread
     Path backward_path;
 
-    // path from source to goal2 excluding start
+    // path from source to goal2 collision excluding start and end
     // no forward path for goal thread, source thread uses goal1
     Path forward_path;
 
@@ -152,7 +154,7 @@ public:
     void set_single_goal(Node g);
     void set_goals(Node g1, Node g2);
 
-    void append_partial_path(std::back_insert_iterator<Path> path_inserter);
+    ThreadId append_partial_path(std::back_insert_iterator<Path> path_inserter);
 };
 
 // Utility class for initializing and invoking ripple search

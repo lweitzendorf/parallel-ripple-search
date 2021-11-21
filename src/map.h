@@ -51,8 +51,8 @@ public:
     MapIterator(Map& map, Point p, size_t idx);
 
     MapIterator& operator++();
-    bool operator!=(MapIterator& other);
-    Node operator*();
+    bool operator!=(MapIterator& other) const;
+    Node operator*() const;
 };
 
 class MapNeighbours {
@@ -66,21 +66,26 @@ public:
 };
 
 class Map {
+private:
+  std::vector<char> data;
+
 public:
     Map(int width = 0, int height = 0);
-
-    std::vector<char> data;
     int width, height;
 
+    char get(int n);
     char get(int x, int y);
+
+    void set(int n, char c);
     void set(int x, int y, char c);
-    size_t size();
+
+    size_t size() const;
 
     void load_from_image_file(const char* path);
     
-    Point node_to_point(Node i);
-    Node point_to_node(Point p);
-    int distance(Node a, Node b);
+    Point node_to_point(Node i) const;
+    Node point_to_node(Point p) const;
+    int distance(Node a, Node b) const;
     double cost(Node from, Node to);
 
     MapNeighbours neighbours(Node i);

@@ -217,17 +217,16 @@ float MapSearchNode::GetCost( MapSearchNode &successor )
 
 
 // Main
-void setWorldMap(Map& map){
-	MAP_WIDTH = map.width;
-	MAP_HEIGHT = map.height;
-
-	for (int i = 0; i < map.data.size(); i++){
-		if ((int) map.data[i] == 0){ //0 is a wall
-			world_map.push_back(9);
-		}else{						// Asuming the other value is a 1
-			world_map.push_back(0);
-		}
-	}
+void setWorldMap(Map& map) {
+	for (int x = 0; x < map.width; x++) {
+    for (int y = 0; y < map.height; y++) {
+      if ((int) map.get(x, y) == 0) { //0 is a wall
+        world_map.push_back(9);
+      } else {            // Asuming the other value is a 1
+        world_map.push_back(0);
+      }
+    }
+  }
 }
 
 //run this

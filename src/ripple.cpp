@@ -297,7 +297,7 @@ void RippleThread::entry() {
                         Node neighbour = map.point_to_node(neigh);
 
                         // If it's a wall skip
-                        if(!map.data[neighbour]) {
+                        if(!map.get(neigh.x, neigh.y)) {
                             continue;
                         }
                         
@@ -362,6 +362,16 @@ void RippleThread::entry() {
 
         // Finished the space we could search in
 
+        // Temporary solution for when collision detection is implemented
+        /*if (id != THREAD_GOAL) {
+          for (Collision c : collision_graph.at(id)) {
+            if (c.target == id+1) {
+              forward_collision = c;
+              break;
+            }
+          }
+        }*/
+
         // TODO: handle
         if(found) {
             break;
@@ -372,16 +382,21 @@ void RippleThread::entry() {
     }
 }
 
-void RippleThread::append_partial_path(std::back_insert_iterator<Path> path_inserter) {
+ThreadId RippleThread::append_partial_path(std::back_insert_iterator<Path> path_inserter) {
   std::reverse_copy(backward_path.begin(), backward_path.end(), path_inserter);
   path_inserter = source;
   std::copy(forward_path.begin(), forward_path.end(), path_inserter);
+
+  if (forward_collision.target != THREAD_NONE) {
+    path_inserter = forward_collision.collision_node;
+  }
+  return forward_collision.target;
 }
 
 // Ripple search utilities
 RippleSearch::RippleSearch(Map& map):
     map(map),
-    cache(map.data.size()) 
+    cache(map.size())
 {
     message_queues.resize(NUM_THREADS);
     collision_graph.resize(NUM_THREADS);
@@ -450,10 +465,11 @@ Path RippleSearch::search(Node source, Node goal) {
     }
 
     Path path;
+    ThreadId next_thread = THREAD_SOURCE;
 
-    for(auto& t: threads) {
-      t->append_partial_path(std::back_inserter(path));
+    while (next_thread != THREAD_NONE) {
+      next_thread = threads.at(next_thread)->append_partial_path(std::back_inserter(path));
     }
 
-    return path;
+    return path.back() == goal ? path : Path();
 }
