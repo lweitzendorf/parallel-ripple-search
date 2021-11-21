@@ -220,9 +220,12 @@ Image test_ripple(Map& map, Node source, Node goal) {
     t.start();
     
     RippleSearch ripple(map);
-    ripple.search(source, goal);
+    std::vector<Node> path = ripple.search(source, goal);
 
-    std::list<Node> path; //placeholder
+    for (Node n : path) {
+      std::cout << n << " ";
+    }
+    std::cout << std::endl;
 
     t.stop();
     printf("Ripple search time: %.3fms\n", t.get_microseconds() / 1000.0);
@@ -278,8 +281,8 @@ int main(int argc, char** argv)
     SetTraceLogLevel(LOG_NONE);
 
     if(argc < 4) {
-        std::cout << "Usage: " << argv[0] << " PATH START GOAL" << std::endl;
-        exit(1);
+      std::cout << "Usage: " << argv[0] << " PATH START GOAL" << std::endl;
+      return 1;
     }
 
     Map map;
@@ -295,6 +298,7 @@ int main(int argc, char** argv)
       map = graph.create_map();
     } else {
       std::cout << "Unsupported file type!" << std::endl;
+      return 1;
     }
 
     Node source = strtol(argv[2], nullptr, 10);

@@ -8,6 +8,9 @@ FileParser::FileParser(std::string file_path) {
 bool BitMapParser::build_graph(WeightedGraph& g) {
   std::ifstream graph_file(file_path);
 
+  if (!graph_file.is_open())
+    return false;
+
   int x_size, y_size;
   graph_file >> x_size >> y_size;
 

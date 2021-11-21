@@ -13,17 +13,13 @@
 #include "fringe.h"
 
 #define NUM_THREADS 4
-#define NUM_SLAVE_THREADS (NUM_THREADS - 2)
-#define FIRST_SLAVE_THREAD 1
-#define LAST_SLAVE_THREAD NUM_SLAVE_THREADS
-
 
 using oneapi::tbb::concurrent_queue;
 
 enum ThreadId: int8_t {
     THREAD_NONE   = -1,
     THREAD_SOURCE = 0,
-    THREAD_GOAL   = LAST_SLAVE_THREAD + 1,
+    THREAD_GOAL   = NUM_THREADS - 1,
 };
 
 // Struct representing a collision between threads.
@@ -71,10 +67,14 @@ struct RippleCacheNode {
 
 // Class representing a thread of the ripple search algorithm
 class RippleThread {
-public:
+private:
+    std::unique_ptr<std::thread> thread;
+
     // Read only data:
     // My id
     ThreadId id;
+    // internal thread
+
     // Map
     Map& map;
     // Message queues for sending to other threads
@@ -108,27 +108,17 @@ public:
     // This graph is only read and written by the source thread
     std::vector<std::vector<Collision>>& collision_graph;
 
-public:
+    // path from source to goal1 excluding start and end
+    std::vector<Node> backward_path;
 
-    RippleThread(ThreadId id,
-                Map& map, 
-                std::vector<std::vector<Collision>>& collision_graph, 
-                std::vector<RippleCacheNode>& cache,
-                std::vector<concurrent_queue<Message>>& message_queues);
+    // path from source to goal2 excluding start and end
+    std::vector<Node> forward_path;
 
-    
-    // Setters for the source and goals variables
-    void set_source(Node s);
-    void set_single_goal(Node g);
-    void set_goals(Node g1, Node g2);
-
-
-    // Only called by the Source thread to check if there is a path in the collision graph 
+    // Only called by the Source thread to check if there is a path in the collision graph
     // from source to node
     void add_collision(ThreadId collision_source, Collision collision);
 
-
-    // Only called by the Source thread to check if there is a path in the collision graph 
+    // Only called by the Source thread to check if there is a path in the collision graph
     // from source to node
     void check_collision_path();
 
@@ -143,6 +133,24 @@ public:
 
     // Entry point of all ripple threads
     void entry();
+
+public:
+
+    RippleThread(ThreadId id,
+                Map& map, 
+                std::vector<std::vector<Collision>>& collision_graph, 
+                std::vector<RippleCacheNode>& cache,
+                std::vector<concurrent_queue<Message>>& message_queues);
+
+    bool start();
+    bool join();
+    
+    // Setters for the source and goals variables
+    void set_source(Node s);
+    void set_single_goal(Node g);
+    void set_goals(Node g1, Node g2);
+
+    void append_partial_path(std::back_insert_iterator<std::vector<Node>> path_inserter);
 };
 
 // Utility class for initializing and invoking ripple search
@@ -157,5 +165,5 @@ public:
     RippleSearch(Map& map);
 
     // Start the search from source to goal, they must be valid nodes
-    void search(Node source, Node goal);
+    std::vector<Node> search(Node source, Node goal);
 };

@@ -1,3 +1,4 @@
+#include <memory>
 #include <queue>
 #include <iostream>
 
@@ -10,6 +11,7 @@ RippleThread::RippleThread(ThreadId id,
             std::vector<RippleCacheNode>& cache,
             std::vector<concurrent_queue<Message>>& message_queues) :
     id(id),
+    thread(nullptr),
     map(map),
     message_queues(message_queues),
     cache(cache),
@@ -28,6 +30,23 @@ void RippleThread::set_single_goal(Node g) {
 void RippleThread::set_goals(Node g1, Node g2) {
     goal = g1;
     goal_2 = g2;
+}
+
+bool RippleThread::start() {
+  if (thread == nullptr) {
+    thread = std::make_unique<std::thread>(&RippleThread::entry, this);
+    return true;
+  }
+  return false;
+}
+
+bool RippleThread::join() {
+  if (thread != nullptr) {
+    thread->join();
+    thread = nullptr;
+    return true;
+  }
+  return false;
 }
 
 void RippleThread::add_collision(ThreadId collision_source, Collision collision) {
@@ -353,10 +372,14 @@ void RippleThread::entry() {
     }
 }
 
-
+void RippleThread::append_partial_path(std::back_insert_iterator<std::vector<Node>> path_inserter) {
+  std::reverse_copy(backward_path.begin(), backward_path.end(), path_inserter);
+  path_inserter = source;
+  std::copy(forward_path.begin(), forward_path.end(), path_inserter);
+}
 
 // Ripple search utilities
-RippleSearch::RippleSearch(Map& map): 
+RippleSearch::RippleSearch(Map& map):
     map(map),
     cache(map.data.size()) 
 {
@@ -367,11 +390,11 @@ RippleSearch::RippleSearch(Map& map):
     }
 }
 
-void RippleSearch::search(Node source, Node goal) {
+std::vector<Node> RippleSearch::search(Node source, Node goal) {
     std::vector<Node> high_level_path = create_high_level_path(map, source, goal);
     if(high_level_path.size() < NUM_THREADS) {
         std::cout << "Failed to find enough nodes for high level path, found: " << high_level_path.size() << std::endl;
-        return;
+        return { };
     }
 
     //TODO do something smart to choose the best NUM_THREADS points
@@ -387,38 +410,50 @@ void RippleSearch::search(Node source, Node goal) {
         cache[high_level_path[i]].thread.store((ThreadId)i, std::memory_order_seq_cst);
     }
 
-    std::vector<std::thread> threads;
+    std::vector<RippleThread*> threads;
 
     // Start source thread
     {
-        RippleThread* source_thread = new RippleThread(THREAD_SOURCE, map, collision_graph, cache, message_queues);
+        auto* source_thread = new RippleThread(THREAD_SOURCE, map, collision_graph, cache, message_queues);
         source_thread->set_source(source);
         source_thread->set_single_goal(goal);
 
-        threads.emplace_back(&RippleThread::entry, source_thread);
+        threads.push_back(source_thread);
     }
 
 
     // Start slave thread
-    for(int i = FIRST_SLAVE_THREAD; i <= LAST_SLAVE_THREAD; i++) {
-        RippleThread* slave_thread = new RippleThread((ThreadId)i, map, collision_graph, cache, message_queues);
+    for (int i = 1; i < NUM_THREADS-1; i++) {
+        auto* slave_thread = new RippleThread((ThreadId)i, map, collision_graph, cache, message_queues);
         slave_thread->set_source(high_level_path[i]);
         slave_thread->set_goals(high_level_path[i - 1], high_level_path[i + 1]);
 
-        threads.emplace_back(&RippleThread::entry, slave_thread);
+        threads.push_back(slave_thread);
     }
 
-    // Start goal thread
+    // Start goals thread
     {
-        RippleThread* goal_thread = new RippleThread(THREAD_GOAL, map, collision_graph, cache, message_queues);
+        auto* goal_thread = new RippleThread(THREAD_GOAL, map, collision_graph, cache, message_queues);
         goal_thread->set_source(goal);
         goal_thread->set_single_goal(source);
 
-        threads.emplace_back(&RippleThread::entry, goal_thread);
+        threads.push_back(goal_thread);
+    }
+
+    for(auto& t: threads) {
+      t->start();
     }
 
     // Wait for all threads to finish
     for(auto& t: threads) {
-        t.join();
+      t->join();
     }
+
+    std::vector<Node> path;
+
+    for(auto& t: threads) {
+      t->append_partial_path(std::back_inserter(path));
+    }
+
+    return path;
 }
