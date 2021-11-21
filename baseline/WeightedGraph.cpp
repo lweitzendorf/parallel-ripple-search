@@ -43,20 +43,20 @@ Map WeightedGraph::create_map() {
   int width = 0, height = 0;
 
   for (const auto loc : locations) {
-    width = std::max(width, loc.first + 1);
-    height = std::max(height, loc.second + 1);
+    width = std::max(width, loc.x + 1);
+    height = std::max(height, loc.y + 1);
   }
 
   Map map(width, height);
 
   for(int y = 0; y < height; y++) {
     for(int x = 0; x < width; x++) {
-      map.set(x, y, 0);
+      map.set(Point(x, y), 0);
     }
   }
 
   for (int v = 0; v < num_vertices(); v++) {
-    map.set(locations[v].first, locations[v].second, boost::in_degree(v, g) != 0);
+    map.set(locations[v], boost::in_degree(v, g) != 0);
   }
 
   return map;

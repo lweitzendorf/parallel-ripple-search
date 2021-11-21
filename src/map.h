@@ -38,7 +38,7 @@ struct Point {
 class Map;
 
 class MapIterator {
-private:
+  private:
     Map& map;
     Point center;
     size_t index;
@@ -47,7 +47,7 @@ private:
     
     void update_current();
 
-public:
+  public:
     MapIterator(Map& map, Point p, size_t idx);
 
     MapIterator& operator++();
@@ -59,39 +59,40 @@ class MapNeighbours {
     Map& map;
     Point point;
 
-public:
+  public:
     MapNeighbours(Map& map, Node node);
     MapIterator begin();
     MapIterator end();    
 };
 
 class Map {
-private:
-  std::vector<char> data;
+  private:
+    int width_, height_;
+    std::vector<char> data;
 
-public:
-    Map(int width = 0, int height = 0);
-    int width, height;
+  public:
+    explicit Map(int width = 0, int height = 0);
 
-    char get(int n);
-    char get(int x, int y);
+    static Point neighbour_offsets[4];
+    static constexpr int NEIGHBOURS_COUNT = sizeof(neighbour_offsets) / sizeof(neighbour_offsets[0]);
 
-    void set(int n, char c);
-    void set(int x, int y, char c);
+    int width() const { return width_; }
+    int height() const { return height_; }
+    size_t size() const { return data.size(); }
 
-    size_t size() const;
+    char get(Point p);
+    void set(Point p, char c);
+
+    bool in_bounds(Point p) const;
 
     void load_from_image_file(const char* path);
     
     Point node_to_point(Node i) const;
     Node point_to_node(Point p) const;
     int distance(Node a, Node b) const;
+    static int distance(Point a, Point b);
+
     double cost(Node from, Node to);
 
     MapNeighbours neighbours(Node i);
 };
-
-
-int distance(Point a, Point b);
-
-extern Point neighbour_offsets[4];

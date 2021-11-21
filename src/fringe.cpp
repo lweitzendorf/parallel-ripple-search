@@ -7,10 +7,7 @@
 std::list<Node> FringeSearch::search() {
     // Lambda for computing heuristic
     auto h = [&](Node i) {
-        Point a = map.node_to_point(i);
-        Point b = map.node_to_point(goal);
-
-        return distance(a, b);
+        return map.distance(i, goal);
     };
 
     int flimit = h(source);
@@ -46,14 +43,14 @@ std::list<Node> FringeSearch::search() {
 
             // For each neighbour
             for(int i = 0; i < 4; i++) {
-                Point neigh = neighbour_offsets[i];
+                Point neigh = Map::neighbour_offsets[i];
                 neigh.x += np.x;
                 neigh.y += np.y;
 
-                if(neigh.x >= 0 && neigh.x < map.width && neigh.y >= 0 && neigh.y < map.height) {
+                if (map.in_bounds(neigh)) {
                     Node s = map.point_to_node(neigh);
 
-                    if(!map.get(neigh.x, neigh.y)) {
+                    if(!map.get(neigh)) {
                         continue;
                     }
 
@@ -142,13 +139,13 @@ FringeSearchStep FringeSearch::step() {
 
             // For each neighbour
             for(int i = 0; i < 4; i++) {
-                Point neigh = neighbour_offsets[i];
+                Point neigh = Map::neighbour_offsets[i];
                 neigh.x += np.x;
                 neigh.y += np.y;
 
-                if(neigh.x >= 0 && neigh.x < map.width && neigh.y >= 0 && neigh.y < map.height) {
+                if(map.in_bounds(neigh)) {
                     Node s = map.point_to_node(neigh);
-                    if(!map.get(neigh.x, neigh.y)) {
+                    if(!map.get(neigh)) {
                         continue;
                     }
 
@@ -217,7 +214,7 @@ void FringeSearch::init(Node source, Node goal) {
     this->goal = goal;
 
     cache.clear();
-    cache.resize(map.width * map.height, {});
+    cache.resize(map.size(), {});
 
     fringe_list.clear();
 

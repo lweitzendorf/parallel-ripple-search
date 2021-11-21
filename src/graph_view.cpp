@@ -27,12 +27,12 @@ void check_source_and_goal(Map& map, Node source, Node goal) {
     }
 
     // check that both goal and source are not walls
-    if(!map.get(source)) {
+    if(!map.get(map.node_to_point(source))) {
         std::cout << "Source is a wall" << std::endl;
         exit(1);
     }
 
-    if(!map.get(goal)) {
+    if(!map.get(map.node_to_point(goal))) {
         std::cout << "Goal is a wall" << std::endl;
         exit(1);
     }
@@ -40,13 +40,13 @@ void check_source_and_goal(Map& map, Node source, Node goal) {
 
 
 void build_graph(WeightedGraph& g, Map& map) {
-  int x_size = map.width;
-  int y_size = map.height;
+  int x_size = map.width();
+  int y_size = map.height();
 
   std::vector<bool> is_path(x_size);
   for (int y = 0; y < y_size; y++) {
     for (int x = 0; x < x_size; x++) {
-        bool current_is_path = map.get(x, y);
+        bool current_is_path = map.get(Point(x, y));
 
         vertex_t vertex_number = g.add_vertex(x, y);
 
@@ -63,9 +63,9 @@ void build_graph(WeightedGraph& g, Map& map) {
 }
 
 void draw_walls(Image img, Map& map) {
-    for(int y = 0; y < map.height; y++) {
-        for(int x = 0; x < map.width; x++) {
-            if(!map.get(x, y)) {
+    for(int y = 0; y < map.height(); y++) {
+        for(int x = 0; x < map.width(); x++) {
+            if(!map.get(Point(x, y))) {
                 ImageDrawPixel(&img, x, y, BLACK);
             }
         }  
@@ -96,7 +96,7 @@ Image test_boost_a_star(Map& map, Node source, Node goal) {
     std::cout << std::endl;
 
     // Create image and draw walls
-    Image img = GenImageColor(map.width, map.height, WHITE);
+    Image img = GenImageColor(map.width(), map.height(), WHITE);
     draw_walls(img, map);
 
     for(auto it: path) {
@@ -141,13 +141,13 @@ Image test_fringe_search(Map& map, Node source, Node goal) {
     std::cout << std::endl;
 
     // Create image and draw walls
-    Image img = GenImageColor(map.width, map.height, WHITE);
+    Image img = GenImageColor(map.width(), map.height(), WHITE);
     draw_walls(img, map);
 
     // Draw visited nodes
-    for(int y = 0; y < map.height; y++) {
-        for(int x = 0; x < map.width; x++) {
-            int index = y * map.width + x;
+    for(int y = 0; y < map.height(); y++) {
+        for(int x = 0; x < map.width(); x++) {
+            int index = map.point_to_node(Point(x, y));
             if(fringe.cache[index].visited) {
                 ImageDrawPixel(&img, x, y, LIME);
             }
@@ -182,7 +182,7 @@ Image test_Astar(Map& map, Node source, Node goal) {
     std::cout << std::endl;
 
     // Create image and draw walls
-    Image img = GenImageColor(map.width, map.height, WHITE);
+    Image img = GenImageColor(map.width(), map.height(), WHITE);
     draw_walls(img, map);
 
 
@@ -214,7 +214,7 @@ Image test_Astar_2(Map& map, Node source, Node goal) {
     std::cout << std::endl;
 
     // Create image and draw walls
-    Image img = GenImageColor(map.width, map.height, WHITE);
+    Image img = GenImageColor(map.width(), map.height(), WHITE);
     draw_walls(img, map);
 
 
@@ -247,7 +247,7 @@ Image test_ripple(Map& map, Node source, Node goal) {
     std::cout << std::endl;
 
     // Create image and draw walls
-    Image img = GenImageColor(map.width, map.height, WHITE);
+    Image img = GenImageColor(map.width(), map.height(), WHITE);
     draw_walls(img, map);
 
     
@@ -265,9 +265,9 @@ Image test_ripple(Map& map, Node source, Node goal) {
     // Draw cache
     std::atomic_thread_fence(std::memory_order_seq_cst);
 
-    for(int y = 0; y < map.height; y++) {
-        for(int x = 0; x < map.width; x++) {
-            int index = y * map.width + x;
+    for(int y = 0; y < map.height(); y++) {
+        for(int x = 0; x < map.width(); x++) {
+            int index = map.point_to_node(Point(x, y));
             auto id = ripple.cache[index].thread.load(std::memory_order_relaxed);
             if(id != THREAD_NONE) {
                 ImageDrawPixel(&img, x, y, colors[id]);

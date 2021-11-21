@@ -250,12 +250,12 @@ void RippleThread::entry() {
     // Initialize fringe search
     initialize_fringe_search();
     
-    while(true) {
+    while (true) {
         // Fringe search step towards G
         bool found = false;
         FringeEntry node = fringe_list.end();
 
-        while(!found && !fringe_list.empty()) {
+        while (!found && !fringe_list.empty()) {
             int fmin = INT_MAX;
             node = fringe_list.begin();
 
@@ -283,21 +283,20 @@ void RippleThread::entry() {
                     continue;
                 }
 
-                
                 Point np = map.node_to_point(*node);
 
                 // For each neighbour
-                for(int i = 0; i < 4; i++) {
-                    Point neigh = neighbour_offsets[i];
+                for (int i = 0; i < 4; i++) {
+                    Point neigh = Map::neighbour_offsets[i];
                     neigh.x += np.x;
                     neigh.y += np.y;
 
                     // If the neighbour coordinates are inside the map
-                    if(neigh.x >= 0 && neigh.x < map.width && neigh.y >= 0 && neigh.y < map.height) {
+                    if (map.in_bounds(neigh)) {
                         Node neighbour = map.point_to_node(neigh);
 
                         // If it's a wall skip
-                        if(!map.get(neigh.x, neigh.y)) {
+                        if (!map.get(neigh)) {
                             continue;
                         }
                         
@@ -306,8 +305,8 @@ void RippleThread::entry() {
 
                         // Check if already owned, otherwise try to acquire
                         ThreadId owner = cache[neighbour].thread.load(std::memory_order_relaxed);
-                        if(owner == THREAD_NONE) {
-                            if(!cache[neighbour].thread.compare_exchange_strong(owner, id, 
+                        if (owner == THREAD_NONE) {
+                            if (!cache[neighbour].thread.compare_exchange_strong(owner, id,
                                 std::memory_order_seq_cst, std::memory_order_seq_cst)) {
                                 
                                 // If we failed to acquire the node we need to handle the collision
@@ -325,12 +324,12 @@ void RippleThread::entry() {
                         
                         // Skip neighbour if already visited with a lower cost
                         FringeNode& neighbour_cache = cache[neighbour].node;
-                        if(neighbour_cache.visited && gs > neighbour_cache.g) {
+                        if (neighbour_cache.visited && gs > neighbour_cache.g) {
                             continue;
                         }
 
                         // If already in list, remove it
-                        if(neighbour_cache.in_list) {
+                        if (neighbour_cache.in_list) {
                             fringe_list.erase(neighbour_cache.list_entry);
                             neighbour_cache.in_list = false;
                         }

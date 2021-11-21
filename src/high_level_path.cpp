@@ -33,11 +33,11 @@ public:
     }
 
     double cost(int i, int j) {
-        return ::distance(nodes[i], nodes[j]);
+        return Map::distance(nodes[i], nodes[j]);
     }
 
     int distance(int i, int j) {
-        return ::distance(nodes[i], nodes[j]);
+        return Map::distance(nodes[i], nodes[j]);
     }
     
 };
@@ -50,9 +50,9 @@ Path create_high_level_path(Map& map, Node source, Node goal) {
     //change rng
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distrib_x(0, map.width-1);
-    std::uniform_int_distribution<> distrib_y(0, map.height-1);
-    int size = map.height* map.width;
+    std::uniform_int_distribution<> distrib_x(0, map.width() - 1);
+    std::uniform_int_distribution<> distrib_y(0, map.height() - 1);
+    int size = map.size();
 
     HighLevelGraph high(map);
     high.nodes.push_back(source_p);
@@ -63,7 +63,7 @@ Path create_high_level_path(Map& map, Node source, Node goal) {
     while(iter < N_POINTS+1){ 
         int x = distrib_x(gen);
         int y = distrib_y(gen);
-        if(map.get(x, y )){
+        if(map.get(Point(x, y))){
             std::multimap<int, int> distances;
             bool already_sampled = false;
             for(int i = 1; i < high.nodes.size(); i++){
