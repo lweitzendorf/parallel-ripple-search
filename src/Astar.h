@@ -25,13 +25,15 @@ struct PriorityQueue {
   }
 };
 
+template<typename Graph, typename Node>
 void a_star_search
-  (Map& graph,
+  (Graph& graph,
    Node start,
    Node goal,
    std::vector<Node>& came_from,
    std::vector<double>& cost_so_far);
 
+template<typename Node>
 std::vector<Node> reconstruct_path(
    Node start, Node goal,
    std::vector<Node>& came_from

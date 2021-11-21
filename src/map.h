@@ -28,6 +28,30 @@ struct Point {
     }
 };
 
+class Map;
+
+class MapIterator {
+private:
+    Map& map;
+    Point p;
+    int index;
+
+public:      
+    MapIterator& operator++();
+    bool operator!=(MapIterator& other);
+    int get_cost();
+    int get_node();
+};
+
+class MapNeighbours {
+    Map& map;
+    Node node;
+
+public:
+    MapIterator begin();
+    MapIterator end();    
+};
+
 class Map {
 public:
     Map(int width = 0, int height = 0);
@@ -43,6 +67,8 @@ public:
     Point node_to_point(Node i);
     Node point_to_node(Point p);
     int distance(Node a, Node b);
+
+    MapNeighbours neighbours(Node i);
 };
 
 

@@ -3,8 +3,9 @@
 #include "map.h"
 #include "Astar.h"
 
+template<typename Graph, typename Node>
 void a_star_search
-  (Map& graph,
+  (Graph& graph,
    Node start,
    Node goal,
    std::vector<Node>& came_from,
@@ -16,7 +17,6 @@ void a_star_search
   came_from[start] = start;
   cost_so_far[start] = 0;
   
-  Point goal_p = graph.node_to_point(goal);
   while (!frontier.empty()) {
     Node current = frontier.get();
 
@@ -24,10 +24,23 @@ void a_star_search
       break;
     }
 
-    Point np = graph.node_to_point(current);
     // For each neighbour
-    for(int i = 0; i < 4; i++) {
-      Point neigh = neighbour_offsets[i];
+    for(auto it: graph.neighbours(current)) {
+      Node s = it.get_node();
+      double new_cost = cost_so_far[current] + it.get_cost();
+
+      if (cost_so_far[s] == -1 || new_cost < cost_so_far[s]) {
+        cost_so_far[s] = new_cost;
+        double priority = new_cost + graph.distance(s, goal);
+        frontier.put(s, priority);
+        came_from[s] = current;
+      }
+    }
+  }
+}
+
+#if 0
+Point neigh = neighbour_offsets[i];
       neigh.x += np.x;
       neigh.y += np.y;
 
@@ -36,19 +49,7 @@ void a_star_search
         if(!graph.data[s]) {
             continue;
         }
-        
-        double new_cost = cost_so_far[current] + 1;
-        if (cost_so_far[s] == -1
-            || new_cost < cost_so_far[s]) {
-          cost_so_far[s] = new_cost;
-          double priority = new_cost + distance(neigh, goal_p);
-          frontier.put(s, priority);
-          came_from[s] = current;
-        }
-      }
-    }
-  }
-}
+#endif
 
 std::vector<Node> reconstruct_path(
    Node start, Node goal,

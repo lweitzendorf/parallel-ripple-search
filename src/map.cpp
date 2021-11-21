@@ -1,6 +1,10 @@
 #include "map.h"
 
 #include <raylib.h>
+<<<<<<< Updated upstream
+=======
+#include <cmath>
+>>>>>>> Stashed changes
 
 Point neighbour_offsets[4] = {
     {1, 0},

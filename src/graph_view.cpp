@@ -13,7 +13,7 @@
 #include "WeightedGraph.h"
 #include "FileParser.h"
 
-//#include "Astar.h"
+#include "Astar.h"
 
 void check_source_and_goal(Map& map, Node source, Node goal) {
     // bounds check on source and goal
@@ -154,9 +154,7 @@ Image test_fringe_search(Map& map, Node source, Node goal) {
     return img;
 }
 
-#if 0
 Image test_Astar(Map& map, Node source, Node goal) {
-    // Run fringe search
     Timer t;
     t.start();
     
@@ -188,10 +186,8 @@ Image test_Astar(Map& map, Node source, Node goal) {
 
     return img;
 }
-#endif
 
 Image test_Astar_2(Map& map, Node source, Node goal) {
-    // Run fringe search
     Timer t;
     t.start();
     
@@ -223,7 +219,6 @@ Image test_Astar_2(Map& map, Node source, Node goal) {
 
 
 Image test_ripple(Map& map, Node source, Node goal) {
-    // Run fringe search
     Timer t;
     t.start();
     

@@ -131,7 +131,7 @@ void RippleThread::check_collision_path() {
             }
         }
 
-        // TODO: wait for goal thread?
+        // TODO: also wait for goal thread
     }
 }
 
