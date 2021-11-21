@@ -109,9 +109,11 @@ private:
     std::vector<std::vector<Collision>>& collision_graph;
 
     // path from source to goal1 excluding start and end
+    // no backward path for source thread
     std::vector<Node> backward_path;
 
-    // path from source to goal2 excluding start and end
+    // path from source to goal2 excluding start
+    // no forward path for goal thread, source thread uses goal1
     std::vector<Node> forward_path;
 
     // Only called by the Source thread to check if there is a path in the collision graph
