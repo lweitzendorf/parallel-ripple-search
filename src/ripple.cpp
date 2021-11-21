@@ -372,7 +372,7 @@ void RippleThread::entry() {
     }
 }
 
-void RippleThread::append_partial_path(std::back_insert_iterator<std::vector<Node>> path_inserter) {
+void RippleThread::append_partial_path(std::back_insert_iterator<Path> path_inserter) {
   std::reverse_copy(backward_path.begin(), backward_path.end(), path_inserter);
   path_inserter = source;
   std::copy(forward_path.begin(), forward_path.end(), path_inserter);
@@ -390,8 +390,8 @@ RippleSearch::RippleSearch(Map& map):
     }
 }
 
-std::vector<Node> RippleSearch::search(Node source, Node goal) {
-    std::vector<Node> high_level_path = create_high_level_path(map, source, goal);
+Path RippleSearch::search(Node source, Node goal) {
+    Path high_level_path = create_high_level_path(map, source, goal);
     if(high_level_path.size() < NUM_THREADS) {
         std::cout << "Failed to find enough nodes for high level path, found: " << high_level_path.size() << std::endl;
         return { };
@@ -449,7 +449,7 @@ std::vector<Node> RippleSearch::search(Node source, Node goal) {
       t->join();
     }
 
-    std::vector<Node> path;
+    Path path;
 
     for(auto& t: threads) {
       t->append_partial_path(std::back_inserter(path));

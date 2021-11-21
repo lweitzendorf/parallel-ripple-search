@@ -26,9 +26,9 @@ struct PriorityQueue {
 
 
 template<typename Graph, typename Node>
-std::vector<Node> a_star_search_gen(Graph& graph, Node start, Node goal)
+Path a_star_search_gen(Graph& graph, Node start, Node goal)
 {
-  std::vector<Node> came_from(graph.size());
+  Path came_from(graph.size());
   std::vector<double> cost_so_far(graph.size(), -1);
 
   PriorityQueue<Node, double> frontier;
@@ -61,8 +61,8 @@ std::vector<Node> a_star_search_gen(Graph& graph, Node start, Node goal)
 }
 
 template<typename Node>
-std::vector<Node> reconstruct_path_gen(Node start, Node goal, std::vector<Node>& came_from) {
-  std::vector<Node> path;
+Path reconstruct_path_gen(Node start, Node goal, Path& came_from) {
+  Path path;
   Node current = goal;
   while (current != start) {
     path.push_back(current);

@@ -43,7 +43,7 @@ public:
 };
 
 
-std::vector<Node> create_high_level_path(Map& map, Node source, Node goal) {
+Path create_high_level_path(Map& map, Node source, Node goal) {
     Point source_p = map.node_to_point(source);
     Point goal_p = map.node_to_point(goal);
 
@@ -134,8 +134,8 @@ std::vector<Node> create_high_level_path(Map& map, Node source, Node goal) {
 
 
     //Find high level path
-    std::vector<Node> came_from = a_star_search_gen(high, 0, (int)high.nodes.size()-1);
-    std::vector<Node> path = reconstruct_path_gen(0, (int)high.nodes.size()-1, came_from);
+    Path came_from = a_star_search_gen(high, 0, (int)high.nodes.size()-1);
+    Path path = reconstruct_path_gen(0, (int)high.nodes.size()-1, came_from);
     for(auto& n: path) {
         n = map.point_to_node(high.nodes[n]);
     }
@@ -255,14 +255,14 @@ int main(int argc, char const *argv[]) {
     }
     std::cout << std::endl;
     //ASTAR
-    std::vector<Node> came_from (high_nodes.size());
+    Path came_from (high_nodes.size());
     std::vector<double> cost_so_far (high_nodes.size(), -1);
     a_star_search(high_nodes, knn_adj, 0, high_nodes.size()-1, came_from, cost_so_far);
     for(auto a : came_from){
         std::cout << a << " ";
     }
     std::cout << std::endl;
-    std::vector<Node> path = reconstruct_path(0, high_nodes.size()-1, came_from);
+    Path path = reconstruct_path(0, high_nodes.size()-1, came_from);
     for(auto a : path){
         std::cout << a << std::endl;
     }

@@ -3,6 +3,8 @@
 #include <vector>
 
 typedef int Node;
+typedef std::vector<Node> Path;
+
 #define INVALID_NODE (-1)
 
 struct Point {

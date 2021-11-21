@@ -98,7 +98,7 @@ private:
     int (*heuristic)(RippleThread* self, Node n);
     int flimit;
 
-    // Referernce to vector of node info for fringe search, shared between all threads
+    // Reference to vector of node info for fringe search, shared between all threads
     std::vector<RippleCacheNode>& cache;
 
     // Adjacency list of the graph of all the nodes in which we have a collision
@@ -110,11 +110,11 @@ private:
 
     // path from source to goal1 excluding start and end
     // no backward path for source thread
-    std::vector<Node> backward_path;
+    Path backward_path;
 
     // path from source to goal2 excluding start
     // no forward path for goal thread, source thread uses goal1
-    std::vector<Node> forward_path;
+    Path forward_path;
 
     // Only called by the Source thread to check if there is a path in the collision graph
     // from source to node
@@ -152,7 +152,7 @@ public:
     void set_single_goal(Node g);
     void set_goals(Node g1, Node g2);
 
-    void append_partial_path(std::back_insert_iterator<std::vector<Node>> path_inserter);
+    void append_partial_path(std::back_insert_iterator<Path> path_inserter);
 };
 
 // Utility class for initializing and invoking ripple search
@@ -167,5 +167,5 @@ public:
     RippleSearch(Map& map);
 
     // Start the search from source to goal, they must be valid nodes
-    std::vector<Node> search(Node source, Node goal);
+    Path search(Node source, Node goal);
 };

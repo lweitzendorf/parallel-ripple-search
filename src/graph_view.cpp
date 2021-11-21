@@ -157,9 +157,9 @@ Image test_fringe_search(Map& map, Node source, Node goal) {
 Image test_Astar(Map& map, Node source, Node goal) {
     Timer t;
     t.start();
-    
-    std::vector<Node> came_from = a_star_search_gen(map, source, goal);
-    std::vector<Node> path = reconstruct_path_gen(source, goal, came_from);
+
+    Path came_from = a_star_search_gen(map, source, goal);
+    Path path = reconstruct_path_gen(source, goal, came_from);
 
     t.stop();
     printf("Astar search time: %.3fms\n", t.get_microseconds() / 1000.0);
@@ -220,7 +220,7 @@ Image test_ripple(Map& map, Node source, Node goal) {
     t.start();
     
     RippleSearch ripple(map);
-    std::vector<Node> path = ripple.search(source, goal);
+    Path path = ripple.search(source, goal);
 
     for (Node n : path) {
       std::cout << n << " ";
