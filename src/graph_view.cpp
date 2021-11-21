@@ -7,7 +7,6 @@
 #include "Timer.h"
 #include "findpath.cpp"
 
-#include "map.h"
 #include "fringe.h"
 #include "ripple.h"
 #include "WeightedGraph.h"
@@ -73,20 +72,34 @@ void draw_walls(Image img, Map& map) {
     }
 }
 
+template<typename Iterator>
+void print_path(Iterator begin, Iterator end) {
+  if (begin != end) {
+    while (begin != end) {
+      std::cout << *begin++ << " ";
+    }
+  } else {
+    std::cout << "No path found!";
+  }
+  std::cout << std::endl;
+}
+
 Image test_boost_a_star(Map& map, Node source, Node goal) {
     WeightedGraph graph;
     build_graph(graph, map);
     Timer t;
     t.start();
-    auto shortest_path = graph.a_star_search(source, goal);
+    auto path = graph.a_star_search(source, goal);
     t.stop();
     printf("Boost A* search time: %.3fms\n", t.get_microseconds() / 1000.0);
+    print_path<>(path.begin(), path.end());
+    std::cout << std::endl;
 
     // Create image and draw walls
     Image img = GenImageColor(map.width, map.height, WHITE);
     draw_walls(img, map);
 
-    for(auto it: shortest_path) {
+    for(auto it: path) {
         Point p = map.node_to_point(it);
         ImageDrawPixel(&img, p.x, p.y, RED);       
     }
@@ -116,14 +129,16 @@ Image test_fringe_search(Map& map, Node source, Node goal) {
         step = fringe.step();
     } while(step.state == FringeSearchStepState::OK);
 
-    std::list<Node> shortest_path;
+    std::list<Node> path;
     if(step.state == FringeSearchStepState::FOUND) {
-        shortest_path = fringe.finalize_path();
+        path = fringe.finalize_path();
     }
     #endif
 
     t.stop();
     printf("Fringe search time: %.3fms\n", t.get_microseconds() / 1000.0);
+    print_path<>(path.begin(), path.end());
+    std::cout << std::endl;
 
     // Create image and draw walls
     Image img = GenImageColor(map.width, map.height, WHITE);
@@ -140,7 +155,7 @@ Image test_fringe_search(Map& map, Node source, Node goal) {
     }
 
     // Draw path
-    for(auto it: shortest_path) {
+    for(auto it: path) {
         Point p = map.node_to_point(it);
         ImageDrawPixel(&img, p.x, p.y, RED);       
     }
@@ -163,6 +178,8 @@ Image test_Astar(Map& map, Node source, Node goal) {
 
     t.stop();
     printf("Astar search time: %.3fms\n", t.get_microseconds() / 1000.0);
+    print_path<>(path.begin(), path.end());
+    std::cout << std::endl;
 
     // Create image and draw walls
     Image img = GenImageColor(map.width, map.height, WHITE);
@@ -189,10 +206,12 @@ Image test_Astar_2(Map& map, Node source, Node goal) {
     t.start();
     
     //auto path = search(map, source, goal);
-    std::list<Node> path; //placeholder
+    Path path; //placeholder
 
     t.stop();
     printf("Astar 2 search time: %.3fms\n", t.get_microseconds() / 1000.0);
+    print_path<>(path.begin(), path.end());
+    std::cout << std::endl;
 
     // Create image and draw walls
     Image img = GenImageColor(map.width, map.height, WHITE);
@@ -224,15 +243,7 @@ Image test_ripple(Map& map, Node source, Node goal) {
 
     t.stop();
     printf("Ripple search time: %.3fms\n", t.get_microseconds() / 1000.0);
-
-    std::cout << std::endl;
-    if (!path.empty()) {
-      for (Node n: path) {
-        std::cout << n << " ";
-      }
-    } else {
-      std::cout << "No path found!";
-    }
+    print_path<>(path.begin(), path.end());
     std::cout << std::endl;
 
     // Create image and draw walls
@@ -278,7 +289,6 @@ Image test_ripple(Map& map, Node source, Node goal) {
 
     return img;
 }
-
 
 int main(int argc, char** argv)
 {

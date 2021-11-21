@@ -384,11 +384,11 @@ void RippleThread::entry() {
 
 ThreadId RippleThread::append_partial_path(std::back_insert_iterator<Path> path_inserter) {
   std::reverse_copy(backward_path.begin(), backward_path.end(), path_inserter);
-  path_inserter = source;
+  *path_inserter = source;
   std::copy(forward_path.begin(), forward_path.end(), path_inserter);
 
   if (forward_collision.target != THREAD_NONE) {
-    path_inserter = forward_collision.collision_node;
+    *path_inserter = forward_collision.collision_node;
   }
   return forward_collision.target;
 }
