@@ -1,10 +1,7 @@
 #include "map.h"
 
 #include <raylib.h>
-<<<<<<< Updated upstream
-=======
 #include <cmath>
->>>>>>> Stashed changes
 
 Point neighbour_offsets[4] = {
     {1, 0},
@@ -12,6 +9,8 @@ Point neighbour_offsets[4] = {
     {-1, 0},
     {0, -1},
 };
+
+constexpr int NEIGHBOURS_COUNT = sizeof(neighbour_offsets) / sizeof(neighbour_offsets[0]);
 
 Map::Map(int width, int height) {
   this->width = width;
@@ -25,6 +24,10 @@ char Map::get(int x, int y) {
 
 void Map::set(int x, int y, char c) {
   data[y * width + x] = c;
+}
+
+size_t Map::size() {
+    return width * height;
 }
 
 void Map::load_from_image_file(const char* path) {
@@ -54,6 +57,10 @@ Node Map::point_to_node(Point i){
     return i.y * width + i.x;
 };
 
+double Map::cost(Node from, Node to) {
+    return 1;
+}
+
 int Map::distance(Node a, Node b) {
     return ::distance(node_to_point(a), node_to_point(b));
 }
@@ -62,3 +69,59 @@ int Map::distance(Node a, Node b) {
 int distance(Point a, Point b) {
     return abs(b.x - a.x) + abs(b.y - a.y);
 };
+
+// Iterator for generic path finding algorithms
+MapNeighbours Map::neighbours(Node i) {
+    return MapNeighbours(*this, i);
+}
+
+MapNeighbours::MapNeighbours(Map& map, Node node) : map(map) {
+    this->point = map.node_to_point(node);
+}
+
+MapIterator MapNeighbours::begin() {
+    return MapIterator(map, point, 0);
+}
+
+MapIterator MapNeighbours::end() {
+    return MapIterator(map, point, NEIGHBOURS_COUNT);
+}
+
+MapIterator::MapIterator(Map& map, Point p, size_t idx): 
+    map(map), center(p), index(idx) {
+
+    update_current();
+}
+
+MapIterator& MapIterator::operator++() {
+    this->index++;
+    update_current();
+    return *this;
+}
+
+void MapIterator::update_current() {
+    while(index < NEIGHBOURS_COUNT) {
+        //Check that neighbour at index exists
+        Point p = center + neighbour_offsets[index];
+        if(p.x >= 0 && p.x < map.width && p.y >= 0 && p.y < map.height) {
+            Node pnode = map.point_to_node(p);
+
+            // If it does set current node
+            if(map.data[pnode]) {
+                this->current_node = pnode;
+                break;
+            }
+        }
+
+        // Otherwise try next neighbour
+        index++;
+    }
+}
+
+bool MapIterator::operator!=(MapIterator& other) {
+    return this->index != other.index;
+}
+
+Node MapIterator::operator*() {
+    return current_node;
+}

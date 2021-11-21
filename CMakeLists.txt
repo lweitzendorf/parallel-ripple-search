@@ -17,7 +17,8 @@ set_common_project_settings(tbb)
 add_executable(baseline baseline/main.cpp baseline/WeightedGraph.cpp baseline/FileParser.cpp baseline/Timer.cpp src/map.cpp)
 target_link_libraries(baseline raylib)
 
-add_executable(graph_view src/graph_view.cpp src/map.cpp src/fringe.cpp baseline/Timer.cpp baseline/WeightedGraph.cpp baseline/FileParser.cpp src/Astar_high.cpp src/ripple.cpp src/high_level_path.cpp)
+FILE(GLOB RippleSources src/*.cpp)
+add_executable(graph_view ${RippleSources} baseline/WeightedGraph.cpp baseline/Timer.cpp baseline/FileParser.cpp)
 target_include_directories(graph_view PUBLIC baseline src)
 target_link_libraries(graph_view raylib TBB::tbb Threads::Threads)
 

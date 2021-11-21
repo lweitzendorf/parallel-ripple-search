@@ -158,11 +158,8 @@ Image test_Astar(Map& map, Node source, Node goal) {
     Timer t;
     t.start();
     
-    std::vector<Node> came_from (map.width * map.height);
-    std::vector<double> cost_so_far (map.width * map.height, -1);
-    a_star_search(map, source, goal, came_from, cost_so_far);
-    std::vector<Node> path = reconstruct_path(source, goal, came_from);
-    
+    std::vector<Node> came_from = a_star_search_gen(map, source, goal);
+    std::vector<Node> path = reconstruct_path_gen(source, goal, came_from);
 
     t.stop();
     printf("Astar search time: %.3fms\n", t.get_microseconds() / 1000.0);
@@ -312,7 +309,7 @@ int main(int argc, char** argv)
     Image fringe_img = test_fringe_search(map, source, goal);
 
     // Run our a star
-    //Image Astar_img = test_Astar(map, source, goal);
+    Image Astar_img = test_Astar(map, source, goal);
 
     // Run reference a star
     //Image Astar2_img = test_Astar_2(map, source, goal);
@@ -331,7 +328,7 @@ int main(int argc, char** argv)
         LoadTextureFromImage(ripple_img),
         LoadTextureFromImage(boost_img),
         LoadTextureFromImage(fringe_img),
-        //LoadTextureFromImage(Astar_img),
+        LoadTextureFromImage(Astar_img),
         //LoadTextureFromImage(Astar2_img),
     };
     int texture_index = 0;

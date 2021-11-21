@@ -12,9 +12,14 @@ struct Point {
     Point(){}
     
     Point(int x, int y){
-        this-> x = x;
-        this-> y = y;
+        this->x = x;
+        this->y = y;
     }
+
+    inline Point operator+(Point& other) {
+        return Point(x + other.x, y + other.y);
+    }
+
     inline bool operator== (const Point& p1) const {
         return this->x == p1.x && this->y == p1.y;
     }
@@ -33,21 +38,27 @@ class Map;
 class MapIterator {
 private:
     Map& map;
-    Point p;
-    int index;
+    Point center;
+    size_t index;
 
-public:      
+    Node current_node;
+    
+    void update_current();
+
+public:
+    MapIterator(Map& map, Point p, size_t idx);
+
     MapIterator& operator++();
     bool operator!=(MapIterator& other);
-    int get_cost();
-    int get_node();
+    Node operator*();
 };
 
 class MapNeighbours {
     Map& map;
-    Node node;
+    Point point;
 
 public:
+    MapNeighbours(Map& map, Node node);
     MapIterator begin();
     MapIterator end();    
 };
@@ -61,12 +72,14 @@ public:
 
     char get(int x, int y);
     void set(int x, int y, char c);
+    size_t size();
 
     void load_from_image_file(const char* path);
     
     Point node_to_point(Node i);
     Node point_to_node(Point p);
     int distance(Node a, Node b);
+    double cost(Node from, Node to);
 
     MapNeighbours neighbours(Node i);
 };
