@@ -75,9 +75,13 @@ void draw_walls(Image img, Map& map) {
 template<typename Iterator>
 void print_path(Iterator begin, Iterator end) {
   if (begin != end) {
+    int path_length = 0;
+
     while (begin != end) {
       std::cout << *begin++ << " ";
+      path_length++;
     }
+    std::cout << std::endl << "Path length: " << path_length;
   } else {
     std::cout << "No path found!";
   }
