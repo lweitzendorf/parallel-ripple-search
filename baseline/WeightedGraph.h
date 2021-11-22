@@ -53,11 +53,11 @@ private:
           vertex_t m_goal{};
     };
 
-    class euclidean_distance_heuristic : public boost::astar_heuristic<weighted_graph_t, double>
+    class euclidean_distance_heuristic : public boost::astar_heuristic<weighted_graph_t, int>
     {
       public:
         euclidean_distance_heuristic(std::vector<Point> l, vertex_t goal) : m_location(std::move(l)), m_goal(goal) {}
-            double operator()(vertex_t u) {
+            int operator()(vertex_t u) {
               int dx = m_location[m_goal].x - m_location[u].x;
               int dy = m_location[m_goal].y - m_location[u].y;
               return dx*dx + dy*dy;
@@ -66,6 +66,20 @@ private:
           std::vector<Point> m_location;
           vertex_t m_goal;
     };
+
+  class manhattan_distance_heuristic : public boost::astar_heuristic<weighted_graph_t, int>
+  {
+    public:
+    manhattan_distance_heuristic(std::vector<Point> l, vertex_t goal) : m_location(std::move(l)), m_goal(goal) {}
+    int operator()(vertex_t u) {
+      int dx = m_location[m_goal].x - m_location[u].x;
+      int dy = m_location[m_goal].y - m_location[u].y;
+      return std::abs(dx) + std::abs(dy);
+    }
+    private:
+    std::vector<Point> m_location;
+    vertex_t m_goal;
+  };
 };
 
 #endif //DPHPC_WEIGHTEDGRAPH_H

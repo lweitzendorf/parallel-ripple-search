@@ -27,7 +27,7 @@ std::list<vertex_t> WeightedGraph::a_star_search(vertex_t start, vertex_t goal) 
   std::vector<int> d(num_vertices());
 
   try {
-    boost::astar_search(g, start, euclidean_distance_heuristic(locations, goal),
+    boost::astar_search(g, start, manhattan_distance_heuristic(locations, goal),
                         boost::predecessor_map(&p[0]).distance_map(&d[0]).visitor(astar_goal_visitor(goal)));
   } catch (found_goal fg) {
     std::list<vertex_t> shortest_path = { goal };
