@@ -3,4 +3,5 @@ cmake-build-debug-coverage/
 .idea/
 build/
 _build/
+imgs/
 .vscode/

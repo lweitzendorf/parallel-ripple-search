@@ -14,6 +14,13 @@
 
 #include "Astar.h"
 
+#ifdef ONLY_EXPORT_IMGS
+#define BOOST_IMG_FN  "../imgs/boost_img.png"
+#define FRINGE_IMG_FN "../imgs/fringe_img.png"
+#define ASTAR_IMG_FN  "../imgs/astar_img.png"
+#define RIPPLE_IMG_FN "../imgs/ripple_img.png"
+#endif
+
 void check_source_and_goal(Map& map, Node source, Node goal) {
     // bounds check on source and goal
     if(source < 0 || source >= map.size()) {
@@ -340,6 +347,15 @@ int main(int argc, char** argv)
     // Run ripple
     Image ripple_img = test_ripple(map, source, goal);
 
+#ifdef ONLY_EXPORT_IMGS
+
+    bool boost_written = ExportImage(boost_img, BOOST_IMG_FN);
+    bool fringe_written = ExportImage(fringe_img, FRINGE_IMG_FN);
+    bool astar_written = ExportImage(Astar_img, ASTAR_IMG_FN);
+    bool ripple_written = ExportImage(ripple_img, RIPPLE_IMG_FN);
+
+#else
+
     // Initialization
     const int screen_width = 1000;
     const int screen_height = 1000;
@@ -354,6 +370,8 @@ int main(int argc, char** argv)
         LoadTextureFromImage(Astar_img),
         //LoadTextureFromImage(Astar2_img),
     };
+
+
     int texture_index = 0;
     int texture_count = sizeof(textures) / sizeof(textures[0]);
 
@@ -389,6 +407,8 @@ int main(int argc, char** argv)
 
     // De-Initialization
     CloseWindow();        // Close window and OpenGL context
+
+#endif
 
     return 0;
 }
