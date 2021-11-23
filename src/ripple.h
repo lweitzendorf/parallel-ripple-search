@@ -56,8 +56,12 @@ public:
     return map.distance(graph[i][i].collision_node, goal);
   }
   void add_collision(ThreadId thread, Collision c) {
-    graph[thread].push_back(c);
-    graph[c.target].push_back(c);
+    if (!std::any_of(
+            graph[thread].begin(), graph[thread].end(),
+            [&c](Collision const &c2) { return c.target == c2.target; })) {
+      graph[thread].push_back(c);
+      graph[c.target].push_back(c);
+    }
   }
   Node collision_point(ThreadId t1, ThreadId t2) {
     return graph[t1][t1].collision_node;
@@ -92,6 +96,10 @@ struct Message {
     }; // type = MESSAGE_COLLISION
   };
 };
+
+// Question: can we put some of these enums within the class? is this a better
+// design?
+enum FringeInterruptAction { NONE, RESET, EXIT };
 
 // TODO: test aligning this struct to cache line size to avoid
 // false sharing between threads that are exploring neighbouring nodes
@@ -167,12 +175,10 @@ private:
 
   // Called at each iteration of the search by all threads to check messages
   // from other threads
-  bool check_message_queue();
+  FringeInterruptAction check_message_queue();
 
   // Initialize fringe search list, heuristic and source node cache entry.
   void initialize_fringe_search();
-
-  bool should_reset();
 
   // Called when a collision happens during the search
   void handle_collision(Node node, ThreadId other);

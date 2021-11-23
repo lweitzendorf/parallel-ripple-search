@@ -130,10 +130,9 @@ void RippleThread::check_collision_path() {
 
 // Called at each iteration of the search by all threads to check messages from
 // other threads
-bool RippleThread::check_message_queue() {
-  // Check signals
+FringeInterruptAction RippleThread::check_message_queue() {
+  FringeInterruptAction response_action = NONE;
   bool check_collisions = false;
-  bool start_phase_2 = false;
   Message message;
   while (message_queues[id].try_pop(message)) {
     switch (message.type) {
@@ -142,21 +141,21 @@ bool RippleThread::check_message_queue() {
       add_collision(message.collision_source, message.collision);
       check_collisions = true;
     } break;
-
-      // Only arrives to slave threads if they need to switch to phase 2
+    // Only arrives to slave threads if they need to switch to phase 2
     case MESSAGE_PHASE_2: {
       if (id == THREAD_GOAL)
-        ; // TODO
+        response_action = EXIT;
       else if (id == THREAD_SOURCE)
-        ; // TODO
+        ; // TODO how does the source react for phase 2?
       else
-        reset_for_phase_2(message.source, message.target);
-      start_phase_2 = true;
+        reset_for_phase_2(message.source, message.target),
+            response_action = RESET;
     } break;
 
       // Only arrives to slave threads if they do not have to work in phase 2
     case MESSAGE_STOP:
-      std::exit(0); // TODO: Exit the thread
+      response_action = EXIT;
+      break;
     }
   }
 
@@ -164,7 +163,7 @@ bool RippleThread::check_message_queue() {
   if (check_collisions) {
     check_collision_path();
   }
-  return start_phase_2;
+  return response_action;
 }
 
 void RippleThread::reset_for_phase_2(Node source, Node target) {
@@ -229,24 +228,12 @@ void RippleThread::handle_collision(Node node, ThreadId other) {
   }
 }
 
-bool RippleThread::should_reset() {
-  // HACK this function in theory should return
-  //      whether or not the thread should reset for phase 2.
-  //      Once we start doing phase two this should return the
-  //      value of the checked message queue.
-  return check_message_queue();
-}
-
 void RippleThread::entry() {
 
-// NOTE this is terrible style, however, as structured, there is no
-//      alternative to break of of three nested loops to reset the search.
-//      Gavin would like to prepose a rewrite that would better handle
-//      this case.
-//      - use continuations (best semantics | possibly slow in c++ impl)
-//      - use goto (worst semantics | probably fast requires less code rewrite)
-//      - alternative: decouple these loops and stop relying on internal state
-//      so much
+// NOTE I think we already agreed that this goto style is terrible.
+//      Lucky for us, it's probably the best solution right now. Ideally in the
+//      future we will be able to somehow handle these interrupt actions much
+//      smoother and with a better semantics.
 reset:
 
   initialize_fringe_search();
@@ -261,8 +248,14 @@ reset:
       node = fringe_list.begin();
 
       do {
-        if (should_reset())
+        switch (check_message_queue()) {
+        case RESET:
           goto reset;
+        case EXIT:
+          goto exit;
+        case NONE:
+          break;
+        }
 
         // TODO: handle finish and heuristic swap
         if (*node == goal || *node == goal_2) {
@@ -383,6 +376,14 @@ reset:
       break;
     }
   }
+
+// NOTE We can immediately jump here when a thread is supposed to stop what it's
+//      doing. This is considered an interrupt action.
+// TODO if we need to  reconstruct a path or something before the thread exits
+//      this label needs to be moved.
+exit:
+
+  return;
 }
 
 ThreadId RippleThread::append_partial_path(
