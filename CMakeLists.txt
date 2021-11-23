@@ -20,7 +20,7 @@ add_executable(baseline baseline/main.cpp baseline/WeightedGraph.cpp baseline/Fi
 target_link_libraries(baseline raylib)
 
 # NOTE uncomment the below definition if raylib raises SIGSEV
-add_definitions(-DONLY_EXPORT_IMGS)
+# add_definitions(-DONLY_EXPORT_IMGS)
 # NOTE we should turn this on at some point
 # add_compile_options(-Wall -Werror)
 FILE(GLOB RippleSources src/*.cpp)

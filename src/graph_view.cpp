@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <optional>
 
 #include <raylib.h>
 
@@ -81,13 +82,14 @@ void draw_walls(Image img, Map& map) {
 
 template<typename Iterator>
 void print_path(Iterator begin, Iterator end) {
-  if (begin != end) {
-    int path_length = 0;
+  int path_length = 0;
 
-    while (begin != end) {
-      std::cout << *begin++ << " ";
-      path_length++;
-    }
+  while (begin != end) {
+    std::cout << *begin++ << " ";
+    path_length++;
+  }
+
+  if (path_length > 0) {
     std::cout << std::endl << "Path length: " << path_length;
   } else {
     std::cout << "No path found!";
@@ -103,7 +105,7 @@ Image test_boost_a_star(Map& map, Node source, Node goal) {
   auto path = graph.a_star_search(source, goal);
   t.stop();
   printf("Boost A* search time: %.3fms\n", t.get_microseconds() / 1000.0);
-  print_path<>(path.begin(), path.end());
+  print_path(path.begin(), path.end());
   std::cout << std::endl;
 
   // Create image and draw walls
@@ -147,7 +149,7 @@ Image test_fringe_search(Map& map, Node source, Node goal) {
 
   t.stop();
   printf("Fringe search time: %.3fms\n", t.get_microseconds() / 1000.0);
-  print_path<>(path.begin(), path.end());
+  print_path(path.begin(), path.end());
   std::cout << std::endl;
 
   // Create image and draw walls
@@ -183,18 +185,17 @@ Image test_Astar(Map& map, Node source, Node goal) {
   Timer t;
   t.start();
 
-  Path came_from = a_star_search_gen(map, source, goal);
-  Path path = reconstruct_path_gen(source, goal, came_from);
+  std::optional<Path<Node>> came_from = a_star_search_gen(map, source, goal);
+  Path<Node> path = came_from.has_value() ? reconstruct_path_gen(source, goal, came_from.value()) : Path<Node>();
 
   t.stop();
   printf("Astar search time: %.3fms\n", t.get_microseconds() / 1000.0);
-  print_path<>(path.begin(), path.end());
+  print_path(path.begin(), path.end());
   std::cout << std::endl;
 
   // Create image and draw walls
   Image img = GenImageColor(map.width(), map.height(), WHITE);
   draw_walls(img, map);
-
 
   // Draw path
   for(auto it: path) {
@@ -216,11 +217,11 @@ Image test_Astar_2(Map& map, Node source, Node goal) {
   t.start();
 
   //auto path = search(map, source, goal);
-  Path path; //placeholder
+  Path<Node> path; //placeholder
 
   t.stop();
   printf("Astar 2 search time: %.3fms\n", t.get_microseconds() / 1000.0);
-  print_path<>(path.begin(), path.end());
+  print_path(path.begin(), path.end());
   std::cout << std::endl;
 
   // Create image and draw walls
@@ -248,12 +249,12 @@ Image test_ripple(Map& map, Node source, Node goal) {
   Timer t;
   t.start();
 
-  RippleSearch ripple(map);
-  Path path = ripple.search(source, goal);
+  RippleSearch ripple(map, source, goal);
+  Path<Node> path = ripple.search().value_or(Path<Node>());
 
   t.stop();
   printf("Ripple search time: %.3fms\n", t.get_microseconds() / 1000.0);
-  print_path<>(path.begin(), path.end());
+  print_path(path.begin(), path.end());
   std::cout << std::endl;
 
   // Create image and draw walls
