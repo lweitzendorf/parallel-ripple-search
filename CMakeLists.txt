@@ -19,8 +19,10 @@ set_common_project_settings(tbb)
 add_executable(baseline baseline/main.cpp baseline/WeightedGraph.cpp baseline/FileParser.cpp baseline/Timer.cpp src/map.cpp)
 target_link_libraries(baseline raylib)
 
-# uncomment the below definition if raylib is not working on your machine
+# NOTE uncomment the below definition if raylib raises SIGSEV
 # add_definitions(-DONLY_EXPORT_IMGS)
+# NOTE we should turn this on at some point
+# add_compile_options(-Wall -Werror)
 FILE(GLOB RippleSources src/*.cpp)
 add_executable(graph_view ${RippleSources} baseline/WeightedGraph.cpp baseline/Timer.cpp baseline/FileParser.cpp)
 target_include_directories(graph_view PUBLIC baseline src)

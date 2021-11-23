@@ -1,17 +1,17 @@
 #pragma once
 
+#include "map.h"
+#include <optional>
 #include <queue>
 #include <vector>
-#include "map.h"
 
-template<typename T, typename priority_t>
-struct PriorityQueue {
+template <typename T, typename priority_t> struct PriorityQueue {
   typedef std::pair<priority_t, T> PQElement;
-  std::priority_queue<PQElement, std::vector<PQElement>, std::greater<PQElement>> elements;
+  std::priority_queue<PQElement, std::vector<PQElement>,
+                      std::greater<PQElement>>
+      elements;
 
-  inline bool empty() const {
-     return elements.empty();
-  }
+  inline bool empty() const { return elements.empty(); }
 
   inline void put(T item, priority_t priority) {
     elements.emplace(priority, item);
@@ -24,11 +24,11 @@ struct PriorityQueue {
   }
 };
 
-
-template<typename Graph, typename Node>
-Path a_star_search_gen(Graph& graph, Node start, Node goal)
-{
-  Path came_from(graph.size());
+template <typename Graph, typename Node>
+std::optional<Path<Node>> a_star_search_gen(Graph &graph, Node start,
+                                            Node goal) {
+  bool found_path = false;
+  Path<Node> came_from(graph.size());
   std::vector<double> cost_so_far(graph.size(), -1);
 
   PriorityQueue<Node, double> frontier;
@@ -36,16 +36,17 @@ Path a_star_search_gen(Graph& graph, Node start, Node goal)
 
   came_from[start] = start;
   cost_so_far[start] = 0;
-  
+
   while (!frontier.empty()) {
     Node current = frontier.get();
 
     if (current == goal) {
+      found_path = true;
       break;
     }
 
     // For each neighbour
-    for(Node s: graph.neighbours(current)) {
+    for (Node s : graph.neighbours(current)) {
       double new_cost = cost_so_far[current] + graph.cost(current, s);
 
       if (cost_so_far[s] == -1 || new_cost < cost_so_far[s]) {
@@ -57,12 +58,12 @@ Path a_star_search_gen(Graph& graph, Node start, Node goal)
     }
   }
 
-  return came_from;
+  return found_path ? std::optional<Path<Node>>{came_from} : std::nullopt;
 }
 
-template<typename Node>
-Path reconstruct_path_gen(Node start, Node goal, Path& came_from) {
-  Path path;
+template <typename Node>
+Path<Node> reconstruct_path_gen(Node start, Node goal, Path<Node> &came_from) {
+  Path<Node> path;
   Node current = goal;
   while (current != start) {
     path.push_back(current);
