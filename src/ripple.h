@@ -45,7 +45,7 @@ public:
   std::vector<ThreadId> &neighbours(int i) {
     neighbors.clear();
     std::transform(graph[i].begin(), graph[i].end(), back_inserter(neighbors),
-                   [](Collision &c) -> ThreadId { return c.target; });
+                   [](Collision &c) { return c.target; });
     return neighbors;
   }
   // TODO I know the below are wrong
@@ -141,7 +141,7 @@ private:
 
   // Fringe search info
   FringeList fringe_list;
-  int (*heuristic)(RippleThread *self, Node n);
+  std::function<int(RippleThread *, Node)> heuristic;
   int flimit;
 
   // Reference to vector of node info for fringe search, shared between all
@@ -154,6 +154,7 @@ private:
   // collision from id1 to id2 it also appears as a collision from id2 to id1.
   // This graph is only read and written by the source thread
   CollisionGraph &collision_graph;
+  Path<Collision> collision_path;
 
   Collision forward_collision = {THREAD_NONE, INVALID_NODE};
 
@@ -201,6 +202,7 @@ public:
   void set_source(Node s);
   void set_single_goal(Node g);
   void set_goals(Node g1, Node g2);
+  Path<Collision> get_collision_path();
 
   ThreadId
   append_partial_path(std::back_insert_iterator<Path<Node>> path_inserter);

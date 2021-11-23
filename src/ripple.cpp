@@ -25,6 +25,13 @@ void RippleThread::set_goals(Node g1, Node g2) {
   goal_2 = g2;
 }
 
+Path<Collision> RippleThread::get_collision_path() {
+  if (id != THREAD_SOURCE)
+    throw std::invalid_argument(
+        "attemp to get the collision path from a non-source thread");
+  return collision_path;
+}
+
 bool RippleThread::start() {
   if (thread == nullptr) {
     thread = std::make_unique<std::thread>(&RippleThread::entry, this);
@@ -82,14 +89,22 @@ void RippleThread::check_collision_path() {
       throw std::invalid_argument(
           "I expected the goal thread to be the end of the path");
 
+    // We should store the collision path so that the overall path can be later
+    // reconstructed.
+    this->collision_path.resize(found_path.size() - 1);
     // Send message with next source and target to all threads
     // that aren't the source / target thread.
     for (int i = 1; i < found_path.size() - 1; i++) {
       ThreadId thread = found_path[i];
       auto collision_with_prev =
           collision_graph.collision_point(found_path[i - 1], found_path[i]);
+      // NOTE we could make this /slightly/ faster by holding on to these values
+      //      as the 'collision_with_prev' at a later point. (same for the
+      //      collision_path values)
       auto collision_with_next =
           collision_graph.collision_point(found_path[i], found_path[i + 1]);
+      this->collision_path[i - 1] = {thread, collision_with_prev};
+      this->collision_path[i] = {thread, collision_with_next};
 
       msg.type = MESSAGE_PHASE_2;
       msg.source = collision_with_prev;
