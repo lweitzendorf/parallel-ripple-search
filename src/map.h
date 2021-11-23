@@ -3,96 +3,95 @@
 #include <vector>
 
 typedef int Node;
-typedef std::vector<Node> Path;
+template <typename T> using Path = std::vector<T>;
 
 #define INVALID_NODE (-1)
 
 struct Point {
-    int x;
-    int y;
+  int x;
+  int y;
 
-    Point(){}
-    
-    Point(int x, int y){
-        this->x = x;
-        this->y = y;
-    }
+  Point() {}
 
-    inline Point operator+(Point& other) {
-        return Point(x + other.x, y + other.y);
-    }
+  Point(int x, int y) {
+    this->x = x;
+    this->y = y;
+  }
 
-    inline bool operator== (const Point& p1) const {
-        return this->x == p1.x && this->y == p1.y;
-    }
+  inline Point operator+(Point &other) {
+    return Point(x + other.x, y + other.y);
+  }
 
-    inline bool operator!= (const Point& p1) const {
-        return this->x != p1.x || this->y != p1.y;
-    }
+  inline bool operator==(const Point &p1) const {
+    return this->x == p1.x && this->y == p1.y;
+  }
 
-    inline bool operator<(const Point& p1) const {
-        return false;
-    }
+  inline bool operator!=(const Point &p1) const {
+    return this->x != p1.x || this->y != p1.y;
+  }
+
+  inline bool operator<(const Point &p1) const { return false; }
 };
 
 class Map;
 
 class MapIterator {
-  private:
-    Map& map;
-    Point center;
-    size_t index;
+private:
+  Map &map;
+  Point center;
+  size_t index;
 
-    Node current_node;
-    
-    void update_current();
+  Node current_node;
 
-  public:
-    MapIterator(Map& map, Point p, size_t idx);
+  void update_current();
 
-    MapIterator& operator++();
-    bool operator!=(MapIterator& other) const;
-    Node operator*() const;
+public:
+  MapIterator(Map &map, Point p, size_t idx);
+
+  MapIterator &operator++();
+  bool operator!=(MapIterator &other) const;
+  Node operator*() const;
 };
 
 class MapNeighbours {
-    Map& map;
-    Point point;
+  Map &map;
+  Point point;
 
-  public:
-    MapNeighbours(Map& map, Node node);
-    MapIterator begin();
-    MapIterator end();    
+public:
+  MapNeighbours(Map &map, Node node);
+  MapIterator begin();
+  MapIterator end();
 };
 
 class Map {
-  private:
-    int width_, height_;
-    std::vector<char> data;
+private:
+  int width_, height_;
+  std::vector<char> data;
 
-  public:
-    explicit Map(int width = 0, int height = 0);
+public:
+  explicit Map(int width = 0, int height = 0);
 
-    static Point neighbour_offsets[4];
-    static constexpr int NEIGHBOURS_COUNT = sizeof(neighbour_offsets) / sizeof(neighbour_offsets[0]);
+  static Point neighbour_offsets[4];
+  static constexpr int NEIGHBOURS_COUNT =
+      sizeof(neighbour_offsets) / sizeof(neighbour_offsets[0]);
 
-    int width() const { return width_; }
-    int height() const { return height_; }
-    size_t size() const { return data.size(); }
+  int width() const { return width_; }
+  int height() const { return height_; }
+  size_t size() const { return data.size(); }
 
-    char get(Point p);
-    void set(Point p, char c);
+  char get(Point p);
+  void set(Point p, char c);
 
-    bool in_bounds(Point p) const;
+  bool in_bounds(Point p) const;
 
-    void load_from_image_file(const char* path);
-    
-    Point node_to_point(Node i) const;
-    Node point_to_node(Point p) const;
-    int distance(Node a, Node b) const;
-    static int distance(Point a, Point b);
+  void load_from_image_file(const char *path);
 
-    double cost(Node from, Node to);
+  Point node_to_point(Node i) const;
+  Node point_to_node(Point p) const;
+  int distance(Node a, Node b) const;
+  static int distance(Point a, Point b);
 
-    MapNeighbours neighbours(Node i);
+  double cost(Node from, Node to);
+
+  MapNeighbours neighbours(Node i);
 };

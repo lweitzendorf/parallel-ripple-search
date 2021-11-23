@@ -14,7 +14,7 @@ std::list<Node> FringeSearch::search() {
     int found = false;
     FringeEntry nnode = fringe_list.end();
 
-    int it = 0;
+    // int it = 0;
     while(!found && !fringe_list.empty()) {
         //std::cout << "Iteration: " << it++ << std::endl;
         int fmin = INT_MAX;
@@ -91,7 +91,7 @@ std::list<Node> FringeSearch::search() {
     }
 
     if(nnode != fringe_list.end()) {
-        Node it = *nnode;
+        // Node it = *nnode;
         
         std::list<Node> shortest_path = { goal };
         for (Node v = cache[goal].parent; v != shortest_path.front(); v = cache[v].parent) {
@@ -198,7 +198,7 @@ FringeSearchStep FringeSearch::step() {
 }
 
 std::list<Node> FringeSearch::finalize_path() {
-    Node it = *nnode;
+    // Node it = *nnode;
     
     std::list<Node> shortest_path = { goal };
     for (Node v = cache[goal].parent; v != shortest_path.front(); v = cache[v].parent) {
