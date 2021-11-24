@@ -156,8 +156,6 @@ private:
   CollisionGraph &collision_graph;
   Path<Collision> collision_path;
 
-  Collision forward_collision = {THREAD_NONE, INVALID_NODE};
-
   // path from source to goal1 collision excluding start and end
   // no backward path for source thread
   Path<Node> backward_path;
@@ -202,10 +200,10 @@ public:
   void set_source(Node s);
   void set_single_goal(Node g);
   void set_goals(Node g1, Node g2);
+
   Path<Collision> get_collision_path();
 
-  ThreadId
-  append_partial_path(std::back_insert_iterator<Path<Node>> path_inserter);
+  void append_local_path(std::back_insert_iterator<Path<Node>> path_inserter);
 };
 
 // Utility class for initializing and invoking ripple search

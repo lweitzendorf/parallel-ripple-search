@@ -401,16 +401,10 @@ exit:
   return;
 }
 
-ThreadId RippleThread::append_partial_path(
-    std::back_insert_iterator<Path<Node>> path_inserter) {
+void RippleThread::append_local_path(std::back_insert_iterator<Path<Node>> path_inserter) {
+  // TODO reconstruct path before stopping thread
   std::reverse_copy(backward_path.begin(), backward_path.end(), path_inserter);
-  *path_inserter = source;
   std::copy(forward_path.begin(), forward_path.end(), path_inserter);
-
-  if (forward_collision.target != THREAD_NONE) {
-    *path_inserter = forward_collision.collision_node;
-  }
-  return forward_collision.target;
 }
 
 // Ripple search utilities
@@ -487,12 +481,11 @@ std::optional<Path<Node>> RippleSearch::search() {
   }
 
   Path<Node> path;
-  ThreadId next_thread = THREAD_SOURCE;
+  Path<Collision> collision_path = threads.front()->get_collision_path();
 
-  while (next_thread != THREAD_NONE) {
-    next_thread =
-        threads.at(next_thread)->append_partial_path(std::back_inserter(path));
+  threads.front()->append_local_path(std::back_inserter(path));
+  for (const Collision& c : collision_path) {
+    threads.at(c.target)->append_local_path(std::back_inserter(path));
   }
-
-  return path.back() == goal ? std::optional<Path<Node>>{path} : std::nullopt;
+  return (!path.empty() && path.back() == goal) ? std::optional<Path<Node>>{path} : std::nullopt;
 }
