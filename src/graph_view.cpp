@@ -104,9 +104,9 @@ Image test_boost_a_star(Map& map, Node source, Node goal) {
   t.start();
   auto path = graph.a_star_search(source, goal);
   t.stop();
-  printf("Boost A* search time: %.3fms\n", t.get_microseconds() / 1000.0);
-  print_path(path.begin(), path.end());
-  std::cout << std::endl;
+  printf("Boost A* search time: %.3fms (%d nodes)\n", t.get_microseconds() / 1000.0, (int)path.size());
+  //print_path(path.begin(), path.end());
+  //std::cout << std::endl;
 
   // Create image and draw walls
   Image img = GenImageColor(map.width(), map.height(), WHITE);
@@ -148,9 +148,9 @@ Image test_fringe_search(Map& map, Node source, Node goal) {
   #endif
 
   t.stop();
-  printf("Fringe search time: %.3fms\n", t.get_microseconds() / 1000.0);
-  print_path(path.begin(), path.end());
-  std::cout << std::endl;
+  printf("Fringe search time: %.3fms (%d nodes)\n", t.get_microseconds() / 1000.0, (int)path.size());
+  //print_path(path.begin(), path.end());
+  //std::cout << std::endl;
 
   // Create image and draw walls
   Image img = GenImageColor(map.width(), map.height(), WHITE);
@@ -189,9 +189,9 @@ Image test_Astar(Map& map, Node source, Node goal) {
   Path<Node> path = came_from.has_value() ? reconstruct_path_gen(source, goal, came_from.value()) : Path<Node>();
 
   t.stop();
-  printf("Astar search time: %.3fms\n", t.get_microseconds() / 1000.0);
-  print_path(path.begin(), path.end());
-  std::cout << std::endl;
+  printf("Astar search time: %.3fms (%d nodes)\n", t.get_microseconds() / 1000.0, (int)path.size());
+  //print_path(path.begin(), path.end());
+  //std::cout << std::endl;
 
   // Create image and draw walls
   Image img = GenImageColor(map.width(), map.height(), WHITE);
@@ -221,8 +221,8 @@ Image test_Astar_2(Map& map, Node source, Node goal) {
 
   t.stop();
   printf("Astar 2 search time: %.3fms\n", t.get_microseconds() / 1000.0);
-  print_path(path.begin(), path.end());
-  std::cout << std::endl;
+  //print_path(path.begin(), path.end());
+  //std::cout << std::endl;
 
   // Create image and draw walls
   Image img = GenImageColor(map.width(), map.height(), WHITE);
@@ -245,6 +245,8 @@ Image test_Astar_2(Map& map, Node source, Node goal) {
 }
 
 
+
+
 Image test_ripple(Map& map, Node source, Node goal) {
   Timer t;
   t.start();
@@ -253,9 +255,10 @@ Image test_ripple(Map& map, Node source, Node goal) {
   Path<Node> path = ripple.search().value_or(Path<Node>());
 
   t.stop();
-  printf("Ripple search time: %.3fms\n", t.get_microseconds() / 1000.0);
-  print_path(path.begin(), path.end());
-  std::cout << std::endl;
+  printf("Ripple search time: %.3fms (%d nodes)\n", t.get_microseconds() / 1000.0,
+    (int)path.size());
+  //print_path(path.begin(), path.end());
+  //std::cout << std::endl;
 
   // Create image and draw walls
   Image img = GenImageColor(map.width(), map.height(), WHITE);
@@ -354,8 +357,8 @@ int main(int argc, char** argv)
 
 #else
   // Initialization
-  const int SCREEN_WIDTH = 750;
-  const int SCREEN_HEIGHT = 750;
+  const int SCREEN_WIDTH = 1000;
+  const int SCREEN_HEIGHT = 1000;
   const Rectangle WINDOW = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
 
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Graph View");
