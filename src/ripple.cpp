@@ -6,19 +6,20 @@
 #include "Astar.h"
 #include "high_level_path.h"
 #include "ripple.h"
-
+#include "Timer.h"
 
 #define LOG_ENABLED 0
 
 #if LOG_ENABLED
 #define Log(str) printf("%d| " str "\n", id)
 #define Logf(fmt, ...) printf("%d| " fmt "\n", id, __VA_ARGS__)
+#define AssertUnreachable(...) do { Log(__VA_ARGS__); assert(false); } while(0)
 #else
 #define Log(...)
 #define Logf(...)
+#define AssertUnreachable(...) do { } while(0)
 #endif
 
-#define AssertUnreachable(...) do { Log(__VA_ARGS__); assert(false); } while(0)
 
 RippleThread::RippleThread(
     ThreadId id, Map &map, CollisionGraph &collision_graph,
@@ -104,6 +105,11 @@ bool RippleThread::check_collision_path() {
 
   // If there is a path signal all threads to stop
   if (maybe_path.has_value()) {
+    timer.stop();
+    time_first = timer.get_microseconds() / 1000.0;
+
+    timer.start();
+
     phase2 = true;
 
     Path<ThreadId> found_path =
@@ -222,6 +228,9 @@ bool RippleThread::check_collision_path() {
       }
     }
     
+    timer.stop();
+    time_second = timer.get_microseconds() / 1000.0;
+
     return true;
   } else {
     Log("Collision path not found");
@@ -253,6 +262,10 @@ FringeInterruptAction RippleThread::check_message_queue() {
       Log("Message - Phase2");
 
       if (id == THREAD_GOAL) {
+        timer.stop();
+        time_first = timer.get_microseconds() / 1000.0;
+        timer.start();
+        
         finalize_path(message.final_node, source);
         Message msg;
         msg.type = MESSAGE_DONE;
@@ -365,14 +378,20 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
 }
 
 void RippleThread::entry() {
-
 // NOTE I think we already agreed that this goto style is terrible.
 //      Lucky for us, it's probably the best solution right now. Ideally in the
 //      future we will be able to somehow handle these interrupt actions much
 //      smoother and with a better semantics.
+  timer.start();
 reset:
-
   initialize_fringe_search();
+
+
+  if(phase2) {
+    timer.stop();
+    time_first = timer.get_microseconds() / 1000.0;
+    timer.start();
+  }
 
   // Fringe search step towards G
   bool found = false;
@@ -410,7 +429,7 @@ reset:
       Point np = map.node_to_point(*node);
 
       // For each neighbour
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < 8; i++) {
         Point neigh = Map::neighbour_offsets[i];
         neigh.x += np.x;
         neigh.y += np.y;
@@ -457,6 +476,7 @@ reset:
             // If any of these is true a collision has happened.
             // The order is important as we want to avoid the expensive compare and swap
             // if any of first two checks short circuits.
+            #if 1
             if(owner != id && (owner != THREAD_NONE || !cache[neighbour].thread.compare_exchange_strong(
                 owner, id, std::memory_order_seq_cst, std::memory_order_seq_cst))) {
               // If we failed to acquire the node we need to handle the
@@ -466,6 +486,16 @@ reset:
               // Skip the node
               continue;
             }
+            #else
+            if(owner != id) {
+              if(owner != THREAD_NONE) {
+                handle_collision(neighbour, *node, owner);
+                continue;
+              } else {
+                cache[neighbour].thread.store(id, std::memory_order_relaxed);
+              }
+            }
+            #endif
           }
 
           // Skip neighbour if already visited in this phase with a lower cost
@@ -516,6 +546,9 @@ fringe_finished:
 
   // Finished the space we could search in
   if(phase2 == false) {
+    timer.stop();
+    time_first = timer.get_microseconds() / 1000.0;
+
     //If we had no collision (TODO: we could also check if we are a slave with only 1 collision)
 
     if(collision_mask == 0) {
@@ -560,6 +593,9 @@ fringe_finished:
 exit:
   Log("Thread Exiting");
 
+  timer.stop();
+  time_second = timer.get_microseconds() / 1000.0;
+
   return;
 }
 
@@ -574,6 +610,9 @@ RippleSearch::RippleSearch(Map &map, Node source, Node goal)
 }
 
 std::optional<Path<Node>> RippleSearch::search() {
+  Timer timer;
+
+  timer.start();
   Path<Node> high_level_path = create_high_level_path(map, source, goal);
   if (high_level_path.size() < NUM_THREADS) {
     std::cout << "Failed to find enough nodes for high level path, found: "
@@ -595,8 +634,12 @@ std::optional<Path<Node>> RippleSearch::search() {
                                            std::memory_order_seq_cst);
   }
 
+  timer.stop();
+  double high = timer.get_microseconds() / 1000.0; 
+
   std::vector<RippleThread *> threads;
 
+  timer.start();
   // Start source thread
   {
     auto *source_thread = new RippleThread(THREAD_SOURCE, map, collision_graph,
@@ -635,13 +678,26 @@ std::optional<Path<Node>> RippleSearch::search() {
   for (auto &t : threads) {
     t->join();
   }
+  timer.stop();
 
+  double search = timer.get_microseconds() / 1000.0;
   
+  timer.start();
   Path<Node> path;
   for(auto& t: threads[THREAD_SOURCE]->get_phase2_thread_path()) {
     auto& p = threads[t]->get_final_path();
     path.insert(path.end(), p.begin(), p.end());
   }
+  timer.stop();
+
+  double reconstruct = timer.get_microseconds() / 1000.0;
+
+#if 0
+  printf("%3.2f path\n", search);
+  for(int i = 0; i < NUM_THREADS; i++) {
+    printf("%d - %3.2f first - %3.2f second\n", i, threads[i]->time_first, threads[i]->time_second);
+  }
+#endif
 
   return path.empty() ? std::nullopt : std::optional<Path<Node>>{path};
 }

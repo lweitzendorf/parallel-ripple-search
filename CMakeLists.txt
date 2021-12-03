@@ -23,14 +23,12 @@ target_link_libraries(baseline raylib)
 # add_definitions(-DONLY_EXPORT_IMGS)
 # NOTE we should turn this on at some point
 # add_compile_options(-Wall -Werror)
-FILE(GLOB RippleSources src/*.cpp)
-add_executable(graph_view ${RippleSources} baseline/WeightedGraph.cpp baseline/Timer.cpp baseline/FileParser.cpp)
+set(BaselineSources baseline/WeightedGraph.cpp baseline/Timer.cpp baseline/FileParser.cpp)
+set(RippleSources src/high_level_path.cpp src/fringe_simd.cpp src/fringe.cpp src/ripple.cpp src/map.cpp)
+add_executable(graph_view src/graph_view.cpp ${RippleSources} ${BaselineSources})
 target_include_directories(graph_view PUBLIC baseline src)
 target_link_libraries(graph_view raylib TBB::tbb Threads::Threads)
 
-#add_executable(high_graph src/high.cpp src/map.cpp src/Astar_high.cpp)
-#target_link_libraries(high_graph raylib)
-
-#add_executable(ripple src/ripple.cpp)
-#target_link_libraries(ripple TBB::tbb Threads::Threads)
-
+add_executable(bench src/bench.cpp ${RippleSources} ${BaselineSources})
+target_include_directories(bench PUBLIC baseline src)
+target_link_libraries(bench raylib TBB::tbb Threads::Threads)

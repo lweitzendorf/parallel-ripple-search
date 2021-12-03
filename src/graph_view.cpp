@@ -7,6 +7,7 @@
 #include "Timer.h"
 #include "findpath.cpp"
 
+#include "fringe_simd.h"
 #include "fringe.h"
 #include "ripple.h"
 #include "WeightedGraph.h"
@@ -126,60 +127,6 @@ Image test_boost_a_star(Map& map, Node source, Node goal) {
   return img;
 }
 
-Image test_fringe_search(Map& map, Node source, Node goal) {
-  // Run fringe search
-  Timer t;
-  t.start();
-
-  FringeSearch fringe(map);
-  fringe.init(source, goal);
-  #if 0
-  auto shortest_path = fringe.search();
-  #else
-  FringeSearchStep step{};
-  do {
-    step = fringe.step();
-  } while(step.state == FringeSearchStepState::OK);
-
-  std::list<Node> path;
-  if(step.state == FringeSearchStepState::FOUND) {
-    path = fringe.finalize_path();
-  }
-  #endif
-
-  t.stop();
-  printf("Fringe search time: %.3fms (%d nodes)\n", t.get_microseconds() / 1000.0, (int)path.size());
-  //print_path(path.begin(), path.end());
-  //std::cout << std::endl;
-
-  // Create image and draw walls
-  Image img = GenImageColor(map.width(), map.height(), WHITE);
-  draw_walls(img, map);
-
-  // Draw visited nodes
-  for(int y = 0; y < map.height(); y++) {
-    for(int x = 0; x < map.width(); x++) {
-      int index = map.point_to_node(Point(x, y));
-      if(fringe.cache[index].visited) {
-          ImageDrawPixel(&img, x, y, LIME);
-      }
-    }
-  }
-
-  // Draw path
-  for(auto it: path) {
-    Point p = map.node_to_point(it);
-    ImageDrawPixel(&img, p.x, p.y, RED);
-  }
-
-  // Draw source and goal
-  Point sp = map.node_to_point(source);
-  Point gp = map.node_to_point(goal);
-  ImageDrawPixel(&img, sp.x, sp.y, GREEN);
-  ImageDrawPixel(&img, gp.x, gp.y, YELLOW);
-
-  return img;
-}
 
 Image test_Astar(Map& map, Node source, Node goal) {
   Timer t;
@@ -244,49 +191,27 @@ Image test_Astar_2(Map& map, Node source, Node goal) {
   return img;
 }
 
-
-
-
-Image test_ripple(Map& map, Node source, Node goal) {
+template<typename Search>
+Image test_search(std::string name, Map& map, Node source, Node goal, std::function<void(Image&, Map&, Search&)> draw)
+{
   Timer t;
   t.start();
 
-  RippleSearch ripple(map, source, goal);
-  Path<Node> path = ripple.search().value_or(Path<Node>());
+  Search search(map, source, goal);
+  auto path = search.search().value_or(Path<Node>());
 
   t.stop();
-  printf("Ripple search time: %.3fms (%d nodes)\n", t.get_microseconds() / 1000.0,
-    (int)path.size());
-  //print_path(path.begin(), path.end());
-  //std::cout << std::endl;
 
+  printf("%s time: %.3fms (%d nodes)\n", name.c_str(), (double)t.get_milliseconds(), (int)path.size());
+  
   // Create image and draw walls
   Image img = GenImageColor(map.width(), map.height(), WHITE);
+
+  // Custom draw
+  draw(img, map, search);
+
+  // Draw walls
   draw_walls(img, map);
-
-  Color colors[] = {
-      YELLOW,
-      DARKGREEN,
-      DARKPURPLE,
-      MAGENTA,
-      SKYBLUE,
-      MAROON,
-      ORANGE,
-      LIME
-  };
-
-  // Draw cache
-  std::atomic_thread_fence(std::memory_order_seq_cst);
-
-  for(int y = 0; y < map.height(); y++) {
-    for(int x = 0; x < map.width(); x++) {
-      int index = map.point_to_node(Point(x, y));
-      auto id = ripple.cache[index].thread.load(std::memory_order_relaxed);
-      if(id != THREAD_NONE) {
-          ImageDrawPixel(&img, x, y, colors[id]);
-      }
-    }
-  }
 
   // Draw path
   for(auto it: path) {
@@ -301,6 +226,44 @@ Image test_ripple(Map& map, Node source, Node goal) {
   ImageDrawPixel(&img, gp.x, gp.y, YELLOW);
 
   return img;
+}
+
+template<typename Fringe>
+void fringe_draw(Image& img, Map& map, Fringe& search) {
+  for(int y = 0; y < map.height(); y++) {
+    for(int x = 0; x < map.width(); x++) {
+      int index = map.point_to_node(Point(x, y));
+      if(search.cache[index].visited) {
+          ImageDrawPixel(&img, x, y, LIME);
+      }
+    }
+  }
+};
+
+void ripple_draw(Image& img, Map& map, RippleSearch& search) {
+  Color colors[] = {
+    YELLOW,
+    DARKGREEN,
+    DARKPURPLE,
+    MAGENTA,
+    SKYBLUE,
+    MAROON,
+    ORANGE,
+    LIME
+  };
+
+  // Draw cache
+  std::atomic_thread_fence(std::memory_order_seq_cst);
+
+  for(int y = 0; y < map.height(); y++) {
+    for(int x = 0; x < map.width(); x++) {
+      int index = map.point_to_node(Point(x, y));
+      auto id = search.cache[index].thread.load(std::memory_order_relaxed);
+      if(id != THREAD_NONE) {
+          ImageDrawPixel(&img, x, y, colors[id]);
+      }
+    }
+  }
 }
 
 int main(int argc, char** argv)
@@ -333,29 +296,21 @@ int main(int argc, char** argv)
   if (!check_source_and_goal(map, source, goal))
     return 3;
 
-  // Run Boost A*
-  Image boost_img = test_boost_a_star(map, source, goal);
-
-  // Run fringe search
-  Image fringe_img = test_fringe_search(map, source, goal);
-
-  // Run our a star
-  Image Astar_img = test_Astar(map, source, goal);
-
-  // Run reference a star
-  //Image Astar2_img = test_Astar_2(map, source, goal);
-
-  // Run ripple
-  Image ripple_img = test_ripple(map, source, goal);
+  const std::vector<Image> images = {
+    test_search<RippleSearch>("Ripple", map, source, goal, ripple_draw),
+    test_search<FringeSearchSimd>("Fringe Vec", map, source, goal, fringe_draw<FringeSearchSimd>),
+    test_search<FringeSearch>("Fringe", map, source, goal, fringe_draw<FringeSearch>),
+    test_boost_a_star(map, source, goal),
+    test_Astar(map, source, goal),
+  };
 
 #ifdef ONLY_EXPORT_IMGS
-
   bool boost_written = ExportImage(boost_img, BOOST_IMG_FN);
   bool fringe_written = ExportImage(fringe_img, FRINGE_IMG_FN);
   bool astar_written = ExportImage(Astar_img, ASTAR_IMG_FN);
   bool ripple_written = ExportImage(ripple_img, RIPPLE_IMG_FN);
-
 #else
+
   // Initialization
   const int SCREEN_WIDTH = 1000;
   const int SCREEN_HEIGHT = 1000;
@@ -364,13 +319,10 @@ int main(int argc, char** argv)
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Graph View");
   SetTargetFPS(60);
 
-  const std::vector<Texture2D> textures = {
-          LoadTextureFromImage(ripple_img),
-          LoadTextureFromImage(boost_img),
-          LoadTextureFromImage(fringe_img),
-          LoadTextureFromImage(Astar_img),
-          // LoadTextureFromImage(Astar2_img)
-  };
+  std::vector<Texture2D> textures;
+  for(auto& img: images) {
+    textures.push_back(LoadTextureFromImage(img));
+  }
 
   for (unsigned texture_index = 0; !WindowShouldClose();) // Detect window close button or ESC key
   {

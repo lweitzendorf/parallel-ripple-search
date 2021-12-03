@@ -71,7 +71,7 @@ private:
 public:
   explicit Map(int width = 0, int height = 0);
 
-  static Point neighbour_offsets[4];
+  static Point neighbour_offsets[8];
   static constexpr int NEIGHBOURS_COUNT =
       sizeof(neighbour_offsets) / sizeof(neighbour_offsets[0]);
 
@@ -88,8 +88,8 @@ public:
 
   Point node_to_point(Node i) const;
   Node point_to_node(Point p) const;
-  int distance(Node a, Node b) const;
-  static int distance(Point a, Point b);
+  float distance(Node a, Node b) const;
+  static float distance(Point a, Point b);
 
   double cost(Node from, Node to);
 

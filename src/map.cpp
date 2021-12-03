@@ -4,10 +4,15 @@
 #include <cmath>
 
 Point Map::neighbour_offsets[] = {
+        { -1, -1 },
+        { -1,  1 },
+        {  1, -1 },
+        {  1,  1 },
+
+        { -1,  0 },
+        {  0, -1 },
         {  1,  0 },
         {  0,  1 },
-        { -1,  0 },
-        {  0, -1 }
 };
 
 Map::Map(int width, int height) {
@@ -59,12 +64,14 @@ double Map::cost(Node from, Node to) {
     return 1;
 }
 
-int Map::distance(Node a, Node b) const {
+float Map::distance(Node a, Node b) const {
     return distance(node_to_point(a), node_to_point(b));
 }
 
-int Map::distance(Point a, Point b) {
-  return abs(b.x - a.x) + abs(b.y - a.y);
+float Map::distance(Point a, Point b) {
+  //return abs(b.x - a.x) + abs(b.y - a.y);
+  Point diff(b.x - a.x, b.y - a.y);
+  return sqrtf(diff.x * diff.x + diff.y * diff.y) * 0.5f;
 }
 
 // Iterator for generic path finding algorithms

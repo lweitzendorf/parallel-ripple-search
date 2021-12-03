@@ -12,8 +12,8 @@
 #include "high_level_path.h"
 #include "map.h"
 
-#define K 5
-#define N_POINTS 50
+#define K 3
+#define N_POINTS 150
 
 class HighLevelGraph {
   Map &map;
@@ -39,7 +39,8 @@ Path<Node> create_high_level_path(Map &map, Node source, Node goal) {
 
   // change rng
   std::random_device rd;
-  std::mt19937 gen(rd());
+  //std::mt19937 gen(rd());
+  std::mt19937 gen(12);
   std::uniform_int_distribution<> distrib_x(0, map.width() - 1);
   std::uniform_int_distribution<> distrib_y(0, map.height() - 1);
   int size = map.size();

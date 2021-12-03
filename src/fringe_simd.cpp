@@ -1,58 +1,66 @@
-#include "fringe.h"
+#include "fringe_simd.h"
 
 #include <limits.h>
 
 #include <stdio.h>
+#include <math.h>
 
-std::optional<std::vector<Node>> FringeSearch::search() {
+std::optional<std::vector<Node>> FringeSearchSimd::search() {
     cache.clear();
     cache.resize(map.size(), {});
 
-    fringe_list.clear();
+    now_list.clear();
+    later_list.clear();
 
     // Add source node to fringe list
-    fringe_list.push_front(source);
-    cache[source].in_list = true;
+    now_list.push_back(source);
+    cache[source].list_index = 0;
     cache[source].g = 0;
     cache[source].parent = source;
-    cache[source].list_entry = fringe_list.begin();
     cache[source].visited = true;
+    cache[source].list_index = 0;
 
     // Lambda for computing heuristic
     auto h = [&](Node i) {
         return map.distance(i, goal);
     };
 
-    int flimit = h(source);
-    int found = false;
-    FringeEntry nnode = fringe_list.end();
+    float flimit = h(source);
+    bool found = false;
 
-    // int it = 0;
-    while(!found && !fringe_list.empty()) {
-        //std::cout << "Iteration: " << it++ << std::endl;
-        int fmin = INT_MAX;
-        nnode = fringe_list.begin();
+    char current_list = 0;
+    while(!found && !now_list.empty()) {
+        float fmin = INT_MAX;
         
         do {
-            
-            if(*nnode == goal) {
+            Node node = now_list.back();
+            now_list.pop_back();
+
+            if(node == goal) {
                 found = true;
                 break;
             }
 
-            auto& n = cache[*nnode];
 
-            int g = n.g;
-            int f = g + h(*nnode);
+            auto& n = cache[node];
+            if(n.list_index != current_list) {
+                continue;
+            }
 
-            if(f > flimit) {
+            n.list_index = -1;
+
+            float g = n.g;
+            float f = g + h(node);
+
+            if(f > flimit + 1) {
                 fmin = std::min(fmin, f);
-                nnode++;
+                later_list.push_back(node);
+                n.list_index = 1 - current_list;
                 continue;
             }
 
             
-            Point np = map.node_to_point(*nnode);
+            Point np = map.node_to_point(node);
 
             // For each neighbour
             for(int i = 0; i < 8; i++) {
@@ -60,6 +68,7 @@ std::optional<std::vector<Node>> FringeSearch::search() {
                 neigh.x += np.x;
                 neigh.y += np.y;
 
+                
                 if (map.in_bounds(neigh)) {
                     Node s = map.point_to_node(neigh);
 
@@ -67,43 +76,35 @@ std::optional<std::vector<Node>> FringeSearch::search() {
                         continue;
                     }
 
-                    int gs = g + 1;
+                    float gs = i >= 4 ? g + 1 : g + sqrtf(2);
                     if(cache[s].visited) {
-                        int gi = cache[s].g;
+                        float gi = cache[s].g;
                         if(gs >= gi) {
                             continue;
                         }
                     }
 
-                    if(cache[s].in_list) {
-                        fringe_list.erase(cache[s].list_entry);
-                        cache[s].in_list = false;
-                    }
-
+                    // Update visited, cost and parent
                     cache[s].visited = true;
                     cache[s].g = gs;
-                    cache[s].parent = *nnode;
-                    //cache[s].h = h(s);
+                    cache[s].parent = node;
                     
-                    fringe_list.insert(std::next(nnode), s);
-
-                    cache[s].list_entry = std::next(nnode);
-                    cache[s].in_list = true;
-                }
+                    if(cache[s].list_index != current_list) {
+                        now_list.push_back(s);
+                        cache[s].list_index = current_list;
+                    }
+                } 
             }
-            
-            cache[*nnode].in_list = false;
 
-            auto tmp = std::next(nnode);
-            fringe_list.erase(nnode);
-            nnode = tmp;
-        } while(nnode != fringe_list.end());
+        } while(!now_list.empty());
 
-        
+        std::swap(later_list, now_list);
+        current_list = 1 - current_list;
+
         flimit = fmin;
     }
 
-    if(nnode != fringe_list.end()) {
+    if(found) {
         std::vector<Node> shortest_path = { goal };
         for (Node v = cache[goal].parent; v != source; v = cache[v].parent) {
             shortest_path.push_back(v);
@@ -116,6 +117,6 @@ std::optional<std::vector<Node>> FringeSearch::search() {
     }
 }
 
-FringeSearch::FringeSearch(Map& map, Node source, Node goal) : 
+FringeSearchSimd::FringeSearchSimd(Map& map, Node source, Node goal) : 
     map(map), source(source), goal(goal) {
 }

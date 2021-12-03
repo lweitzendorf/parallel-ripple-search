@@ -6,11 +6,13 @@
 #include <optional>
 #include <stdint.h>
 #include <vector>
+#include <cassert>
 
 #include <oneapi/tbb/concurrent_queue.h>
 
 #include "fringe.h"
 #include "map.h"
+#include "Timer.h"
 
 #define NUM_THREADS 4
 
@@ -148,7 +150,14 @@ struct RippleCacheNode {
 
 // Class representing a thread of the ripple search algorithm
 class RippleThread {
+public:
+    double time_first;
+    double time_second;
+    Timer timer;
+
 private:
+
+
   std::unique_ptr<std::thread> thread;
 
   // Read only data:
