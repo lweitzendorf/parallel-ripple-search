@@ -7,14 +7,13 @@
 #include "map.h"
 
 struct FringeNodeSimd {
-    // Replace with flags
-    bool visited = false;
-    char list_index = -1;
-    bool phase2 = false;
-
-    float g; // Cost from source to node
     Node parent;
+    float g; // Cost from source to node
+    int32_t visited = 0;
+    int32_t list_index = -1;
 };
+
+static_assert(sizeof(FringeNodeSimd) == 4 * 4);
 
 class FringeSearchSimd {
     // Constants

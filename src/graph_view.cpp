@@ -18,6 +18,7 @@
 #ifdef ONLY_EXPORT_IMGS
 #define BOOST_IMG_FN  "../imgs/boost_img.png"
 #define FRINGE_IMG_FN "../imgs/fringe_img.png"
+#define FRINGE_VEC_IMG_FN "../imgs/fringe_vec_img.png"
 #define ASTAR_IMG_FN  "../imgs/astar_img.png"
 #define RIPPLE_IMG_FN "../imgs/ripple_img.png"
 #endif
@@ -305,10 +306,11 @@ int main(int argc, char** argv)
   };
 
 #ifdef ONLY_EXPORT_IMGS
-  bool boost_written = ExportImage(boost_img, BOOST_IMG_FN);
-  bool fringe_written = ExportImage(fringe_img, FRINGE_IMG_FN);
-  bool astar_written = ExportImage(Astar_img, ASTAR_IMG_FN);
-  bool ripple_written = ExportImage(ripple_img, RIPPLE_IMG_FN);
+  bool ripple_written     = ExportImage(images[0], RIPPLE_IMG_FN);
+  bool fringe_vec_written = ExportImage(images[1], FRINGE_VEC_IMG_FN);
+  bool fringe_written     = ExportImage(images[2], FRINGE_IMG_FN);
+  bool astar_written      = ExportImage(images[3], ASTAR_IMG_FN);
+  bool boost_written      = ExportImage(images[4], BOOST_IMG_FN);
 #else
 
   // Initialization

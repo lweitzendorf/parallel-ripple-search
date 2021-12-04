@@ -3,9 +3,6 @@ project(DPHPC)
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-
 # raylib
 add_subdirectory(raylib)
 set(PLATFORM=PLATFORM_DESKTOP)
@@ -23,6 +20,25 @@ target_link_libraries(baseline raylib)
 # add_definitions(-DONLY_EXPORT_IMGS)
 # NOTE we should turn this on at some point
 # add_compile_options(-Wall -Werror)
+
+# Set to TRUE to make a debug build
+set(DEBUG FALSE)
+# Set to TRUE to enable avx512 vectorization
+set(AVX512 FALSE)
+
+if (DEBUG)
+    set(CMAKE_BUILD_TYPE Debug)
+else ()
+    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+endif ()
+
+
+if(AVX512)
+    add_compile_definitions(AVX512_ENABLED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=skylake-avx512")
+endif ()
+
 set(BaselineSources baseline/WeightedGraph.cpp baseline/Timer.cpp baseline/FileParser.cpp)
 set(RippleSources src/high_level_path.cpp src/fringe_simd.cpp src/fringe.cpp src/ripple.cpp src/map.cpp)
 add_executable(graph_view src/graph_view.cpp ${RippleSources} ${BaselineSources})

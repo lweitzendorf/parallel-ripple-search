@@ -21,11 +21,11 @@ Map::Map(int width, int height) {
   this->data.resize(width * height);
 }
 
-char Map::get(Point p) {
+MapType Map::get(Point p) {
   return data[point_to_node(p)];
 }
 
-void Map::set(Point p, char c) {
+void Map::set(Point p, MapType c) {
   data[point_to_node(p)] = c;
 }
 
@@ -38,7 +38,7 @@ void Map::load_from_image_file(const char* path) {
 
     this->width_ = img.width;
     this->height_ = img.height;
-    this->data.resize(img.width * img.height);
+    this->data.resize(width_ * height_, 0);
     for(int y = 0; y < img.height; y++) {
         for(int x = 0; x < img.width; x++) {
           set(Point(x, y), GetImageColor(img, x, y).r != 0);

@@ -1,8 +1,10 @@
 #pragma once
 
 #include <vector>
+#include <stdint.h>
 
-typedef int Node;
+typedef uint8_t MapType;
+typedef int32_t Node;
 template <typename T> using Path = std::vector<T>;
 
 #define INVALID_NODE (-1)
@@ -66,7 +68,7 @@ public:
 class Map {
 private:
   int width_, height_;
-  std::vector<char> data;
+  std::vector<MapType> data;
 
 public:
   explicit Map(int width = 0, int height = 0);
@@ -78,9 +80,10 @@ public:
   int width() const { return width_; }
   int height() const { return height_; }
   size_t size() const { return data.size(); }
+  MapType* data_ptr() { return data.data(); }
 
-  char get(Point p);
-  void set(Point p, char c);
+  MapType get(Point p);
+  void set(Point p, MapType c);
 
   bool in_bounds(Point p) const;
 
