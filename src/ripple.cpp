@@ -394,10 +394,9 @@ reset:
   }
 
   // Fringe search step towards G
-  bool found = false;
   FringeEntry node = fringe_list.end();
 
-  while (!found && !fringe_list.empty()) {
+  while (!fringe_list.empty()) {
     int fmin = INT_MAX;
     node = fringe_list.begin();
 
@@ -429,10 +428,8 @@ reset:
       Point np = map.node_to_point(*node);
 
       // For each neighbour
-      for (int i = 0; i < 8; i++) {
-        Point neigh = Map::neighbour_offsets[i];
-        neigh.x += np.x;
-        neigh.y += np.y;
+      for (auto &neighbour_offset : Map::neighbour_offsets) {
+        Point neigh = np + neighbour_offset;
 
         // If the neighbour coordinates are inside the map
         if (map.in_bounds(neigh)) {
@@ -444,9 +441,8 @@ reset:
           }
 
           // If we found our goal in phase 2 we are done and can exit;
-          if(phase2) {
+          if (phase2) {
             if(*node == goal) {
-              found = true;
               goto fringe_finished;
             }
           } else {
@@ -506,9 +502,7 @@ reset:
           }
 
           // If already in list in this phase, remove it
-          if (neighbour_cache.phase2 == phase2 &&
-              neighbour_cache.in_list) {
-
+          if (neighbour_cache.phase2 == phase2 && neighbour_cache.in_list) {
             fringe_list.erase(neighbour_cache.list_entry);
             neighbour_cache.in_list = false;
           }
@@ -545,7 +539,7 @@ fringe_finished:
       
 
   // Finished the space we could search in
-  if(phase2 == false) {
+  if (!phase2) {
     timer.stop();
     time_first = timer.get_microseconds() / 1000.0;
 
@@ -553,7 +547,7 @@ fringe_finished:
 
     if(collision_mask == 0) {
       //If we are the source or goal thread abort the search
-      if(id == THREAD_SOURCE || id == THREAD_GOAL) {
+      if (id == THREAD_SOURCE || id == THREAD_GOAL) {
         AssertUnreachable("Path does not exist, currently not handled");
       } else {
         goto exit;
@@ -579,7 +573,7 @@ fringe_finished:
       Logf("Slave finish - found: %d", found);
       
       // Reconstruct the path
-      if(found)
+      if (cache[goal].node.visited)
         finalize_path(goal, source, false);
 
       Message msg;
