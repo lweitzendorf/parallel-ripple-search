@@ -5,7 +5,7 @@
 #include <raylib.h>
 
 #include "Timer.h"
-#include "findpath.cpp"
+#include "stlastar.cpp"
 
 #include "fringe_simd.h"
 #include "fringe.h"
