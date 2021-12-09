@@ -6,11 +6,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include <raylib.h>
+#include <CLionProjects/parallel-ripple-search/raylib/src/raylib.h>
 
-#include "Astar.h"
+#include "CLionProjects/parallel-ripple-search/src/reference/Astar.h"
 #include "high_level_path.h"
-#include "map.h"
+#include "CLionProjects/parallel-ripple-search/src/graph/map.h"
 
 #define K 3
 #define N_POINTS 150

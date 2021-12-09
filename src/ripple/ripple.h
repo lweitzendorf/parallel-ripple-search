@@ -10,9 +10,9 @@
 
 #include <oneapi/tbb/concurrent_queue.h>
 
-#include "fringe.h"
-#include "map.h"
-#include "Timer.h"
+#include "CLionProjects/parallel-ripple-search/src/reference/fringe.h"
+#include "CLionProjects/parallel-ripple-search/src/graph/map.h"
+#include "CLionProjects/parallel-ripple-search/src/utility/Timer.h"
 
 #define NUM_THREADS 4
 

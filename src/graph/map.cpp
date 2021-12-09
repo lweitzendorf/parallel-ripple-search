@@ -1,6 +1,6 @@
 #include "map.h"
 
-#include <raylib.h>
+#include <CLionProjects/parallel-ripple-search/raylib/src/raylib.h>
 #include <cmath>
 
 Point Map::neighbour_offsets[] = {

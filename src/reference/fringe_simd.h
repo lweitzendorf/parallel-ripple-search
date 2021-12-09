@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <optional>
 
-#include "map.h"
+#include "CLionProjects/parallel-ripple-search/src/graph/map.h"
 
 struct FringeNodeSimd {
     Node parent;

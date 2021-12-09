@@ -1,7 +1,7 @@
 #ifndef DPHPC_FILEPARSER_H
 #define DPHPC_FILEPARSER_H
 
-#include "WeightedGraph.h"
+#include "CLionProjects/parallel-ripple-search/src/graph/WeightedGraph.h"
 #include <string>
 
 class FileParser {

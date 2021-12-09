@@ -2,7 +2,7 @@
 
 #include <list>
 #include <optional>
-#include "map.h"
+#include "CLionProjects/parallel-ripple-search/src/graph/map.h"
 
 typedef std::list<Node> FringeList;
 typedef FringeList::iterator FringeEntry;

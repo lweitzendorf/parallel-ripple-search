@@ -3,10 +3,10 @@
 #include <queue>
 #include <assert.h>
 
-#include "Astar.h"
+#include "CLionProjects/parallel-ripple-search/src/reference/Astar.h"
 #include "high_level_path.h"
 #include "ripple.h"
-#include "Timer.h"
+#include "CLionProjects/parallel-ripple-search/src/utility/Timer.h"
 
 #define LOG_ENABLED 0
 

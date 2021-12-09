@@ -16,7 +16,7 @@
 #include <thread>
 #include <list>
 #include <vector>
-#include "map.h"
+#include "CLionProjects/parallel-ripple-search/src/graph/map.h"
 
 #define DEBUG_LISTS 0
 #define DEBUG_LIST_LENGTHS_ONLY 0

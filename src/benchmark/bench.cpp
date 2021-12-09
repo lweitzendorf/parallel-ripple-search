@@ -1,14 +1,14 @@
 #include <iostream>
 #include <fstream>
-#include <raylib.h>
+#include <CLionProjects/parallel-ripple-search/raylib/src/raylib.h>
 
-#include "map.h"
-#include "WeightedGraph.h"
-#include "FileParser.h"
-#include "Timer.h"
-#include "fringe_simd.h"
-#include "fringe.h"
-#include "ripple.h"
+#include "CLionProjects/parallel-ripple-search/src/graph/map.h"
+#include "CLionProjects/parallel-ripple-search/src/graph/WeightedGraph.h"
+#include "CLionProjects/parallel-ripple-search/src/utility/FileParser.h"
+#include "CLionProjects/parallel-ripple-search/src/utility/Timer.h"
+#include "CLionProjects/parallel-ripple-search/src/reference/fringe_simd.h"
+#include "CLionProjects/parallel-ripple-search/src/reference/fringe.h"
+#include "CLionProjects/parallel-ripple-search/src/ripple/ripple.h"
 
 bool check_source_and_goal(Map& map, Node source, Node goal) {
   // bounds check on source and goal

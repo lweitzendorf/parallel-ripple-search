@@ -4,16 +4,16 @@
 
 #include <raylib.h>
 
-#include "Timer.h"
-#include "stlastar.cpp"
+#include "CLionProjects/parallel-ripple-search/src/utility/Timer.h"
+#include "CLionProjects/parallel-ripple-search/src/reference/stlastar.cpp"
 
-#include "fringe_simd.h"
-#include "fringe.h"
-#include "ripple.h"
-#include "WeightedGraph.h"
-#include "FileParser.h"
+#include "CLionProjects/parallel-ripple-search/src/reference/fringe_simd.h"
+#include "CLionProjects/parallel-ripple-search/src/reference/fringe.h"
+#include "CLionProjects/parallel-ripple-search/src/ripple/ripple.h"
+#include "CLionProjects/parallel-ripple-search/src/graph/WeightedGraph.h"
+#include "CLionProjects/parallel-ripple-search/src/utility/FileParser.h"
 
-#include "Astar.h"
+#include "CLionProjects/parallel-ripple-search/src/reference/Astar.h"
 
 #ifdef ONLY_EXPORT_IMGS
 #define BOOST_IMG_FN  "../imgs/boost_img.png"
