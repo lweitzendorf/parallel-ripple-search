@@ -37,7 +37,7 @@ endif ()
 
 set(BaselineSources src/graph/WeightedGraph.cpp src/utility/Timer.cpp src/utility/FileParser.cpp)
 set(RippleSources src/ripple/high_level_path.cpp src/reference/fringe_simd.cpp src/reference/fringe.cpp src/ripple/ripple.cpp src/graph/map.cpp)
-add_executable(graph_view src/graph_view.cpp ${RippleSources} ${BaselineSources})
+add_executable(graph_view src/graph_view.cpp ${RippleSources} ${BaselineSources} src/graph/Point.h)
 target_include_directories(graph_view PUBLIC baseline src)
 target_link_libraries(graph_view raylib TBB::tbb Threads::Threads)
 

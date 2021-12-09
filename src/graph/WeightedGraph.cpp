@@ -1,4 +1,5 @@
 #include "WeightedGraph.h"
+#include<iterator>
 
 WeightedGraph::WeightedGraph() {
   g = weighted_graph_t(0);
@@ -17,6 +18,17 @@ bool WeightedGraph::add_edge(vertex_t vertex_1, vertex_t vertex_2, int weight) {
   edge_t e = boost::add_edge(vertex_1, vertex_2, g).first;
   weights[e] = weight;
   return true;
+}
+
+auto WeightedGraph::neighbors(vertex_t vertex) {
+  auto out_edges = boost::out_edges(vertex, g);
+  std::vector<vertex_t> out(out_edges.second - out_edges.first);
+  return std::transform(out_edges.first, out_edges.second, out.begin(),
+                 [&](auto edge) -> vertex_t {
+    auto s = boost::source(edge, g);
+    auto t = boost::target(edge, g);
+    return s == vertex ? t : s;
+  });
 }
 
 std::list<vertex_t> WeightedGraph::a_star_search(vertex_t start, vertex_t goal) {

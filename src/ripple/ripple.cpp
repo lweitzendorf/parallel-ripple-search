@@ -1,6 +1,5 @@
 #include <iostream>
 #include <memory>
-#include <queue>
 #include <assert.h>
 
 #include "CLionProjects/parallel-ripple-search/src/reference/Astar.h"
@@ -8,7 +7,7 @@
 #include "ripple.h"
 #include "CLionProjects/parallel-ripple-search/src/utility/Timer.h"
 
-#define LOG_ENABLED 0
+#define LOG_ENABLED false
 
 #if LOG_ENABLED
 #define Log(str) printf("%d| " str "\n", id)
@@ -19,7 +18,6 @@
 #define Logf(...)
 #define AssertUnreachable(...) do { } while(0)
 #endif
-
 
 RippleThread::RippleThread(
     ThreadId id, Map &map, CollisionGraph &collision_graph,
@@ -50,7 +48,6 @@ Path<ThreadId>& RippleThread::get_phase2_thread_path() {
 Path<Node>& RippleThread::get_final_path() {
   return final_path;
 }
-
 
 bool RippleThread::start() {
   if (thread == nullptr) {
@@ -589,8 +586,6 @@ exit:
 
   timer.stop();
   time_second = timer.get_microseconds() / 1000.0;
-
-  return;
 }
 
 // Ripple search utilities
@@ -686,7 +681,7 @@ std::optional<Path<Node>> RippleSearch::search() {
 
   double reconstruct = timer.get_microseconds() / 1000.0;
 
-#if 0
+#if false
   printf("%3.2f path\n", search);
   for(int i = 0; i < NUM_THREADS; i++) {
     printf("%d - %3.2f first - %3.2f second\n", i, threads[i]->time_first, threads[i]->time_second);

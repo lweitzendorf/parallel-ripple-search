@@ -5,11 +5,13 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/astar_search.hpp>
+
 #include <iostream>
 #include <list>
 #include <cmath>
 #include <string>
 #include <fstream>
+#include <iterator>
 
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                               boost::no_property, boost::property<boost::edge_weight_t, int>> weighted_graph_t;
@@ -28,6 +30,8 @@ public:
 
     vertices_size_t num_vertices() { return boost::num_vertices(g); }
     edges_size_t num_edges() { return boost::num_edges(g); }
+
+    auto neighbors(vertex_t);
 
     std::list<vertex_t> a_star_search(vertex_t, vertex_t);
 

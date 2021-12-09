@@ -1,5 +1,6 @@
 #include "map.h"
 
+
 #include <CLionProjects/parallel-ripple-search/raylib/src/raylib.h>
 #include <cmath>
 
@@ -91,7 +92,7 @@ MapIterator MapNeighbours::end() {
     return MapIterator(map, point, Map::NEIGHBOURS_COUNT);
 }
 
-MapIterator::MapIterator(Map& map, Point p, size_t idx): 
+MapIterator::MapIterator(Map& map, Point p, size_t idx):
     map(map), center(p), index(idx) {
 
     update_current();
