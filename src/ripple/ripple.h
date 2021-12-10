@@ -149,6 +149,24 @@ struct RippleCacheNode {
   FringeNode node;
 };
 
+/** NOTE s for refactoring:
+ * there should exist two types of threads
+ *
+ * 1. a coordinator
+ * 2. workers
+ *
+ * (1) is not unlike the master thread, however, this thread is going to
+ *     make sure that the other threads are apporpriately messaged and
+ *     working on the correct thing.
+ *
+ * (2) is the basic worker thread from before. These should be searching for
+ *     paths and /that's it/. (1) can reconstruct paths while the others work
+ *     on phase 2 (if we want) but mostly it should be coordinating messages
+ *     on collisions. (2) should not have fields for things like the
+ *     CollisionGraph that is only needed by one thread.
+ *
+ **/
+
 // Class representing a thread of the ripple search algorithm
 class RippleThread {
 public:
@@ -180,7 +198,7 @@ private:
   // goal_2 == INVALID_NODE for the Source and Goal threads
   Node source;
   Node goal;
-  Node goal_2;
+  std::optional<Node> goal_2;
 
   // Fringe search info
   FringeList fringe_list;

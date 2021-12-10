@@ -36,7 +36,7 @@ void RippleThread::set_source(Node s) { source = s; }
 
 void RippleThread::set_single_goal(Node g) {
   goal = g;
-  goal_2 = INVALID_NODE;
+  goal_2 = {};
 }
 
 void RippleThread::set_goals(Node g1, Node g2) {
@@ -320,7 +320,7 @@ void RippleThread::initialize_fringe_search() {
   cache[source].node.phase2 = phase2; // set to true if we are in phase 2
 
   // Set the heuristic depending on the numbe of goals
-  if (goal_2 == INVALID_NODE) {
+  if (!goal_2) {
     heuristic = [](RippleThread *self, Node n) {
       return self->map.distance(n, self->goal);
     };
@@ -378,12 +378,22 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
   }
 }
 
+/** NOTE A few notes for refactoring:
+ *
+ * we need to get rid of the GOTO
+ *  the best way to do this is with a continuation (to my knowledge)
+ *  here's a [decent] article comparing this with Haskell:
+ *  https://www.fpcomplete.com/blog/2012/06/asynchronous-api-in-c-and-the-continuation-monad/
+ *
+ *  obviously we do not need somthing this heavy, but I could imagine passing
+ *  a few functions to the search function that will make this easier.
+ *
+ *  Oh, and pull everything out of the 'entry function. This should only be
+ *  for setting up some thread specific things and /that's it/.
+ */
+
 void RippleThread::entry() {
-  // NOTE I think we already agreed that this goto style is terrible.
-  //      Lucky for us, it's probably the best solution right now. Ideally in
-  //      the future we will be able to somehow handle these interrupt actions
-  //      much smoother and with a better semantics.
-  timer.start();
+  timer.start(); // <- NOTE what the fuck is this?
 reset:
   initialize_fringe_search();
 
@@ -447,7 +457,7 @@ reset:
           } else {
             // This should never happen in phase 1 as the goal threads
             // are already acquired
-            if (*node == goal || *node == goal_2) {
+            if (*node == goal || *node == goal_2.value()) {
               assert(false);
             }
           }
