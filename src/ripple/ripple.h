@@ -1,18 +1,18 @@
 #pragma once
 
 #include <atomic>
+#include <cassert>
 #include <condition_variable>
 #include <mutex>
 #include <optional>
 #include <stdint.h>
 #include <vector>
-#include <cassert>
 
 #include <oneapi/tbb/concurrent_queue.h>
 
-#include "CLionProjects/parallel-ripple-search/src/reference/fringe.h"
-#include "CLionProjects/parallel-ripple-search/src/graph/map.h"
-#include "CLionProjects/parallel-ripple-search/src/utility/Timer.h"
+#include "graph/map.h"
+#include "reference/fringe.h"
+#include "utility/Timer.h"
 
 #define NUM_THREADS 4
 
@@ -26,16 +26,16 @@ enum ThreadId : int8_t {
 
 // Struct representing a collision between threads.
 struct Collision {
-  ThreadId target;       // Thread that we collided with
-  Node node;   // Node at which the collision happened
+  ThreadId target; // Thread that we collided with
+  Node node;       // Node at which the collision happened
 
   Node parent; // Node that we came from when we found the collision.
                // The other parent of the collision node is stored
                // explicitly in the cache, so we don't need to keep track
                // of it here.
 
-  Collision() {};
-  Collision(ThreadId t, Node n, Node p): target(t), node(n), parent(p) {}
+  Collision(){};
+  Collision(ThreadId t, Node n, Node p) : target(t), node(n), parent(p) {}
 };
 
 class CollisionGraph {
@@ -52,10 +52,10 @@ public:
   CollisionGraph(Map &map, Node goal) : map(map), goal(goal) {
     graph.resize(NUM_THREADS);
   }
-  
+
   size_t size() { return graph.size(); }
 
-  std::vector<ThreadId>& neighbours(int i) {
+  std::vector<ThreadId> &neighbours(int i) {
     neighbors.clear();
     std::transform(graph[i].begin(), graph[i].end(), back_inserter(neighbors),
                    [](std::pair<ThreadId, Collision> &c) { return c.first; });
@@ -64,12 +64,12 @@ public:
 
   // TODO I know the below are wrong
   double cost(int i, int j) {
-    //return map.distance(graph[i][i].collision_node, goal);
+    // return map.distance(graph[i][i].collision_node, goal);
     return 1;
   }
 
   int distance(int i, int j) {
-    //return map.distance(graph[i][i].collision_node, goal);
+    // return map.distance(graph[i][i].collision_node, goal);
     return 0;
   }
 
@@ -77,9 +77,11 @@ public:
     assert(source != target);
 
     // Make sure we only store one collision for each pair of threads
-    if(!(masks[source] & (1 << target) || masks[target] & (1 << source))) {
-      graph[source].push_back(std::make_pair(target, Collision(target, node, parent)));
-      graph[target].push_back(std::make_pair(source, Collision(target, node, parent)));
+    if (!(masks[source] & (1 << target) || masks[target] & (1 << source))) {
+      graph[source].push_back(
+          std::make_pair(target, Collision(target, node, parent)));
+      graph[target].push_back(
+          std::make_pair(source, Collision(target, node, parent)));
 
       masks[source] |= (1 << target);
       masks[target] |= (1 << source);
@@ -87,8 +89,8 @@ public:
   }
 
   Collision get_collision(ThreadId t1, ThreadId t2) {
-    for(int i = 0; i < graph[t1].size(); i++) {
-      if(graph[t1][i].first == t2) {
+    for (int i = 0; i < graph[t1].size(); i++) {
+      if (graph[t1][i].first == t2) {
         return graph[t1][i].second;
       }
     }
@@ -97,8 +99,6 @@ public:
     assert(0);
     return {};
   }
-
-
 };
 
 // Message type
@@ -126,11 +126,12 @@ struct Message {
     Node final_node; // type = MESSAGE_PHASE_2 for goal thread
 
     struct {
-      Node collision_node;       // Node that is already owned by the target thread
-      Node collision_parent;     // Node that the source thread came from when he found the collision
+      Node collision_node;   // Node that is already owned by the target thread
+      Node collision_parent; // Node that the source thread came from when he
+                             // found the collision
       ThreadId collision_source; // Thread that found the collision
       ThreadId collision_target; // Thread that already owned the node
-    }; // type = MESSAGE_COLLISION
+    };                           // type = MESSAGE_COLLISION
   };
 };
 
@@ -151,13 +152,11 @@ struct RippleCacheNode {
 // Class representing a thread of the ripple search algorithm
 class RippleThread {
 public:
-    double time_first;
-    double time_second;
-    Timer timer;
+  double time_first;
+  double time_second;
+  Timer timer;
 
 private:
-
-
   std::unique_ptr<std::thread> thread;
 
   // Read only data:
@@ -198,11 +197,11 @@ private:
   // collision from id1 to id2 it also appears as a collision from id2 to id1.
   // This graph is only read and written by the source thread
   CollisionGraph &collision_graph;
-  
-  // Mask of threads that we collided with, the i-th bit is 1 if we collided with the i-th thread
+
+  // Mask of threads that we collided with, the i-th bit is 1 if we collided
+  // with the i-th thread
   uint32_t collision_mask = 0;
   static_assert(sizeof(collision_mask) * 8 >= NUM_THREADS);
-
 
   // Phase 2 flag, set to true when we enter phase 2
   bool phase2 = false;
@@ -216,8 +215,7 @@ private:
 
   // Only called by the Source thread to check if there is a path in the
   // collision graph from source to node
-  void add_collision(ThreadId source, ThreadId target, 
-    Node node, Node parent);
+  void add_collision(ThreadId source, ThreadId target, Node node, Node parent);
 
   // Only called by the Source thread to check if there is a path in the
   // collision graph from source to node
@@ -236,13 +234,12 @@ private:
   // Reset internal state for phase 2 iterations
   void reset_for_phase_2(Node source, Node target);
 
-  // Reverse the path from 'from' to 'to using the node cache 
+  // Reverse the path from 'from' to 'to using the node cache
   // and store it into final_path
   void finalize_path(Node from, Node to, bool include_to = true);
 
   // Entry point of all ripple threads
   void entry();
-
 
 public:
   RippleThread(ThreadId id, Map &map, CollisionGraph &collision_graph,
@@ -256,8 +253,8 @@ public:
   void set_source(Node s);
   void set_single_goal(Node g);
   void set_goals(Node g1, Node g2);
-  Path<ThreadId>& get_phase2_thread_path();
-  Path<Node>& get_final_path();
+  Path<ThreadId> &get_phase2_thread_path();
+  Path<Node> &get_final_path();
 };
 
 // Utility class for initializing and invoking ripple search

@@ -6,11 +6,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include <CLionProjects/parallel-ripple-search/raylib/src/raylib.h>
+#include <raylib.h>
 
-#include "CLionProjects/parallel-ripple-search/src/reference/Astar.h"
+#include "graph/map.h"
 #include "high_level_path.h"
-#include "CLionProjects/parallel-ripple-search/src/graph/map.h"
+#include "reference/Astar.h"
 
 #define K 3
 #define N_POINTS 150
@@ -39,7 +39,7 @@ Path<Node> create_high_level_path(Map &map, Node source, Node goal) {
 
   // change rng
   std::random_device rd;
-  //std::mt19937 gen(rd());
+  // std::mt19937 gen(rd());
   std::mt19937 gen(12);
   std::uniform_int_distribution<> distrib_x(0, map.width() - 1);
   std::uniform_int_distribution<> distrib_y(0, map.height() - 1);

@@ -1,22 +1,28 @@
+#include <assert.h>
 #include <iostream>
 #include <memory>
-#include <assert.h>
 
-#include "CLionProjects/parallel-ripple-search/src/reference/Astar.h"
 #include "high_level_path.h"
+#include "reference/Astar.h"
 #include "ripple.h"
-#include "CLionProjects/parallel-ripple-search/src/utility/Timer.h"
+#include "utility/Timer.h"
 
 #define LOG_ENABLED false
 
 #if LOG_ENABLED
 #define Log(str) printf("%d| " str "\n", id)
 #define Logf(fmt, ...) printf("%d| " fmt "\n", id, __VA_ARGS__)
-#define AssertUnreachable(...) do { Log(__VA_ARGS__); assert(false); } while(0)
+#define AssertUnreachable(...)                                                 \
+  do {                                                                         \
+    Log(__VA_ARGS__);                                                          \
+    assert(false);                                                             \
+  } while (0)
 #else
 #define Log(...)
 #define Logf(...)
-#define AssertUnreachable(...) do { } while(0)
+#define AssertUnreachable(...)                                                 \
+  do {                                                                         \
+  } while (0)
 #endif
 
 RippleThread::RippleThread(
@@ -38,16 +44,15 @@ void RippleThread::set_goals(Node g1, Node g2) {
   goal_2 = g2;
 }
 
-Path<ThreadId>& RippleThread::get_phase2_thread_path() {
+Path<ThreadId> &RippleThread::get_phase2_thread_path() {
   if (id != THREAD_SOURCE)
-    AssertUnreachable("attemp to get the collision path from a non-source thread");
+    AssertUnreachable(
+        "attemp to get the collision path from a non-source thread");
 
   return phase2_thread_path;
 }
 
-Path<Node>& RippleThread::get_final_path() {
-  return final_path;
-}
+Path<Node> &RippleThread::get_final_path() { return final_path; }
 
 bool RippleThread::start() {
   if (thread == nullptr) {
@@ -66,11 +71,11 @@ bool RippleThread::join() {
   return false;
 }
 
-void RippleThread::add_collision(ThreadId source, ThreadId target,
-                                 Node node, Node parent) {
+void RippleThread::add_collision(ThreadId source, ThreadId target, Node node,
+                                 Node parent) {
   if (id != THREAD_SOURCE)
     AssertUnreachable("add_collision called on non-source thread");
-  
+
   collision_graph.add_collision(source, target, node, parent);
 }
 
@@ -82,8 +87,8 @@ void RippleThread::finalize_path(Node from, Node to, bool include_to) {
     final_path.push_back(current);
     current = cache[current].node.parent;
   }
-  
-  if(include_to)
+
+  if (include_to)
     final_path.push_back(to);
 
   Log("Finished finalizing path");
@@ -95,10 +100,8 @@ bool RippleThread::check_collision_path() {
   if (id != THREAD_SOURCE)
     AssertUnreachable("check_collision_graph called on non-source thread");
 
-
   auto maybe_path =
       a_star_search_gen(collision_graph, THREAD_SOURCE, THREAD_GOAL);
-
 
   // If there is a path signal all threads to stop
   if (maybe_path.has_value()) {
@@ -114,21 +117,21 @@ bool RippleThread::check_collision_path() {
 
     Log("Path found:");
 #if LOG_ENABLED
-    for(auto n: found_path) {
+    for (auto n : found_path) {
       printf("%d -> ", n);
     }
     printf("||\n");
 #endif
-    
+
     if (found_path.front() != THREAD_SOURCE)
-      AssertUnreachable("I expected the source thread to be the start of the path");
+      AssertUnreachable(
+          "I expected the source thread to be the start of the path");
     if (found_path.back() != THREAD_GOAL)
       AssertUnreachable("I expected the goal thread to be the end of the path");
 
     // Send message with next source and target to all threads
     // that aren't the source / target thread.
     Message msg;
-    
 
     bool works_in_phase2[NUM_THREADS] = {};
 
@@ -154,8 +157,8 @@ bool RippleThread::check_collision_path() {
       message_queues[thread].push(msg);
       works_in_phase2[thread] = true;
 
-
-      Logf("Phase2: SLAVE %d <- %d -> %d", found_path[i - 1], thread, found_path[i + 1]);
+      Logf("Phase2: SLAVE %d <- %d -> %d", found_path[i - 1], thread,
+           found_path[i + 1]);
     }
 
     // SLAVES STOPPED
@@ -167,33 +170,38 @@ bool RippleThread::check_collision_path() {
       }
     }
 
-    // NOTE: 
+    // NOTE:
     // The order between source and goal here is important when the only
-    // collision is the one between source and goal. In that case we 
+    // collision is the one between source and goal. In that case we
     // first store into current the node that source starts reversing from
     // and then update the node cache so that goal is able to reverse his.
-    // This should probably be made more robust once we handle collisions better.
+    // This should probably be made more robust once we handle collisions
+    // better.
 
     // SOURCE
     // Start reconstructing path from source to first
-    Collision first_collision = collision_graph.get_collision(THREAD_SOURCE, found_path[1]);
+    Collision first_collision =
+        collision_graph.get_collision(THREAD_SOURCE, found_path[1]);
     Node current = first_collision.parent;
-    if(first_collision.target == THREAD_SOURCE) { 
+    if (first_collision.target == THREAD_SOURCE) {
       current = cache[first_collision.node].node.parent;
     }
 
     // GOAL
-    // Update the cache, so that the parent of the last collision is always a node
-    // that was discovered by goal thread.
+    // Update the cache, so that the parent of the last collision is always a
+    // node that was discovered by goal thread.
     ThreadId second_last = found_path[found_path.size() - 2];
     Logf("Phase2: GOAL -> %d", second_last);
-    Collision last_collision =  collision_graph.get_collision(second_last, THREAD_GOAL);
-    
-    if(last_collision.target != THREAD_GOAL) {
-      cache[last_collision.node].thread.store(THREAD_GOAL, std::memory_order_seq_cst);
+    Collision last_collision =
+        collision_graph.get_collision(second_last, THREAD_GOAL);
+
+    if (last_collision.target != THREAD_GOAL) {
+      cache[last_collision.node].thread.store(THREAD_GOAL,
+                                              std::memory_order_seq_cst);
       cache[last_collision.node].node.parent = last_collision.parent;
     } else {
-      assert(cache[last_collision.node].thread.load(std::memory_order_seq_cst) == THREAD_GOAL);
+      assert(cache[last_collision.node].thread.load(
+                 std::memory_order_seq_cst) == THREAD_GOAL);
     }
 
     // Signal the node to start reconstruction with to the goal thread
@@ -201,21 +209,19 @@ bool RippleThread::check_collision_path() {
     msg.final_node = last_collision.node;
     message_queues[THREAD_GOAL].push(msg);
 
-
     finalize_path(current, source);
     std::reverse(final_path.begin(), final_path.end());
 
     // Store the finalized path
     this->phase2_thread_path = found_path;
 
-
     // Wait for all slaves and the goal to end
     int slaves_working = found_path.size() - 1;
     Logf("Slaves working: %d", slaves_working);
     while (slaves_working) {
       // TODO: not busy wait
-      //std::unique_lock<std::mutex> lk(wait_mutex);
-      //wait_cv.wait(lk);
+      // std::unique_lock<std::mutex> lk(wait_mutex);
+      // wait_cv.wait(lk);
 
       while (message_queues[THREAD_SOURCE].try_pop(msg)) {
         if (msg.type == MESSAGE_DONE) {
@@ -224,7 +230,7 @@ bool RippleThread::check_collision_path() {
         }
       }
     }
-    
+
     timer.stop();
     time_second = timer.get_microseconds() / 1000.0;
 
@@ -244,12 +250,13 @@ FringeInterruptAction RippleThread::check_message_queue() {
   Message message;
   while (message_queues[id].try_pop(message)) {
     switch (message.type) {
-    
+
     // Only arrives to THREAD_SOURCE
     case MESSAGE_COLLISION: {
-      Logf("Message - Collision: %d -> %d", message.collision_source, message.collision_target);
-      add_collision(message.collision_source, message.collision_target, 
-        message.collision_node, message.collision_parent);
+      Logf("Message - Collision: %d -> %d", message.collision_source,
+           message.collision_target);
+      add_collision(message.collision_source, message.collision_target,
+                    message.collision_node, message.collision_parent);
       check_collisions = true;
     } break;
     // Only arrives to slave threads if they need to switch to phase 2
@@ -262,17 +269,15 @@ FringeInterruptAction RippleThread::check_message_queue() {
         timer.stop();
         time_first = timer.get_microseconds() / 1000.0;
         timer.start();
-        
+
         finalize_path(message.final_node, source);
         Message msg;
         msg.type = MESSAGE_DONE;
         message_queues[THREAD_SOURCE].push(msg);
         response_action = EXIT;
-      }
-      else if (id == THREAD_SOURCE) {
+      } else if (id == THREAD_SOURCE) {
         assert(false);
-      }
-      else {
+      } else {
         reset_for_phase_2(message.source, message.target);
         response_action = RESET;
       }
@@ -289,7 +294,7 @@ FringeInterruptAction RippleThread::check_message_queue() {
 
   // The Source thread might need to check collisions
   if (check_collisions) {
-    if(check_collision_path()) {
+    if (check_collision_path()) {
       response_action = EXIT;
     }
   }
@@ -314,7 +319,6 @@ void RippleThread::initialize_fringe_search() {
   cache[source].node.visited = true;
   cache[source].node.list_entry = fringe_list.begin();
   cache[source].node.phase2 = phase2; // set to true if we are in phase 2
-  
 
   // Set the heuristic depending on the numbe of goals
   if (goal_2 == INVALID_NODE) {
@@ -336,17 +340,18 @@ void RippleThread::initialize_fringe_search() {
 void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
   assert(other != id);
 
-  // check if we already collided with this thread, otherwise register the collision
-  if(collision_mask & (1 << other)) {
+  // check if we already collided with this thread, otherwise register the
+  // collision
+  if (collision_mask & (1 << other)) {
     return;
   } else {
     collision_mask |= (1 << other);
   }
 
   // For slave threads update the heuristic and check if we are done
-  if(id > THREAD_SOURCE && id < THREAD_GOAL) {
+  if (id > THREAD_SOURCE && id < THREAD_GOAL) {
     // If we collided closer to the source we now only care about goal_2
-    if(other < id) {
+    if (other < id) {
       heuristic = [](RippleThread *self, Node n) {
         return self->map.distance(n, self->goal_2);
       };
@@ -375,16 +380,15 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
 }
 
 void RippleThread::entry() {
-// NOTE I think we already agreed that this goto style is terrible.
-//      Lucky for us, it's probably the best solution right now. Ideally in the
-//      future we will be able to somehow handle these interrupt actions much
-//      smoother and with a better semantics.
+  // NOTE I think we already agreed that this goto style is terrible.
+  //      Lucky for us, it's probably the best solution right now. Ideally in
+  //      the future we will be able to somehow handle these interrupt actions
+  //      much smoother and with a better semantics.
   timer.start();
 reset:
   initialize_fringe_search();
 
-
-  if(phase2) {
+  if (phase2) {
     timer.stop();
     time_first = timer.get_microseconds() / 1000.0;
     timer.start();
@@ -407,7 +411,6 @@ reset:
         break;
       }
 
-      
       // Load info for the current node
       FringeNode &node_info = cache[*node].node;
 
@@ -439,7 +442,7 @@ reset:
 
           // If we found our goal in phase 2 we are done and can exit;
           if (phase2) {
-            if(*node == goal) {
+            if (*node == goal) {
               goto fringe_finished;
             }
           } else {
@@ -460,18 +463,21 @@ reset:
           // In phase two we skip all nodes that are not owned by us
           if (phase2 && owner != id) {
             continue;
-          }  
-          
-          if(!phase2) {
-            // We test the following things in order:
-            // - if we don't already own the node
-            // - if someone else owns the node or we failed to acquire the node
-            // If any of these is true a collision has happened.
-            // The order is important as we want to avoid the expensive compare and swap
-            // if any of first two checks short circuits.
-            #if 1
-            if(owner != id && (owner != THREAD_NONE || !cache[neighbour].thread.compare_exchange_strong(
-                owner, id, std::memory_order_seq_cst, std::memory_order_seq_cst))) {
+          }
+
+          if (!phase2) {
+// We test the following things in order:
+// - if we don't already own the node
+// - if someone else owns the node or we failed to acquire the node
+// If any of these is true a collision has happened.
+// The order is important as we want to avoid the expensive compare and swap
+// if any of first two checks short circuits.
+#if 1
+            if (owner != id &&
+                (owner != THREAD_NONE ||
+                 !cache[neighbour].thread.compare_exchange_strong(
+                     owner, id, std::memory_order_seq_cst,
+                     std::memory_order_seq_cst))) {
               // If we failed to acquire the node we need to handle the
               // collision
               handle_collision(neighbour, *node, owner);
@@ -479,22 +485,22 @@ reset:
               // Skip the node
               continue;
             }
-            #else
-            if(owner != id) {
-              if(owner != THREAD_NONE) {
+#else
+            if (owner != id) {
+              if (owner != THREAD_NONE) {
                 handle_collision(neighbour, *node, owner);
                 continue;
               } else {
                 cache[neighbour].thread.store(id, std::memory_order_relaxed);
               }
             }
-            #endif
+#endif
           }
 
           // Skip neighbour if already visited in this phase with a lower cost
           FringeNode &neighbour_cache = cache[neighbour].node;
-          if (neighbour_cache.phase2 == phase2 &&
-              neighbour_cache.visited && gs >= neighbour_cache.g) {
+          if (neighbour_cache.phase2 == phase2 && neighbour_cache.visited &&
+              gs >= neighbour_cache.g) {
             continue;
           }
 
@@ -516,7 +522,7 @@ reset:
           neighbour_cache.phase2 = phase2;
         }
       }
-      
+
       // Update current node cache entry
       node_info.in_list = false;
 
@@ -533,17 +539,17 @@ reset:
 
 fringe_finished:
   Log("Thread done");
-      
 
   // Finished the space we could search in
   if (!phase2) {
     timer.stop();
     time_first = timer.get_microseconds() / 1000.0;
 
-    //If we had no collision (TODO: we could also check if we are a slave with only 1 collision)
+    // If we had no collision (TODO: we could also check if we are a slave with
+    // only 1 collision)
 
-    if(collision_mask == 0) {
-      //If we are the source or goal thread abort the search
+    if (collision_mask == 0) {
+      // If we are the source or goal thread abort the search
       if (id == THREAD_SOURCE || id == THREAD_GOAL) {
         AssertUnreachable("Path does not exist, currently not handled");
       } else {
@@ -552,7 +558,7 @@ fringe_finished:
     } else {
       // TODO Wait for messages and then go back to reset
       Log("Waiting");
-      while(true) {
+      while (true) {
         switch (check_message_queue()) {
         case RESET:
           goto reset;
@@ -564,11 +570,11 @@ fringe_finished:
       }
     }
   } else {
-    if(id == THREAD_SOURCE || id == THREAD_GOAL) {
-      
+    if (id == THREAD_SOURCE || id == THREAD_GOAL) {
+
     } else {
       Logf("Slave finish - found: %d", found);
-      
+
       // Reconstruct the path
       if (cache[goal].node.visited)
         finalize_path(goal, source, false);
@@ -624,7 +630,7 @@ std::optional<Path<Node>> RippleSearch::search() {
   }
 
   timer.stop();
-  double high = timer.get_microseconds() / 1000.0; 
+  double high = timer.get_microseconds() / 1000.0;
 
   std::vector<RippleThread *> threads;
 
@@ -670,11 +676,11 @@ std::optional<Path<Node>> RippleSearch::search() {
   timer.stop();
 
   double search = timer.get_microseconds() / 1000.0;
-  
+
   timer.start();
   Path<Node> path;
-  for(auto& t: threads[THREAD_SOURCE]->get_phase2_thread_path()) {
-    auto& p = threads[t]->get_final_path();
+  for (auto &t : threads[THREAD_SOURCE]->get_phase2_thread_path()) {
+    auto &p = threads[t]->get_final_path();
     path.insert(path.end(), p.begin(), p.end());
   }
   timer.stop();

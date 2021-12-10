@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CLionProjects/parallel-ripple-search/src/graph/map.h"
+#include "graph/map.h"
 #include <optional>
 #include <queue>
 #include <vector>
@@ -25,7 +25,8 @@ template <typename T, typename priority_t> struct PriorityQueue {
 };
 
 template <typename Graph, typename Node>
-std::optional<Path<Node>> a_star_search_gen(Graph &graph, Node start, Node goal) {
+std::optional<Path<Node>> a_star_search_gen(Graph &graph, Node start,
+                                            Node goal) {
   bool found_path = false;
   Path<Node> came_from(graph.size());
   std::vector<double> cost_so_far(graph.size(), -1);

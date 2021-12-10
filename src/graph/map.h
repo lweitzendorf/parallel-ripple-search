@@ -1,16 +1,14 @@
 #pragma once
 
-#include <vector>
-#include <stdint.h>
 #include "Point.h"
+#include <stdint.h>
+#include <vector>
 
 typedef uint8_t MapType;
 typedef int32_t Node;
 template <typename T> using Path = std::vector<T>;
 
 #define INVALID_NODE (-1)
-
-
 
 class Map;
 
@@ -57,7 +55,7 @@ public:
   int width() const { return width_; }
   int height() const { return height_; }
   size_t size() const { return data.size(); }
-  MapType* data_ptr() { return data.data(); }
+  MapType *data_ptr() { return data.data(); }
 
   MapType get(Point p);
   void set(Point p, MapType c);

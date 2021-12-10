@@ -2,6 +2,6 @@
 
 #include <vector>
 
-#include "CLionProjects/parallel-ripple-search/src/graph/map.h"
+#include "graph/map.h"
 
 Path<Node> create_high_level_path(Map &map, Node source, Node goal);
