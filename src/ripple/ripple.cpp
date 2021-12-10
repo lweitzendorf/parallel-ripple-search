@@ -327,7 +327,7 @@ void RippleThread::initialize_fringe_search() {
   } else {
     heuristic = [](RippleThread *self, Node n) {
       return std::min(self->map.distance(n, self->goal),
-                      self->map.distance(n, self->goal_2));
+                      self->map.distance(n, self->goal_2.value()));
     };
   }
 
@@ -352,7 +352,7 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
     // If we collided closer to the source we now only care about goal_2
     if (other < id) {
       heuristic = [](RippleThread *self, Node n) {
-        return self->map.distance(n, self->goal_2);
+        return self->map.distance(n, self->goal_2.value());
       };
     } else {
       // Otherwise we now only care about goal
