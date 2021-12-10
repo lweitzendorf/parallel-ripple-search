@@ -124,10 +124,8 @@ Path<Node> create_high_level_path(Map &map, Node source, Node goal) {
   high.nodes.push_back(goal_p);
 
   // Find high level path
-  Path<Node> came_from =
-      a_star_search_gen(high, 0, (int)high.nodes.size() - 1).value();
-  Path<Node> path =
-      reconstruct_path_gen(0, (int)high.nodes.size() - 1, came_from);
+  Path<Node> path = a_star_search(high, 0, (int)high.nodes.size() - 1).value();
+
   for (auto &n : path) {
     n = map.point_to_node(high.nodes[n]);
   }
@@ -247,19 +245,24 @@ int main(int argc, char const *argv[]) {
     }
   }
   std::cout << std::endl;
+
   // ASTAR
-  Path<Node> came_from(high_nodes.size());
-  std::vector<double> cost_so_far(high_nodes.size(), -1);
-  a_star_search(high_nodes, knn_adj, 0, high_nodes.size() - 1, came_from,
-                cost_so_far);
-  for (auto a : came_from) {
-    std::cout << a << " ";
-  }
-  std::cout << std::endl;
-  Path<Node> path = reconstruct_path(0, high_nodes.size() - 1, came_from);
-  for (auto a : path) {
-    std::cout << a << std::endl;
-  }
+
+  Path<Node> path = a_star_search(high_nodes, 0, high_nodes.size() - 1);
+
+  // QUESTION FIXME what was the below for? ~Gavin
+  // Path<Node> came_from(high_nodes.size());
+  // std::vector<double> cost_so_far(high_nodes.size(), -1);
+  // a_star_search(high_nodes, knn_adj, 0, high_nodes.size() - 1, came_from,
+  //               cost_so_far);
+  // for (auto a : came_from) {
+  //   std::cout << a << " ";
+  // }
+  // std::cout << std::endl;
+  // Path<Node> path = reconstruct_path(0, high_nodes.size() - 1, came_from);
+  // for (auto a : path) {
+  //   std::cout << a << std::endl;
+  // }
 
   const int screen_width = 1000;
   const int screen_height = 1000;

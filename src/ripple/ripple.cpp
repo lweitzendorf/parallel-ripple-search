@@ -100,11 +100,11 @@ bool RippleThread::check_collision_path() {
   if (id != THREAD_SOURCE)
     AssertUnreachable("check_collision_graph called on non-source thread");
 
-  auto maybe_path =
-      a_star_search_gen(collision_graph, THREAD_SOURCE, THREAD_GOAL);
+  auto maybe_path = a_star_search(collision_graph, THREAD_SOURCE, THREAD_GOAL);
 
   // If there is a path signal all threads to stop
-  if (maybe_path.has_value()) {
+  if (maybe_path) {
+
     timer.stop();
     time_first = timer.get_microseconds() / 1000.0;
 
@@ -112,8 +112,7 @@ bool RippleThread::check_collision_path() {
 
     phase2 = true;
 
-    Path<ThreadId> found_path =
-        reconstruct_path_gen(THREAD_SOURCE, THREAD_GOAL, maybe_path.value());
+    auto found_path = maybe_path.value();
 
     Log("Path found:");
 #if LOG_ENABLED

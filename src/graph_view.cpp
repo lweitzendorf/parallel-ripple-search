@@ -132,10 +132,7 @@ Image test_Astar(Map &map, Node source, Node goal) {
   Timer t;
   t.start();
 
-  std::optional<Path<Node>> came_from = a_star_search_gen(map, source, goal);
-  Path<Node> path = came_from.has_value()
-                        ? reconstruct_path_gen(source, goal, came_from.value())
-                        : Path<Node>();
+  Path<Node> path = a_star_search(map, source, goal).value_or(Path<Node>());
 
   t.stop();
   printf("Astar search time: %.3fms (%d nodes)\n",
