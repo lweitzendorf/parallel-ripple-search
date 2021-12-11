@@ -67,7 +67,7 @@ FringeInterruptAction RippleThread::check_message_queue() {
   FringeInterruptAction response_action = NONE;
   Message message;
 
-  while (message_queues[id].try_pop(message)) {
+  while (recv_message(message)) {
     switch (message.type) {
       // Only arrives to slave threads if they need to switch to phase 2
       // and to the goal thread to know that he is done
@@ -163,31 +163,16 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
     }
   }
 
-  // Message the source thread about the collision, unless we are the source
-  // thread
-  Message message;
-  message.type = MESSAGE_COLLISION;
-  message.collision_source = id;
-  message.collision_target = other;
-  message.collision_node = node;
-  message.collision_parent = parent;
-  message_queues[THREAD_COORDINATOR].push(message);
+  // Message the coordinator thread about the collision
+  Message message {
+    MESSAGE_COLLISION,
+    { .collision_source = id,
+      .collision_target = other,
+      .collision_node = node,
+      .collision_parent = parent, },
+  };
+  send_message(message);
 }
-
-
-/** NOTE A few notes for refactoring:
- *
- * we need to get rid of the GOTO
- *  the best way to do this is with a continuation (to my knowledge)
- *  here's a [decent] article comparing this with Haskell:
- *  https://www.fpcomplete.com/blog/2012/06/asynchronous-api-in-c-and-the-continuation-monad/
- *
- *  obviously we do not need something this heavy, but I could imagine passing
- *  a few functions to the search function that will make this easier.
- *
- *  Oh, and pull everything out of the 'entry function. This should only be
- *  for setting up some thread specific things and /that's it/.
- */
 
 void RippleThread::entry() {
   search();
@@ -212,7 +197,7 @@ void RippleThread::search() {
           return exit();
         case NONE:
           break;
-    }
+      }
 
       // Load info for the current node
       FringeNode &node_info = cache[*node].node;
@@ -373,7 +358,7 @@ void RippleThread::phase_2_conclusion() {
     finalize_path(goal, source, false);
 
   Message msg { .type = MESSAGE_DONE };
-  message_queues[THREAD_COORDINATOR].push(msg);
+  send_message(msg);
 }
 
 void RippleThread::exit() {
@@ -382,5 +367,13 @@ void RippleThread::exit() {
   time_second = timer.get_microseconds() / 1000.0;
 
   Message msg { .type = MESSAGE_DONE };
+  send_message(msg);
+}
+
+inline void RippleThread::send_message(Message &msg) {
   message_queues[THREAD_COORDINATOR].push(msg);
+}
+
+inline bool RippleThread::recv_message(Message &msg) {
+  return message_queues[id].try_pop(msg);
 }

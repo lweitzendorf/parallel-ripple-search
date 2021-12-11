@@ -117,6 +117,9 @@ private:
   // and store it into final_path
   void finalize_path(Node from, Node to, bool include_to = true);
 
+  void send_message(Message &msg);
+  bool recv_message(Message &msg);
+
   // Entry point of all ripple threads
   void entry();
 

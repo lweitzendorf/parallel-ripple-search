@@ -163,7 +163,8 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
 
     Message msg {
       MESSAGE_PHASE_2,
-      { collision_with_next.node, collision_with_prev.node }
+      { .source = collision_with_next.node,
+        .target = collision_with_prev.node }
     };
 
     // Set ownership of goal node to the current thread
