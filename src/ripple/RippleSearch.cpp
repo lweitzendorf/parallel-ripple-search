@@ -10,8 +10,8 @@ RippleSearch::RippleSearch(Map &map, Node source, Node goal)
     : map(map), cache(map.size()), collision_graph(map, goal), source(source),
       goal(goal) {
   message_queues.resize(NUM_THREADS);
-  for (size_t i = 0; i < cache.size(); i++) {
-    cache[i].thread.store(THREAD_NONE, std::memory_order_relaxed);
+  for (auto &entry : cache) {
+    entry.thread.store(THREAD_NONE, std::memory_order_relaxed);
   }
 }
 
@@ -97,16 +97,9 @@ std::optional<Path<Node>> RippleSearch::search() {
 
   double reconstruct = timer.get_microseconds() / 1000.0;
 
-#if false
-  printf("%3.2f path\n", search);
-  for(int i = 0; i < NUM_THREADS; i++) {
-    printf("%d - %3.2f first - %3.2f second\n", i, threads[i]->time_first, threads[i]->time_second);
-  }
-#endif
-
   return path.empty() ? std::nullopt : std::optional<Path<Node>>{path};
 }
 
-ThreadId RippleSearch::getOwner(Point p) const {
+ThreadId RippleSearch::get_owner(Point p) const {
   return cache[map.point_to_node(p)].thread.load(std::memory_order_relaxed);
 }

@@ -358,6 +358,7 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
   }
 }
 
+
 /** NOTE A few notes for refactoring:
  *
  * we need to get rid of the GOTO
@@ -365,7 +366,7 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
  *  here's a [decent] article comparing this with Haskell:
  *  https://www.fpcomplete.com/blog/2012/06/asynchronous-api-in-c-and-the-continuation-monad/
  *
- *  obviously we do not need somthing this heavy, but I could imagine passing
+ *  obviously we do not need something this heavy, but I could imagine passing
  *  a few functions to the search function that will make this easier.
  *
  *  Oh, and pull everything out of the 'entry function. This should only be
@@ -373,18 +374,15 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
  */
 
 void RippleThread::entry() {
-  timer.start(); // <- NOTE what the fuck is this?
-reset:
+  search();
+}
+
+void RippleThread::search() {
+  timer.start();
   initialize_fringe_search();
 
-  if (phase2) {
-    timer.stop();
-    time_first = timer.get_microseconds() / 1000.0;
-    timer.start();
-  }
-
   // Fringe search step towards G
-  FringeEntry node = fringe_list.end();
+  auto node = fringe_list.end();
 
   while (!fringe_list.empty()) {
     int fmin = INT_MAX;
@@ -392,13 +390,13 @@ reset:
 
     do {
       switch (check_message_queue()) {
-      case RESET:
-        goto reset;
-      case EXIT:
-        goto exit;
-      case NONE:
-        break;
-      }
+        case RESET:
+          return search();
+        case EXIT:
+          return exit();
+        case NONE:
+          break;
+    }
 
       // Load info for the current node
       FringeNode &node_info = cache[*node].node;
@@ -432,7 +430,7 @@ reset:
           // If we found our goal in phase 2 we are done and can exit;
           if (phase2) {
             if (*node == goal) {
-              goto fringe_finished;
+              return phase_2_conclusion();
             }
           } else {
             // This should never happen in phase 1 as the goal threads
@@ -454,13 +452,12 @@ reset:
           }
 
           if (!phase2) {
-// We test the following things in order:
-// - if we don't already own the node
-// - if someone else owns the node or we failed to acquire the node
-// If any of these is true a collision has happened.
-// The order is important as we want to avoid the expensive compare and swap
-// if any of first two checks short circuits.
-#if 1
+            // We test the following things in order:
+            // - if we don't already own the node
+            // - if someone else owns the node or we failed to acquire the node
+            // If any of these is true a collision has happened.
+            // The order is important as we want to avoid the expensive compare and swap
+            // if any of first two checks short circuits.
             if (owner != id &&
                 (owner != THREAD_NONE ||
                  !cache[neighbour].thread.compare_exchange_strong(
@@ -473,16 +470,6 @@ reset:
               // Skip the node
               continue;
             }
-#else
-            if (owner != id) {
-              if (owner != THREAD_NONE) {
-                handle_collision(neighbour, *node, owner);
-                continue;
-              } else {
-                cache[neighbour].thread.store(id, std::memory_order_relaxed);
-              }
-            }
-#endif
           }
 
           // Skip neighbour if already visited in this phase with a lower cost
@@ -525,59 +512,61 @@ reset:
     flimit = fmin;
   }
 
-fringe_finished:
-  Log("Thread done");
-
-  // Finished the space we could search in
-  if (!phase2) {
-    timer.stop();
-    time_first = timer.get_microseconds() / 1000.0;
-
-    // If we had no collision (TODO: we could also check if we are a slave with
-    // only 1 collision)
-
-    if (collision_mask == 0) {
-      // If we are the source or goal thread abort the search
-      if (id == THREAD_SOURCE || id == THREAD_GOAL) {
-        AssertUnreachable("Path does not exist, currently not handled");
-      } else {
-        goto exit;
-      }
-    } else {
-      // TODO Wait for messages and then go back to reset
-      Log("Waiting");
-      while (true) {
-        switch (check_message_queue()) {
-        case RESET:
-          goto reset;
-        case EXIT:
-          goto exit;
-        case NONE:
-          break;
-        }
-      }
-    }
-  } else {
-    if (id == THREAD_SOURCE || id == THREAD_GOAL) {
-
-    } else {
-      Logf("Slave finish - found: %d", found);
-
-      // Reconstruct the path
-      if (cache[goal].node.visited)
-        finalize_path(goal, source, false);
-
-      Message msg;
-      msg.type = MESSAGE_DONE;
-      message_queues[THREAD_SOURCE].push(msg);
-    }
-  }
+  // TODO this should not happen in phase 2
+  return phase2 ? phase_2_conclusion() : phase_1_conclusion();
 
 // NOTE We can immediately jump here when a thread is supposed to stop what it's
 //      doing. This is considered an interrupt action.
-exit:
-  Log("Thread Exiting");
+}
 
+void RippleThread::phase_1_conclusion() {
+  timer.stop();
+  time_first = timer.get_microseconds() / 1000.0;
+
+  // If we had no collision (TODO: we could also check if we are a slave with
+  // only 1 collision)
+
+  if (collision_mask == 0) {
+    // If we are the source or goal thread abort the search
+    if (id == THREAD_SOURCE || id == THREAD_GOAL) {
+      AssertUnreachable("Path does not exist, currently not handled");
+    } else {
+      return exit();
+    }
+  } else {
+    // TODO Wait for messages and then go back to reset
+    Log("Waiting");
+    while (true) {
+      switch (check_message_queue()) {
+        case RESET:
+          return search();
+        case EXIT:
+          return exit();
+        case NONE:
+          break;
+      }
+    }
+  }
+}
+
+void RippleThread::phase_2_conclusion() {
+  if (id == THREAD_SOURCE || id == THREAD_GOAL) {
+    ; // FIXME what goes here?
+  } else {
+    Logf("Slave finish - found: %d", found);
+
+    // Reconstruct the path
+    if (cache[goal].node.visited)
+      finalize_path(goal, source, false);
+
+    Message msg;
+    msg.type = MESSAGE_DONE;
+    message_queues[THREAD_SOURCE].push(msg);
+  }
+}
+
+void RippleThread::exit() {
+  Log("Thread Exiting");
   timer.stop();
   time_second = timer.get_microseconds() / 1000.0;
 }

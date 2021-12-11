@@ -43,5 +43,5 @@ class RippleSearch {
     // Start the search from source to goal, they must be valid nodes
     std::optional<Path<Node>> search();
 
-    ThreadId getOwner(Point) const;
+    ThreadId get_owner(Point p) const;
 };

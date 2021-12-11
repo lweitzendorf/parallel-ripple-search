@@ -137,6 +137,12 @@ private:
   // Entry point of all ripple threads
   void entry();
 
+  void search();
+
+  void phase_1_conclusion();
+  void phase_2_conclusion();
+  void exit();
+
 public:
   RippleThread(ThreadId id, Map &map, CollisionGraph &collision_graph,
                std::vector<RippleCacheNode> &cache,

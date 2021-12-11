@@ -248,7 +248,7 @@ void ripple_draw(Image &img, Map &map, RippleSearch &search) {
 
   for (int y = 0; y < map.height(); y++) {
     for (int x = 0; x < map.width(); x++) {
-      auto id = search.getOwner(Point(x, y));
+      auto id = search.get_owner(Point(x, y));
       if (id != THREAD_NONE) {
         ImageDrawPixel(&img, x, y, colors[id]);
       }
