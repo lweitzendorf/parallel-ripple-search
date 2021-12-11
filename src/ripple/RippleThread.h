@@ -17,19 +17,21 @@ using oneapi::tbb::concurrent_queue;
 #define LOG_ENABLED false
 
 #if LOG_ENABLED
-#define Log(str) printf("%d| " str "\n", id)
-#define Logf(fmt, ...) printf("%d| " fmt "\n", id, __VA_ARGS__)
+#define Log(str) printf("%d|" str "\n", id)
+#define LogNOID(str) printf(str "\n")
+#define Logf(fmt, ...) printf("%d|" fmt "\n", id, __VA_ARGS__)
+#define LogfNOID(fmt, ...) printf(fmt "\n", __VA_ARGS__)
 #define AssertUnreachable(...)                                                 \
   do {                                                                         \
-    Log(__VA_ARGS__);                                                          \
+    LogNOID(__VA_ARGS__);                                                          \
     assert(false);                                                             \
   } while (0)
 #else
 #define Log(...)
-#define Logf(...)
-#define AssertUnreachable(...)                                                 \
-  do {                                                                         \
-  } while (0)
+#define LogNOID(...)
+#define Log(...)
+#define LogfNOID(...)
+#define AssertUnreachable(...)
 #endif
 
 // Question: can we put some of these enums within the class? is this a better
@@ -87,35 +89,16 @@ private:
   // threads
   std::vector<RippleCacheNode> &cache;
 
-  // Adjacency list of the graph of all the nodes in which we have a collision
-  // collision_graph[id1] -> list of all collisions of thread id1 with other
-  // threads The adjacency list is kept symmetric such that if there is a
-  // collision from id1 to id2 it also appears as a collision from id2 to id1.
-  // This graph is only read and written by the source thread
-  CollisionGraph &collision_graph;
-
   // Mask of threads that we collided with, the i-th bit is 1 if we collided
   // with the i-th thread
   uint32_t collision_mask = 0;
-  static_assert(sizeof(collision_mask) * 8 >= NUM_THREADS);
+  static_assert(sizeof(collision_mask) * 8 >= NUM_SEARCH_THREADS);
 
   // Phase 2 flag, set to true when we enter phase 2
   bool phase2 = false;
 
   // Segment of the final path owned by the thread
   Path<Node> final_path;
-
-  // Path of threads contributing to phase 2, used
-  // to collect final paths at the end
-  Path<ThreadId> phase2_thread_path;
-
-  // Only called by the Source thread to check if there is a path in the
-  // collision graph from source to node
-  void add_collision(ThreadId source, ThreadId target, Node node, Node parent);
-
-  // Only called by the Source thread to check if there is a path in the
-  // collision graph from source to node
-  bool check_collision_path();
 
   // Called at each iteration of the search by all threads to check messages
   // from other threads
@@ -144,8 +127,7 @@ private:
   void exit();
 
 public:
-  RippleThread(ThreadId id, Map &map, CollisionGraph &collision_graph,
-               std::vector<RippleCacheNode> &cache,
+  RippleThread(ThreadId id, Map &map, std::vector<RippleCacheNode> &cache,
                std::vector<tbb::detail::d2::concurrent_queue<Message>> &message_queues);
 
   bool start();
@@ -155,7 +137,6 @@ public:
   void set_source(Node s);
   void set_single_goal(Node g);
   void set_goals(Node g1, Node g2);
-  Path<ThreadId> &get_phase2_thread_path();
   Path<Node> &get_final_path();
 };
 

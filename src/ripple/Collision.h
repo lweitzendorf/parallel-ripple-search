@@ -25,14 +25,14 @@ class CollisionGraph {
   Node goal;
   std::vector<ThreadId> neighbors;
 
-  uint32_t masks[NUM_THREADS] = {};
-  static_assert(sizeof(masks[0]) * 8 >= NUM_THREADS);
+  uint32_t masks[NUM_SEARCH_THREADS] = {};
+  static_assert(sizeof(masks[0]) * 8 >= NUM_SEARCH_THREADS);
 
 public:
   std::vector<std::vector<std::pair<ThreadId, Collision>>> graph;
 
   CollisionGraph(Map &map, Node goal) : map(map), goal(goal) {
-    graph.resize(NUM_THREADS);
+    graph.resize(NUM_SEARCH_THREADS);
   }
 
   size_t size() const { return graph.size(); }

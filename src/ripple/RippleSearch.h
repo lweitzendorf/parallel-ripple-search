@@ -36,6 +36,11 @@ class RippleSearch {
     Node source;
     Node goal;
 
+    std::optional<Path<ThreadId>> coordinate_threads();
+    std::optional<Path<ThreadId>> check_collision_path();
+
+    void add_collision(ThreadId source, ThreadId target, Node node, Node parent);
+
   public:
     // Initialize search on a map
     RippleSearch(Map &map, Node source, Node goal);

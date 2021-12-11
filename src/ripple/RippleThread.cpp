@@ -1,16 +1,16 @@
 #include <memory>
 #include <iostream>
 #include <cassert>
-#include "reference/Astar.h"
+
 #include "HighLevelGraph.h"
 #include "RippleThread.h"
 
 RippleThread::RippleThread(
-    ThreadId id, Map &map, CollisionGraph &collision_graph,
+    ThreadId id, Map &map,
     std::vector<RippleCacheNode> &cache,
     std::vector<tbb::detail::d2::concurrent_queue<Message>> &message_queues)
     : id(id), thread(nullptr), map(map), message_queues(message_queues),
-      cache(cache), collision_graph(collision_graph) {}
+      cache(cache) {}
 
 void RippleThread::set_source(Node s) { source = s; }
 
@@ -22,14 +22,6 @@ void RippleThread::set_single_goal(Node g) {
 void RippleThread::set_goals(Node g1, Node g2) {
   goal = g1;
   goal_2 = g2;
-}
-
-Path<ThreadId> &RippleThread::get_phase2_thread_path() {
-  if (id != THREAD_SOURCE)
-    AssertUnreachable(
-        "attemp to get the collision path from a non-source thread");
-
-  return phase2_thread_path;
 }
 
 Path<Node> &RippleThread::get_final_path() { return final_path; }
@@ -51,14 +43,6 @@ bool RippleThread::join() {
   return false;
 }
 
-void RippleThread::add_collision(ThreadId source, ThreadId target, Node node,
-                                 Node parent) {
-  if (id != THREAD_SOURCE)
-    AssertUnreachable("add_collision called on non-source thread");
-
-  collision_graph.add_collision(source, target, node, parent);
-}
-
 void RippleThread::finalize_path(Node from, Node to, bool include_to) {
   Log("Attempting to finalize path");
 
@@ -76,212 +60,49 @@ void RippleThread::finalize_path(Node from, Node to, bool include_to) {
 
 // Only called by the Source thread to check if there is a path in the collision
 // graph from source to node
-bool RippleThread::check_collision_path() {
-  if (id != THREAD_SOURCE)
-    AssertUnreachable("check_collision_graph called on non-source thread");
-
-  auto maybe_path = a_star_search(collision_graph, THREAD_SOURCE, THREAD_GOAL);
-
-  // If there is a path signal all threads to stop
-  if (maybe_path) {
-
-    timer.stop();
-    time_first = timer.get_microseconds() / 1000.0;
-
-    timer.start();
-
-    phase2 = true;
-
-    auto found_path = maybe_path.value();
-
-    Log("Path found:");
-#if LOG_ENABLED
-    for (auto n : found_path) {
-      printf("%d -> ", n);
-    }
-    printf("||\n");
-#endif
-
-    if (found_path.front() != THREAD_SOURCE)
-      AssertUnreachable(
-          "I expected the source thread to be the start of the path");
-    if (found_path.back() != THREAD_GOAL)
-      AssertUnreachable("I expected the goal thread to be the end of the path");
-
-    // Send message with next source and target to all threads
-    // that aren't the source / target thread.
-    Message msg;
-
-    bool works_in_phase2[NUM_THREADS] = {};
-
-    // SLAVES WORKING
-    // For each slave send target and source
-    for (int i = 1; i < found_path.size() - 1; i++) {
-      ThreadId thread = found_path[i];
-      auto collision_with_prev =
-          collision_graph.get_collision(found_path[i - 1], found_path[i]);
-      // TODO we could make this /slightly/ faster by holding on to these values
-      //      as the 'collision_with_prev' at a later point. (same for the
-      //      collision_path values)
-      auto collision_with_next =
-          collision_graph.get_collision(found_path[i], found_path[i + 1]);
-
-      msg.type = MESSAGE_PHASE_2;
-      msg.source = collision_with_next.node;
-      msg.target = collision_with_prev.node;
-
-      // Set ownership of goal node to the current thread
-      cache[msg.target].thread.store(thread, std::memory_order_seq_cst);
-
-      message_queues[thread].push(msg);
-      works_in_phase2[thread] = true;
-
-      Logf("Phase2: SLAVE %d <- %d -> %d", found_path[i - 1], thread,
-           found_path[i + 1]);
-    }
-
-    // SLAVES STOPPED
-    // Stop all slaves that don't work in phase 2
-    msg.type = MESSAGE_STOP;
-    for (int i = 1; i < NUM_THREADS - 1; i++) {
-      if (!works_in_phase2[i]) {
-        message_queues[i].push(msg);
-      }
-    }
-
-    // NOTE:
-    // The order between source and goal here is important when the only
-    // collision is the one between source and goal. In that case we
-    // first store into current the node that source starts reversing from
-    // and then update the node cache so that goal is able to reverse his.
-    // This should probably be made more robust once we handle collisions
-    // better.
-
-    // SOURCE
-    // Start reconstructing path from source to first
-    Collision first_collision =
-        collision_graph.get_collision(THREAD_SOURCE, found_path[1]);
-    Node current = first_collision.parent;
-    if (first_collision.target == THREAD_SOURCE) {
-      current = cache[first_collision.node].node.parent;
-    }
-
-    // GOAL
-    // Update the cache, so that the parent of the last collision is always a
-    // node that was discovered by goal thread.
-    ThreadId second_last = found_path[found_path.size() - 2];
-    Logf("Phase2: GOAL -> %d", second_last);
-    Collision last_collision =
-        collision_graph.get_collision(second_last, THREAD_GOAL);
-
-    if (last_collision.target != THREAD_GOAL) {
-      cache[last_collision.node].thread.store(THREAD_GOAL,
-                                              std::memory_order_seq_cst);
-      cache[last_collision.node].node.parent = last_collision.parent;
-    } else {
-      assert(cache[last_collision.node].thread.load(
-                 std::memory_order_seq_cst) == THREAD_GOAL);
-    }
-
-    // Signal the node to start reconstruction with to the goal thread
-    msg.type = MESSAGE_PHASE_2;
-    msg.final_node = last_collision.node;
-    message_queues[THREAD_GOAL].push(msg);
-
-    finalize_path(current, source);
-    std::reverse(final_path.begin(), final_path.end());
-
-    // Store the finalized path
-    this->phase2_thread_path = found_path;
-
-    // Wait for all slaves and the goal to end
-    int slaves_working = found_path.size() - 1;
-    Logf("Slaves working: %d", slaves_working);
-    while (slaves_working) {
-      // TODO: not busy wait
-      // std::unique_lock<std::mutex> lk(wait_mutex);
-      // wait_cv.wait(lk);
-
-      while (message_queues[THREAD_SOURCE].try_pop(msg)) {
-        if (msg.type == MESSAGE_DONE) {
-          slaves_working--;
-          Logf("Slaves working: %d", slaves_working);
-        }
-      }
-    }
-
-    timer.stop();
-    time_second = timer.get_microseconds() / 1000.0;
-
-    return true;
-  } else {
-    Log("Collision path not found");
-  }
-
-  return false;
-}
 
 // Called at each iteration of the search by all threads to check messages from
 // other threads
 FringeInterruptAction RippleThread::check_message_queue() {
   FringeInterruptAction response_action = NONE;
-  bool check_collisions = false;
   Message message;
+
   while (message_queues[id].try_pop(message)) {
     switch (message.type) {
+      // Only arrives to slave threads if they need to switch to phase 2
+      // and to the goal thread to know that he is done
+      // does not arrive to source thread
+      case MESSAGE_PHASE_2: {
+        Log("Message - Phase2");
 
-    // Only arrives to THREAD_SOURCE
-    case MESSAGE_COLLISION: {
-      Logf("Message - Collision: %d -> %d", message.collision_source,
-           message.collision_target);
-      add_collision(message.collision_source, message.collision_target,
-                    message.collision_node, message.collision_parent);
-      check_collisions = true;
-    } break;
-    // Only arrives to slave threads if they need to switch to phase 2
-    // and to the goal thread to know that he is done
-    // does not arrive to source thread
-    case MESSAGE_PHASE_2: {
-      Log("Message - Phase2");
+        if (id == THREAD_SOURCE) {
+          finalize_path(message.final_node, source);
+          response_action = EXIT;
+        } else if (id == THREAD_GOAL) {
+          finalize_path(message.final_node, source);
+          response_action = EXIT;
+        } else {
+          reset_for_phase_2(message.source, message.target);
+          response_action = RESET;
+        }
+      } break;
 
-      if (id == THREAD_GOAL) {
-        timer.stop();
-        time_first = timer.get_microseconds() / 1000.0;
-        timer.start();
-
-        finalize_path(message.final_node, source);
-        Message msg;
-        msg.type = MESSAGE_DONE;
-        message_queues[THREAD_SOURCE].push(msg);
+        // Only arrives to slave threads if they do not have to work in phase 2
+      case MESSAGE_STOP:
+        Log("Message - Stop");
         response_action = EXIT;
-      } else if (id == THREAD_SOURCE) {
-        assert(false);
-      } else {
-        reset_for_phase_2(message.source, message.target);
-        response_action = RESET;
-      }
-    } break;
+        break;
 
-      // Only arrives to slave threads if they do not have to work in phase 2
-    case MESSAGE_STOP:
-      Log("Message - Stop");
-
-      response_action = EXIT;
-      break;
-    }
-  }
-
-  // The Source thread might need to check collisions
-  if (check_collisions) {
-    if (check_collision_path()) {
-      response_action = EXIT;
+      default: {
+        AssertUnreachable("This kind of message should only be sent to the coordinator!");
+      } break;
     }
   }
   return response_action;
 }
 
-void RippleThread::reset_for_phase_2(Node source, Node target) {
-  set_source(source);
+void RippleThread::reset_for_phase_2(Node src, Node target) {
+  set_source(src);
   set_single_goal(target);
   phase2 = true;
 }
@@ -327,8 +148,8 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
     collision_mask |= (1 << other);
   }
 
-  // For slave threads update the heuristic and check if we are done
-  if (id > THREAD_SOURCE && id < THREAD_GOAL) {
+  // For worker threads update the heuristic and check if we are done
+  if (id != THREAD_SOURCE && id != THREAD_GOAL) {
     // If we collided closer to the source we now only care about goal_2
     if (other < id) {
       heuristic = [](RippleThread *self, Node n) {
@@ -344,18 +165,13 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
 
   // Message the source thread about the collision, unless we are the source
   // thread
-  if (id != THREAD_SOURCE) {
-    Message message;
-    message.type = MESSAGE_COLLISION;
-    message.collision_source = id;
-    message.collision_target = other;
-    message.collision_node = node;
-    message.collision_parent = parent;
-    message_queues[THREAD_SOURCE].push(message);
-  } else {
-    add_collision(THREAD_SOURCE, other, node, parent);
-    check_collision_path();
-  }
+  Message message;
+  message.type = MESSAGE_COLLISION;
+  message.collision_source = id;
+  message.collision_target = other;
+  message.collision_node = node;
+  message.collision_parent = parent;
+  message_queues[THREAD_COORDINATOR].push(message);
 }
 
 
@@ -550,23 +366,21 @@ void RippleThread::phase_1_conclusion() {
 }
 
 void RippleThread::phase_2_conclusion() {
-  if (id == THREAD_SOURCE || id == THREAD_GOAL) {
-    ; // FIXME what goes here?
-  } else {
-    Logf("Slave finish - found: %d", found);
+  Log("Worker finish");
 
-    // Reconstruct the path
-    if (cache[goal].node.visited)
-      finalize_path(goal, source, false);
+  // Reconstruct the path
+  if (cache[goal].node.visited)
+    finalize_path(goal, source, false);
 
-    Message msg;
-    msg.type = MESSAGE_DONE;
-    message_queues[THREAD_SOURCE].push(msg);
-  }
+  Message msg { .type = MESSAGE_DONE };
+  message_queues[THREAD_COORDINATOR].push(msg);
 }
 
 void RippleThread::exit() {
   Log("Thread Exiting");
   timer.stop();
   time_second = timer.get_microseconds() / 1000.0;
+
+  Message msg { .type = MESSAGE_DONE };
+  message_queues[THREAD_COORDINATOR].push(msg);
 }

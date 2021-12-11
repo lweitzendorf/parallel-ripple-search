@@ -19,11 +19,12 @@ enum MessageType {
 // the valid fields of the union depend on the message type
 struct Message {
   MessageType type;
+
   union {
     struct {
       Node source;
       Node target;
-    }; // type = MESSAGE_PHASE_2 for slave threads
+    }; // type = MESSAGE_PHASE_2 for worker threads
 
     Node final_node; // type = MESSAGE_PHASE_2 for goal thread
 
