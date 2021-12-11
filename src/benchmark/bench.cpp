@@ -6,7 +6,7 @@
 #include "graph/map.h"
 #include "reference/fringe.h"
 #include "reference/fringe_simd.h"
-#include "ripple/ripple.h"
+#include "ripple/RippleSearch.h"
 #include "utility/FileParser.h"
 #include "utility/Timer.h"
 

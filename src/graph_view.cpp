@@ -10,7 +10,7 @@
 #include "graph/WeightedGraph.h"
 #include "reference/fringe.h"
 #include "reference/fringe_simd.h"
-#include "ripple/ripple.h"
+#include "ripple/RippleSearch.h"
 #include "utility/FileParser.h"
 
 #include "reference/Astar.h"
@@ -248,8 +248,7 @@ void ripple_draw(Image &img, Map &map, RippleSearch &search) {
 
   for (int y = 0; y < map.height(); y++) {
     for (int x = 0; x < map.width(); x++) {
-      int index = map.point_to_node(Point(x, y));
-      auto id = search.cache[index].thread.load(std::memory_order_relaxed);
+      auto id = search.getOwner(Point(x, y));
       if (id != THREAD_NONE) {
         ImageDrawPixel(&img, x, y, colors[id]);
       }

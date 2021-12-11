@@ -9,7 +9,7 @@
 #include <raylib.h>
 
 #include "graph/map.h"
-#include "high_level_path.h"
+#include "HighLevelGraph.h"
 #include "reference/Astar.h"
 
 #define K 3
