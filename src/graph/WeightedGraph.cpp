@@ -6,18 +6,33 @@ WeightedGraph::WeightedGraph() {
   weights = boost::get(boost::edge_weight, g);
 }
 
-vertex_t WeightedGraph::add_vertex(int x, int y) {
-  locations.emplace_back(x, y);
-  return boost::add_vertex(g);
+vertex_t WeightedGraph::add_vertex(Point p) {
+  vertex_t v = boost::add_vertex(g);
+  locations.push_back(p);
+  location_to_vertex[p] = v;
+
+  max_x = std::max(max_x, p.x);
+  min_x = std::min(min_x, p.x);
+  max_y = std::max(max_y, p.y);
+  min_y = std::min(min_y, p.y);
+
+  return v;
 }
 
-bool WeightedGraph::add_edge(vertex_t vertex_1, vertex_t vertex_2, int weight) {
+std::optional<edge_t> WeightedGraph::add_edge(vertex_t vertex_1, vertex_t vertex_2, int weight) {
   if (vertex_1 >= num_vertices() || vertex_2 >= num_vertices())
-    return false;
+    return std::nullopt;
 
   edge_t e = boost::add_edge(vertex_1, vertex_2, g).first;
   weights[e] = weight;
-  return true;
+  return e;
+}
+
+std::optional<vertex_t> WeightedGraph::point_to_vertex(Point p) {
+  if (location_to_vertex.contains(p)) {
+    return location_to_vertex[p];
+  }
+  return std::nullopt;
 }
 
 auto WeightedGraph::neighbors(vertex_t vertex) {

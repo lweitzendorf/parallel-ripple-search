@@ -29,11 +29,16 @@ class WeightedGraph {
 public:
   WeightedGraph();
 
-  vertex_t add_vertex(int, int);
-  bool add_edge(vertex_t, vertex_t, int);
+  vertex_t add_vertex(Point);
+  std::optional<edge_t> add_edge(vertex_t, vertex_t, int);
 
-  vertices_size_t num_vertices() { return boost::num_vertices(g); }
-  edges_size_t num_edges() { return boost::num_edges(g); }
+  vertices_size_t num_vertices() const { return boost::num_vertices(g); }
+  edges_size_t num_edges() const { return boost::num_edges(g); }
+
+  int width() const { return num_vertices() ? (max_x - min_x + 1) : 0; }
+  int height() const { return num_vertices() ? (max_y - min_y + 1) : 0; }
+
+  std::optional<vertex_t> point_to_vertex(Point);
 
   auto neighbors(vertex_t);
 
@@ -45,6 +50,10 @@ private:
   weighted_graph_t g;
   weight_map_t weights;
   std::vector<Point> locations;
+  std::unordered_map<Point, vertex_t> location_to_vertex;
+
+  int min_x = 0, max_x = 0;
+  int min_y = 0, max_y = 0;
 
   struct found_goal {};
 

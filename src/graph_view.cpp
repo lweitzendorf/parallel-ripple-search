@@ -58,7 +58,7 @@ void build_graph(WeightedGraph &g, Map &map) {
     for (int x = 0; x < x_size; x++) {
       bool current_is_path = map.get(Point(x, y));
 
-      vertex_t vertex_number = g.add_vertex(x, y);
+      vertex_t vertex_number = g.add_vertex(Point(x, y));
 
       if (current_is_path) {
         if (x > 0 && is_path.at(x - 1))
@@ -241,8 +241,7 @@ void fringe_draw(Image &img, Map &map, Fringe &search) {
 };
 
 void ripple_draw(Image &img, Map &map, RippleSearch &search) {
-  Color colors[] = {YELLOW,  DARKGREEN, DARKPURPLE, MAGENTA,
-                    SKYBLUE, MAROON,    ORANGE,     LIME};
+  Color colors[] = { YELLOW, DARKGREEN, SKYBLUE, DARKPURPLE, LIME, BROWN, VIOLET, YELLOW, BLUE, ORANGE };
 
   // Draw cache
   std::atomic_thread_fence(std::memory_order_seq_cst);

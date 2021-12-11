@@ -457,7 +457,7 @@ reset:
           } else {
             // This should never happen in phase 1 as the goal threads
             // are already acquired
-            if (*node == goal || *node == goal_2.value()) {
+            if (*node == goal || (goal_2.has_value() && *node == goal_2.value())) {
               assert(false);
             }
           }

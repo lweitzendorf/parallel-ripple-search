@@ -6,7 +6,7 @@
 #include <vector>
 
 template <typename Node>
-Path<Node> reconstruct_path(Node start, Node goal, Path<Node> &came_from) {
+  Path<Node> reconstruct_path(Node start, Node goal, Path<Node> &came_from) {
   Path<Node> path;
   Node current = goal;
   while (current != start) {
