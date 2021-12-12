@@ -52,7 +52,7 @@ public:
       sizeof(neighbour_offsets) / sizeof(neighbour_offsets[0]);
 
   static std::function<bool(Node)> node_eq_predicate(Node n1) {
-    return [&](Node n2) -> bool { return n1 == n2; };
+    return [=](Node n2) -> bool { return n1 == n2; };
   };
 
   int width() const { return width_; }
