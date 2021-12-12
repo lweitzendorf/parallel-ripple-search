@@ -8,8 +8,6 @@ typedef uint8_t MapType;
 typedef int32_t Node;
 template <typename T> using Path = std::vector<T>;
 
-#define INVALID_NODE (-1)
-
 class Map;
 
 class MapIterator {
@@ -26,7 +24,8 @@ public:
   MapIterator(Map &map, Point p, size_t idx);
 
   MapIterator &operator++();
-  bool operator!=(MapIterator &other) const;
+  bool operator!=(const MapIterator &other) const;
+  bool operator==(const MapIterator &other) const;
   Node operator*() const;
 };
 
@@ -51,6 +50,10 @@ public:
   static Point neighbour_offsets[8];
   static constexpr int NEIGHBOURS_COUNT =
       sizeof(neighbour_offsets) / sizeof(neighbour_offsets[0]);
+
+  static std::function<bool(Node)> node_eq_predicate(Node n1) {
+    return [&](Node n2) -> bool { return n1 == n2; };
+  };
 
   int width() const { return width_; }
   int height() const { return height_; }

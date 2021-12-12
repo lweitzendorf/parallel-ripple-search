@@ -1,13 +1,12 @@
-#include <memory>
-#include <iostream>
 #include <cassert>
+#include <iostream>
+#include <memory>
 
 #include "HighLevelGraph.h"
 #include "RippleThread.h"
 
 RippleThread::RippleThread(
-    ThreadId id, Map &map,
-    std::vector<RippleCacheNode> &cache,
+    ThreadId id, Map &map, std::vector<RippleCacheNode> &cache,
     std::vector<tbb::detail::d2::concurrent_queue<Message>> &message_queues)
     : id(id), thread(nullptr), map(map), message_queues(message_queues),
       cache(cache) {}
@@ -69,33 +68,34 @@ FringeInterruptAction RippleThread::check_message_queue() {
 
   while (recv_message(message)) {
     switch (message.type) {
-      // Only arrives to slave threads if they need to switch to phase 2
-      // and to the goal thread to know that he is done
-      // does not arrive to source thread
-      case MESSAGE_PHASE_2: {
-        Log("Message - Phase2");
+    // Only arrives to slave threads if they need to switch to phase 2
+    // and to the goal thread to know that he is done
+    // does not arrive to source thread
+    case MESSAGE_PHASE_2: {
+      Log("Message - Phase2");
 
-        if (id == THREAD_SOURCE) {
-          finalize_path(message.final_node, source);
-          response_action = EXIT;
-        } else if (id == THREAD_GOAL) {
-          finalize_path(message.final_node, source);
-          response_action = EXIT;
-        } else {
-          reset_for_phase_2(message.source, message.target);
-          response_action = RESET;
-        }
-      } break;
-
-        // Only arrives to slave threads if they do not have to work in phase 2
-      case MESSAGE_STOP:
-        Log("Message - Stop");
+      if (id == THREAD_SOURCE) {
+        finalize_path(message.final_node, source);
         response_action = EXIT;
-        break;
+      } else if (id == THREAD_GOAL) {
+        finalize_path(message.final_node, source);
+        response_action = EXIT;
+      } else {
+        reset_for_phase_2(message.phase_info.source, message.phase_info.target);
+        response_action = RESET;
+      }
+    } break;
 
-      default: {
-        AssertUnreachable("This kind of message should only be sent to the coordinator!");
-      } break;
+      // Only arrives to slave threads if they do not have to work in phase 2
+    case MESSAGE_STOP:
+      Log("Message - Stop");
+      response_action = EXIT;
+      break;
+
+    default: {
+      AssertUnreachable(
+          "This kind of message should only be sent to the coordinator!");
+    } break;
     }
   }
   return response_action;
@@ -164,19 +164,20 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
   }
 
   // Message the coordinator thread about the collision
-  Message message {
-    MESSAGE_COLLISION,
-    { .collision_source = id,
-      .collision_target = other,
-      .collision_node = node,
-      .collision_parent = parent, },
+  Message message{
+      .type = MESSAGE_COLLISION,
+      .collision_info =
+          {
+              .collision_node = node,
+              .collision_parent = parent,
+              .collision_source = id,
+              .collision_target = other,
+          },
   };
   send_message(message);
 }
 
-void RippleThread::entry() {
-  search();
-}
+void RippleThread::entry() { search(); }
 
 void RippleThread::search() {
   timer.start();
@@ -191,12 +192,12 @@ void RippleThread::search() {
 
     do {
       switch (check_message_queue()) {
-        case RESET:
-          return search();
-        case EXIT:
-          return exit();
-        case NONE:
-          break;
+      case RESET:
+        return search();
+      case EXIT:
+        return exit();
+      case NONE:
+        break;
       }
 
       // Load info for the current node
@@ -236,7 +237,8 @@ void RippleThread::search() {
           } else {
             // This should never happen in phase 1 as the goal threads
             // are already acquired
-            if (*node == goal || (goal_2.has_value() && *node == goal_2.value())) {
+            if (*node == goal ||
+                (goal_2.has_value() && *node == goal_2.value())) {
               assert(false);
             }
           }
@@ -245,7 +247,8 @@ void RippleThread::search() {
           int gs = g + 1;
 
           // Check if already owned, otherwise try to acquire
-          ThreadId owner = cache[neighbour].thread.load(std::memory_order_relaxed);
+          ThreadId owner =
+              cache[neighbour].thread.load(std::memory_order_relaxed);
 
           // In phase two we skip all nodes that are not owned by us
           if (phase2 && owner != id) {
@@ -257,8 +260,8 @@ void RippleThread::search() {
             // - if we don't already own the node
             // - if someone else owns the node or we failed to acquire the node
             // If any of these is true a collision has happened.
-            // The order is important as we want to avoid the expensive compare and swap
-            // if any of first two checks short circuits.
+            // The order is important as we want to avoid the expensive compare
+            // and swap if any of first two checks short circuits.
             if (owner != id &&
                 (owner != THREAD_NONE ||
                  !cache[neighbour].thread.compare_exchange_strong(
@@ -316,8 +319,9 @@ void RippleThread::search() {
   // TODO this should not happen in phase 2
   return phase2 ? phase_2_conclusion() : phase_1_conclusion();
 
-// NOTE We can immediately jump here when a thread is supposed to stop what it's
-//      doing. This is considered an interrupt action.
+  // NOTE We can immediately jump here when a thread is supposed to stop what
+  // it's
+  //      doing. This is considered an interrupt action.
 }
 
 void RippleThread::phase_1_conclusion() {
@@ -339,12 +343,12 @@ void RippleThread::phase_1_conclusion() {
     Log("Waiting");
     while (true) {
       switch (check_message_queue()) {
-        case RESET:
-          return search();
-        case EXIT:
-          return exit();
-        case NONE:
-          break;
+      case RESET:
+        return search();
+      case EXIT:
+        return exit();
+      case NONE:
+        break;
       }
     }
   }
@@ -357,7 +361,7 @@ void RippleThread::phase_2_conclusion() {
   if (cache[goal].node.visited)
     finalize_path(goal, source, false);
 
-  Message msg { .type = MESSAGE_DONE };
+  Message msg{.type = MESSAGE_DONE};
   send_message(msg);
 }
 
@@ -366,7 +370,7 @@ void RippleThread::exit() {
   timer.stop();
   time_second = timer.get_microseconds() / 1000.0;
 
-  Message msg { .type = MESSAGE_DONE };
+  Message msg{.type = MESSAGE_DONE};
   send_message(msg);
 }
 

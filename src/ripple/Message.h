@@ -1,7 +1,7 @@
 #pragma once
 
-#include "graph/map.h"
 #include "Thread.h"
+#include "graph/map.h"
 
 // Message type
 enum MessageType {
@@ -24,7 +24,7 @@ struct Message {
     struct {
       Node source;
       Node target;
-    }; // type = MESSAGE_PHASE_2 for worker threads
+    } phase_info; // type = MESSAGE_PHASE_2 for worker threads
 
     Node final_node; // type = MESSAGE_PHASE_2 for goal thread
 
@@ -34,7 +34,6 @@ struct Message {
                              // found the collision
       ThreadId collision_source; // Thread that found the collision
       ThreadId collision_target; // Thread that already owned the node
-    };                           // type = MESSAGE_COLLISION
+    } collision_info;            // type = MESSAGE_COLLISION
   };
 };
-

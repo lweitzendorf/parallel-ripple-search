@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Thread.h"
-#include "utility/Timer.h"
-#include "graph/map.h"
-#include "Message.h"
 #include "Collision.h"
+#include "Message.h"
+#include "Thread.h"
+#include "graph/map.h"
 #include "reference/fringe.h"
+#include "utility/Timer.h"
 
 #include <atomic>
 #include <vector>
@@ -23,7 +23,7 @@ using oneapi::tbb::concurrent_queue;
 #define LogfNOID(fmt, ...) printf(fmt "\n", __VA_ARGS__)
 #define AssertUnreachable(...)                                                 \
   do {                                                                         \
-    LogNOID(__VA_ARGS__);                                                          \
+    LogNOID(__VA_ARGS__);                                                      \
     assert(false);                                                             \
   } while (0)
 #else
@@ -73,9 +73,8 @@ private:
   std::condition_variable wait_cv;
 
   // Current source ang goals for the thread.
-  // Slave threads have 2 goals because they search in both directions
+  // Worker threads have 2 goals because they search in both directions
   // until they have a collision with one of the two.
-  // goal_2 == INVALID_NODE for the Source and Goal threads
   Node source;
   Node goal;
   std::optional<Node> goal_2;
@@ -130,8 +129,9 @@ private:
   void exit();
 
 public:
-  RippleThread(ThreadId id, Map &map, std::vector<RippleCacheNode> &cache,
-               std::vector<tbb::detail::d2::concurrent_queue<Message>> &message_queues);
+  RippleThread(
+      ThreadId id, Map &map, std::vector<RippleCacheNode> &cache,
+      std::vector<tbb::detail::d2::concurrent_queue<Message>> &message_queues);
 
   bool start();
   bool join();
@@ -142,4 +142,3 @@ public:
   void set_goals(Node g1, Node g2);
   Path<Node> &get_final_path();
 };
-

@@ -100,8 +100,12 @@ void MapIterator::update_current() {
   }
 }
 
-bool MapIterator::operator!=(MapIterator &other) const {
+bool MapIterator::operator!=(const MapIterator &other) const {
   return this->index != other.index;
+}
+
+bool MapIterator::operator==(const MapIterator &other) const {
+  return this->index == other.index;
 }
 
 Node MapIterator::operator*() const { return current_node; }
