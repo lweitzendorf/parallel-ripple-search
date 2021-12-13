@@ -11,19 +11,21 @@ RippleThread::RippleThread(
     : id(id), thread(nullptr), map(map), message_queues(message_queues),
       cache(cache) {}
 
-void RippleThread::set_source(Node s) { source = s; }
-
-void RippleThread::set_single_goal(Node g) {
+void RippleThread::set_src_and_goal(Node s, Node g) {
+  source = s;
   goal = g;
   goal_2 = {};
 }
 
-void RippleThread::set_goals(Node g1, Node g2) {
-  goal = g1;
-  goal_2 = g2;
+void RippleThread::set_src_and_goals(Node s, Node g1, Node g2) {
+  source = s;
+  float d1 = map.distance(source, g1);
+  float d2 = map.distance(source, g2);
+  goal = (d1 < d2 ? g1 : g2);
+  goal_2 = (d1 < d2 ? g2 : g1);
 }
 
-Path<Node> &RippleThread::get_final_path() { return final_path; }
+const Path<Node> &RippleThread::get_final_path() const { return final_path; }
 
 bool RippleThread::start() {
   if (thread == nullptr) {
@@ -95,15 +97,14 @@ FringeInterruptAction RippleThread::check_message_queue() {
 
       default: {
         AssertUnreachable("This kind of message should only be sent to the coordinator!");
-      } break;
+      }
     }
   }
   return response_action;
 }
 
 void RippleThread::reset_for_phase_2(Node src, Node target) {
-  set_source(src);
-  set_single_goal(target);
+  set_src_and_goal(src, target);
 }
 
 // Initialize fringe search list, heuristic and source node cache entry.
@@ -119,20 +120,13 @@ void RippleThread::initialize_fringe_search(Phase phase) {
   cache[source].node.list_entry = fringe_list.begin();
   cache[source].node.phase2 = phase; // set to true if we are in phase 2
 
-  // Set the heuristic depending on the numbe of goals
-  if (!goal_2) {
-    heuristic = [](RippleThread *self, Node n) {
-      return self->map.distance(n, self->goal);
-    };
-  } else {
-    heuristic = [](RippleThread *self, Node n) {
-      return std::min(self->map.distance(n, self->goal),
-                      self->map.distance(n, self->goal_2.value()));
-    };
-  }
+  // Relies on the fact that goal is closer than goal_2
+  heuristic = [this](Node n) {
+    return map.distance(n, goal);
+  };
 
   // Set fringe threshold
-  flimit = heuristic(this, source);
+  flimit = heuristic(source);
 }
 
 // Called when a collision happens during the search
@@ -141,25 +135,16 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
 
   // check if we already collided with this thread, otherwise register the
   // collision
-  if (collision_mask & (1 << other)) {
+  if (collision_mask & (1 << other))
     return;
-  } else {
+  else
     collision_mask |= (1 << other);
-  }
 
-  // For worker threads update the heuristic and check if we are done
-  if (id != THREAD_SOURCE && id != THREAD_GOAL) {
-    // If we collided closer to the source we now only care about goal_2
-    if (other < id) {
-      heuristic = [](RippleThread *self, Node n) {
-        return self->map.distance(n, self->goal_2.value());
-      };
-    } else {
-      // Otherwise we now only care about goal
-      heuristic = [](RippleThread *self, Node n) {
-        return self->map.distance(n, self->goal);
-      };
-    }
+  // For worker threads update the heuristic
+  if (goal_2 && collision_mask == (1 << other)) {
+    heuristic = [this](Node n) {
+        return map.distance(n, goal_2.value());
+    };
   }
 
   // Message the coordinator thread about the collision
@@ -204,7 +189,7 @@ void RippleThread::search(Phase phase) {
 
       // Compute fringe heuristic for current node
       int g = node_info.g;
-      int f = g + heuristic(this, *node);
+      int f = g + heuristic(*node);
 
       // Skip node if fringe heuristic lower than the threshold
       if (f > flimit) {

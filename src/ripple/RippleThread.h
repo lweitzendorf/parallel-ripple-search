@@ -86,7 +86,7 @@ private:
 
   // Fringe search info
   FringeList fringe_list;
-  std::function<int(RippleThread *, Node)> heuristic;
+  std::function<int(Node)> heuristic;
   int flimit;
 
   // Reference to vector of node info for fringe search, shared between all
@@ -139,8 +139,7 @@ public:
   bool join();
 
   // Setters for the source and goals variables
-  void set_source(Node s);
-  void set_single_goal(Node g);
-  void set_goals(Node g1, Node g2);
-  Path<Node> &get_final_path();
+  void set_src_and_goal(Node s, Node g);
+  void set_src_and_goals(Node s, Node g1, Node g2);
+  const Path<Node> &get_final_path() const;
 };
