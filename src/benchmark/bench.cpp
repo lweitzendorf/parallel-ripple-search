@@ -3,7 +3,7 @@
 #include <raylib.h>
 
 #include "graph/WeightedGraph.h"
-#include "graph/map.h"
+#include "graph/Map.h"
 #include "reference/fringe.h"
 #include "reference/fringe_simd.h"
 #include "ripple/RippleSearch.h"

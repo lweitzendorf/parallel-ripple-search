@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graph/map.h"
+#include "graph/Map.h"
 #include "utility/PriorityQueue.h"
 #include <optional>
 #include <vector>

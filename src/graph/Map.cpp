@@ -1,11 +1,15 @@
-#include "map.h"
+#include "Map.h"
 
 #include <cmath>
 #include <raylib.h>
 
-Point Map::neighbour_offsets[] = {
-    {-1, -1}, {-1, 1}, {1, -1}, {1, 1},
+/* NOTE we should introduce a concept which will constrain
+ *      what can be done with a graph/map. Then, functions in the
+ *      RippleThread / RippleSearch can be generic over both of them.
+ * */
 
+Point Map::neighbour_offsets[] = {
+    //{-1, -1}, {-1, 1}, {1, -1}, {1, 1},
     {-1, 0},  {0, -1}, {1, 0},  {0, 1},
 };
 
@@ -38,15 +42,13 @@ void Map::load_from_image_file(const char *path) {
   UnloadImage(img);
 }
 
-Point Map::node_to_point(Node i) const {
-  Point p;
-  p.x = i % width_;
-  p.y = i / width_;
+Point Map::node_to_point(Node n) const {
+  return { n % width_, n / width_ };
+}
 
-  return p;
-};
-
-Node Map::point_to_node(Point i) const { return i.y * width_ + i.x; };
+Node Map::point_to_node(Point i) const {
+  return i.y * width_ + i.x;
+}
 
 double Map::cost(Node from, Node to) { return 1; }
 
@@ -67,15 +69,15 @@ MapNeighbours::MapNeighbours(Map &map, Node node) : map(map) {
   this->point = map.node_to_point(node);
 }
 
-MapIterator MapNeighbours::begin() { return MapIterator(map, point, 0); }
-
-MapIterator MapNeighbours::end() {
-  return MapIterator(map, point, Map::NEIGHBOURS_COUNT);
+MapIterator MapNeighbours::begin() {
+  return { map, point, 0 };
 }
 
-MapIterator::MapIterator(Map &map, Point p, size_t idx)
-    : map(map), center(p), index(idx) {
+MapIterator MapNeighbours::end() {
+  return { map, point, Map::NEIGHBOURS_COUNT };
+}
 
+MapIterator::MapIterator(Map &map, Point p, size_t idx) : map(map), center(p), index(idx) {
   update_current();
 }
 

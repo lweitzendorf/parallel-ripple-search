@@ -10,7 +10,7 @@
 
 #include "stlastar.h" // See header for copyright and usage information
 
-#include "graph/map.h"
+#include "graph/Map.h"
 #include <iostream>
 #include <list>
 #include <math.h>

@@ -1,7 +1,7 @@
 #ifndef DPHPC_WEIGHTEDGRAPH_H
 #define DPHPC_WEIGHTEDGRAPH_H
 
-#include "map.h"
+#include "Map.h"
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/astar_search.hpp>

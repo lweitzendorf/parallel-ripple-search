@@ -24,6 +24,7 @@ std::optional<Path<Node>> RippleSearch::search() {
     return {};
   }
 
+  // TODO probably better to call create_high_level_path with number of nodes directly
   // TODO do something smart to choose the best NUM_SEARCH_THREADS points
   while (high_level_path.size() > NUM_SEARCH_THREADS) {
     high_level_path.erase(high_level_path.begin() + high_level_path.size() / 2);
@@ -38,36 +39,33 @@ std::optional<Path<Node>> RippleSearch::search() {
                                            std::memory_order_seq_cst);
   }
 
-  std::vector<RippleThread *> threads;
+  std::vector<std::unique_ptr<RippleThread>> threads;
 
   // Start source thread
   {
-    auto *source_thread =
-        new RippleThread(THREAD_SOURCE, map, cache, message_queues);
+    auto source_thread = std::make_unique<RippleThread>(THREAD_SOURCE, map, cache, message_queues);
     source_thread->set_source(source);
     source_thread->set_single_goal(goal);
 
-    threads.push_back(source_thread);
+    threads.push_back(std::move(source_thread));
   }
 
-  // Start slave thread
+  // Start worker threads
   for (int i = 1; i < NUM_SEARCH_THREADS - 1; i++) {
-    auto *slave_thread =
-        new RippleThread((ThreadId)i, map, cache, message_queues);
-    slave_thread->set_source(high_level_path[i]);
-    slave_thread->set_goals(high_level_path[i - 1], high_level_path[i + 1]);
+    auto worker_thread = std::make_unique<RippleThread>((ThreadId)i, map, cache, message_queues);
+    worker_thread->set_source(high_level_path[i]);
+    worker_thread->set_goals(high_level_path[i - 1], high_level_path[i + 1]);
 
-    threads.push_back(slave_thread);
+    threads.push_back(std::move(worker_thread));
   }
 
   // Start goals thread
   {
-    auto *goal_thread =
-        new RippleThread(THREAD_GOAL, map, cache, message_queues);
+    auto goal_thread = std::make_unique<RippleThread>(THREAD_GOAL, map, cache, message_queues);
     goal_thread->set_source(goal);
     goal_thread->set_single_goal(source);
 
-    threads.push_back(goal_thread);
+    threads.push_back(std::move(goal_thread));
   }
 
   for (auto &t : threads) {
@@ -94,7 +92,7 @@ std::optional<Path<Node>> RippleSearch::search() {
 
   // TODO do we have a debug directive we can wrap this in?
   //      the path is always wrong
-  // assert(is_valid_path(path));
+  assert(is_valid_path(path));
 
   return path.empty() ? std::nullopt : std::optional<Path<Node>>{path};
 }
@@ -106,34 +104,28 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
   while (working_threads) {
     if (message_queues[THREAD_COORDINATOR].try_pop(msg)) {
       switch (msg.type) {
-      case MESSAGE_COLLISION: {
-        LogfNOID("Message - Collision: %d -> %d", msg.collision_source,
-                 msg.collision_target);
-        add_collision(msg.collision_info.collision_source,
-                      msg.collision_info.collision_target,
-                      msg.collision_info.collision_node,
-                      msg.collision_info.collision_parent);
-        auto maybe_path = check_collision_path();
-        if (maybe_path)
-          return maybe_path;
-      } break;
+        case MESSAGE_COLLISION: {
+          LogfNOID("Message - Collision: %d -> %d", msg.collision_source,
+                   msg.collision_target);
+          collision_graph.add_collision(msg.collision_info.collision_source,
+                                        msg.collision_info.collision_target,
+                                        msg.collision_info.collision_node,
+                                        msg.collision_info.collision_parent);
+          if (auto maybe_path = check_collision_path())
+            return maybe_path;
+        } break;
 
-      case MESSAGE_DONE: {
-        working_threads--;
-      } break;
+        case MESSAGE_DONE: {
+          working_threads--;
+        } break;
 
-      default:
-        AssertUnreachable("Coordinator thread should only receive "
-                          "MESSAGE_COLLISION and MESSAGE_DONE messages!");
+        default:
+          AssertUnreachable("Coordinator thread should only receive "
+                            "MESSAGE_COLLISION and MESSAGE_DONE messages!");
       }
     }
   }
   return {};
-}
-
-void RippleSearch::add_collision(ThreadId src, ThreadId target, Node node,
-                                 Node parent) {
-  collision_graph.add_collision(src, target, node, parent);
 }
 
 std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
@@ -249,18 +241,15 @@ ThreadId RippleSearch::get_owner(Point p) const {
 
 bool RippleSearch::is_adjacent_pair(Node n1, Node n2) const {
   auto neighbors = map.neighbours(n1);
-  // FIXME I am really curious as to why this doesn't work
-  // return std::any_of(neighbors.begin(), neighbors.end(),
-  //                    Map::node_eq_predicate(n2));
-  for (auto n : neighbors)
-    if (n == n2)
-      return true;
-  return false;
+  return std::any_of(neighbors.begin(), neighbors.end(),
+                     Map::node_eq_predicate(n2));
 }
 
 bool RippleSearch::is_valid_path(Path<Node> &path) const {
   for (int i = 0; i < path.size() - 1; i++)
-    if (!is_adjacent_pair(path[i], path[i + 1]))
+    if (!is_adjacent_pair(path[i], path[i + 1])) {
+      std::cout << "Node " << path[i] << " not adjacent to node " << path[i + 1] << std::endl;
       return false;
+    }
   return true;
 }

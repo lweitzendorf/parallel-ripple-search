@@ -1,12 +1,6 @@
 #pragma once
 
-#include "Collision.h"
-#include "Message.h"
 #include "RippleThread.h"
-#include "Thread.h"
-#include "graph/map.h"
-#include "reference/fringe.h"
-#include "utility/Timer.h"
 
 // Utility class for initializing and invoking ripple search
 class RippleSearch {
@@ -23,9 +17,7 @@ private:
   bool is_valid_path(Path<Node> &path) const;
   bool is_adjacent_pair(Node n1, Node n2) const;
 
-  void add_collision(ThreadId source, ThreadId target, Node node, Node parent);
-
-public:
+  public:
   // Initialize search on a map
   RippleSearch(Map &map, Node source, Node goal);
 

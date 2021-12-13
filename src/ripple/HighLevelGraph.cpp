@@ -8,7 +8,7 @@
 
 #include <raylib.h>
 
-#include "graph/map.h"
+#include "graph/Map.h"
 #include "HighLevelGraph.h"
 #include "reference/Astar.h"
 

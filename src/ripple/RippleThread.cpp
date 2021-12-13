@@ -46,9 +46,13 @@ void RippleThread::finalize_path(Node from, Node to, bool include_to) {
   Log("Attempting to finalize path");
 
   Node current = from;
-  while (current != to) {
+  do  {
     final_path.push_back(current);
     current = cache[current].node.parent;
+  } while (current != to && current != from);
+
+  if (current == from) {
+    std::cout << "Thread " << id << ": detected cycle in final path!" << std::endl;
   }
 
   if (include_to)
@@ -68,34 +72,30 @@ FringeInterruptAction RippleThread::check_message_queue() {
 
   while (recv_message(message)) {
     switch (message.type) {
-    // Only arrives to slave threads if they need to switch to phase 2
-    // and to the goal thread to know that he is done
-    // does not arrive to source thread
-    case MESSAGE_PHASE_2: {
-      Log("Message - Phase2");
+      // Only arrives to worker threads if they need to switch to phase 2
+      // and to the goal thread to know that it is done
+      // does not arrive to source thread
+      case MESSAGE_PHASE_2: {
+        Log("Message - Phase2");
 
-      if (id == THREAD_SOURCE) {
-        finalize_path(message.final_node, source);
+        if (id == THREAD_SOURCE || id == THREAD_GOAL) {
+          finalize_path(message.final_node, source);
+          response_action = EXIT;
+        } else {
+          reset_for_phase_2(message.phase_info.source, message.phase_info.target);
+          response_action = RESET;
+        }
+      } break;
+
+        // Only arrives to slave threads if they do not have to work in phase 2
+      case MESSAGE_STOP:
+        Log("Message - Stop");
         response_action = EXIT;
-      } else if (id == THREAD_GOAL) {
-        finalize_path(message.final_node, source);
-        response_action = EXIT;
-      } else {
-        reset_for_phase_2(message.phase_info.source, message.phase_info.target);
-        response_action = RESET;
-      }
-    } break;
+        break;
 
-      // Only arrives to slave threads if they do not have to work in phase 2
-    case MESSAGE_STOP:
-      Log("Message - Stop");
-      response_action = EXIT;
-      break;
-
-    default: {
-      AssertUnreachable(
-          "This kind of message should only be sent to the coordinator!");
-    } break;
+      default: {
+        AssertUnreachable("This kind of message should only be sent to the coordinator!");
+      } break;
     }
   }
   return response_action;
@@ -104,11 +104,10 @@ FringeInterruptAction RippleThread::check_message_queue() {
 void RippleThread::reset_for_phase_2(Node src, Node target) {
   set_source(src);
   set_single_goal(target);
-  phase2 = true;
 }
 
 // Initialize fringe search list, heuristic and source node cache entry.
-void RippleThread::initialize_fringe_search() {
+void RippleThread::initialize_fringe_search(Phase phase) {
   // Initialize fring list with source node only
   fringe_list.clear();
   fringe_list.push_front(source);
@@ -118,7 +117,7 @@ void RippleThread::initialize_fringe_search() {
   cache[source].node.g = 0;
   cache[source].node.visited = true;
   cache[source].node.list_entry = fringe_list.begin();
-  cache[source].node.phase2 = phase2; // set to true if we are in phase 2
+  cache[source].node.phase2 = phase; // set to true if we are in phase 2
 
   // Set the heuristic depending on the numbe of goals
   if (!goal_2) {
@@ -177,11 +176,11 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
   send_message(message);
 }
 
-void RippleThread::entry() { search(); }
+void RippleThread::entry() { search(PHASE_1); }
 
-void RippleThread::search() {
+void RippleThread::search(Phase phase) {
   timer.start();
-  initialize_fringe_search();
+  initialize_fringe_search(phase);
 
   // Fringe search step towards G
   auto node = fringe_list.end();
@@ -193,7 +192,7 @@ void RippleThread::search() {
     do {
       switch (check_message_queue()) {
       case RESET:
-        return search();
+        return search(PHASE_2);
       case EXIT:
         return exit();
       case NONE:
@@ -230,7 +229,7 @@ void RippleThread::search() {
           }
 
           // If we found our goal in phase 2 we are done and can exit;
-          if (phase2) {
+          if (phase == PHASE_2) {
             if (*node == goal) {
               return phase_2_conclusion();
             }
@@ -251,11 +250,11 @@ void RippleThread::search() {
               cache[neighbour].thread.load(std::memory_order_relaxed);
 
           // In phase two we skip all nodes that are not owned by us
-          if (phase2 && owner != id) {
+          if (phase == PHASE_2 && owner != id) {
             continue;
           }
 
-          if (!phase2) {
+          if (phase == PHASE_1) {
             // We test the following things in order:
             // - if we don't already own the node
             // - if someone else owns the node or we failed to acquire the node
@@ -278,13 +277,13 @@ void RippleThread::search() {
 
           // Skip neighbour if already visited in this phase with a lower cost
           FringeNode &neighbour_cache = cache[neighbour].node;
-          if (neighbour_cache.phase2 == phase2 && neighbour_cache.visited &&
+          if (neighbour_cache.phase2 == phase && neighbour_cache.visited &&
               gs >= neighbour_cache.g) {
             continue;
           }
 
           // If already in list in this phase, remove it
-          if (neighbour_cache.phase2 == phase2 && neighbour_cache.in_list) {
+          if (neighbour_cache.phase2 == phase && neighbour_cache.in_list) {
             fringe_list.erase(neighbour_cache.list_entry);
             neighbour_cache.in_list = false;
           }
@@ -298,7 +297,7 @@ void RippleThread::search() {
           neighbour_cache.parent = *node;
           neighbour_cache.list_entry = std::next(node);
           neighbour_cache.in_list = true;
-          neighbour_cache.phase2 = phase2;
+          neighbour_cache.phase2 = phase;
         }
       }
 
@@ -317,7 +316,7 @@ void RippleThread::search() {
   }
 
   // TODO this should not happen in phase 2
-  return phase2 ? phase_2_conclusion() : phase_1_conclusion();
+  return phase == PHASE_1 ? phase_1_conclusion() : phase_2_conclusion();
 
   // NOTE We can immediately jump here when a thread is supposed to stop what
   // it's
@@ -343,12 +342,12 @@ void RippleThread::phase_1_conclusion() {
     Log("Waiting");
     while (true) {
       switch (check_message_queue()) {
-      case RESET:
-        return search();
-      case EXIT:
-        return exit();
-      case NONE:
-        break;
+        case RESET:
+          return search(PHASE_2);
+        case EXIT:
+          return exit();
+        case NONE:
+          break;
       }
     }
   }

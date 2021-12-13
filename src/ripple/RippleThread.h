@@ -3,7 +3,7 @@
 #include "Collision.h"
 #include "Message.h"
 #include "Thread.h"
-#include "graph/map.h"
+#include "graph/Map.h"
 #include "reference/fringe.h"
 #include "utility/Timer.h"
 
@@ -16,22 +16,22 @@ using oneapi::tbb::concurrent_queue;
 
 #define LOG_ENABLED false
 
-#if LOG_ENABLED
-#define Log(str) printf("%d|" str "\n", id)
-#define LogNOID(str) printf(str "\n")
-#define Logf(fmt, ...) printf("%d|" fmt "\n", id, __VA_ARGS__)
-#define LogfNOID(fmt, ...) printf(fmt "\n", __VA_ARGS__)
 #define AssertUnreachable(...)                                                 \
   do {                                                                         \
     LogNOID(__VA_ARGS__);                                                      \
     assert(false);                                                             \
   } while (0)
+
+#if LOG_ENABLED
+#define Log(str) printf("%d|" str "\n", id)
+#define LogNOID(str) printf(str "\n")
+#define Logf(fmt, ...) printf("%d|" fmt "\n", id, __VA_ARGS__)
+#define LogfNOID(fmt, ...) printf(fmt "\n", __VA_ARGS__)
 #else
 #define Log(...)
 #define LogNOID(...)
 #define Log(...)
 #define LogfNOID(...)
-#define AssertUnreachable(...)
 #endif
 
 // Question: can we put some of these enums within the class? is this a better
@@ -45,6 +45,11 @@ struct RippleCacheNode {
 
   // Fringe search data
   FringeNode node;
+};
+
+enum Phase :bool {
+  PHASE_1 = false,
+  PHASE_2 = true
 };
 
 // Class representing a thread of the ripple search algorithm
@@ -93,9 +98,6 @@ private:
   uint32_t collision_mask = 0;
   static_assert(sizeof(collision_mask) * 8 >= NUM_SEARCH_THREADS);
 
-  // Phase 2 flag, set to true when we enter phase 2
-  bool phase2 = false;
-
   // Segment of the final path owned by the thread
   Path<Node> final_path;
 
@@ -104,7 +106,7 @@ private:
   FringeInterruptAction check_message_queue();
 
   // Initialize fringe search list, heuristic and source node cache entry.
-  void initialize_fringe_search();
+  void initialize_fringe_search(Phase phase);
 
   // Called when a collision happens during the search
   void handle_collision(Node node, Node parent, ThreadId other);
@@ -122,7 +124,7 @@ private:
   // Entry point of all ripple threads
   void entry();
 
-  void search();
+  void search(Phase phase);
 
   void phase_1_conclusion();
   void phase_2_conclusion();

@@ -4,7 +4,7 @@
 #include <optional>
 #include <stdint.h>
 
-#include "graph/map.h"
+#include "graph/Map.h"
 
 struct FringeNodeSimd {
   Node parent;

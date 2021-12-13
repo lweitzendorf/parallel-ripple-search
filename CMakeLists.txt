@@ -36,7 +36,7 @@ if(AVX512)
 endif ()
 
 set(BaselineSources src/graph/WeightedGraph.cpp src/utility/Timer.cpp src/utility/FileParser.cpp)
-set(RippleSources src/ripple/HighLevelGraph.cpp src/ripple/Collision.cpp src/ripple/RippleThread.cpp src/reference/fringe_simd.cpp src/reference/fringe.cpp src/graph/map.cpp src/ripple/RippleSearch.cpp)
+set(RippleSources src/ripple/HighLevelGraph.cpp src/ripple/Collision.cpp src/ripple/RippleThread.cpp src/reference/fringe_simd.cpp src/reference/fringe.cpp src/graph/Map.cpp src/ripple/RippleSearch.cpp)
 add_executable(graph_view src/graph_view.cpp ${RippleSources} ${BaselineSources} src/graph/Point.h)
 target_include_directories(graph_view PUBLIC src)
 target_link_libraries(graph_view raylib TBB::tbb Threads::Threads)

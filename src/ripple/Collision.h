@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Thread.h"
-#include "graph/map.h"
+#include "graph/Map.h"
 
 #include <type_traits>
 
