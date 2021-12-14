@@ -54,7 +54,7 @@ void RippleThread::finalize_path(Node from, Node to, bool include_to) {
   } while (current != to && current != from);
 
   if (current == from) {
-    std::cout << "Thread " << id << ": detected cycle in final path!" << std::endl;
+    std::cout << "Thread " << id << ": detected cycle of size " << final_path.size() << "!" << std::endl;
   }
 
   if (include_to)
