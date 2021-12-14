@@ -4,12 +4,11 @@
 
 #include <raylib.h>
 
-#include "reference/stlastar.cpp"
 #include "utility/Timer.h"
 
 #include "graph/WeightedGraph.h"
-#include "reference/fringe.h"
-#include "reference/fringe_simd.h"
+#include "reference/FringeSearch.h"
+#include "reference/FringeSearchSimd.h"
 #include "ripple/RippleSearch.h"
 #include "utility/FileParser.h"
 

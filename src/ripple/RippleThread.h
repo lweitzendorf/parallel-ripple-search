@@ -4,7 +4,7 @@
 #include "Message.h"
 #include "Thread.h"
 #include "graph/Map.h"
-#include "reference/fringe.h"
+#include "reference/FringeSearch.h"
 #include "utility/Timer.h"
 
 #include <atomic>

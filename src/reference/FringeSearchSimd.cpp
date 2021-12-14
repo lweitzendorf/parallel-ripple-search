@@ -1,4 +1,4 @@
-#include "fringe_simd.h"
+#include "FringeSearchSimd.h"
 
 #include <limits.h>
 

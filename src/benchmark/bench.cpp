@@ -4,8 +4,8 @@
 
 #include "graph/WeightedGraph.h"
 #include "graph/Map.h"
-#include "reference/fringe.h"
-#include "reference/fringe_simd.h"
+#include "reference/FringeSearch.h"
+#include "reference/FringeSearchSimd.h"
 #include "ripple/RippleSearch.h"
 #include "utility/FileParser.h"
 #include "utility/Timer.h"
