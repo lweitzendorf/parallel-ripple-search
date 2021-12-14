@@ -59,7 +59,9 @@ public:
   size_t size() const { return data.size(); }
   MapType *data_ptr() { return data.data(); }
 
+  MapType get(Node n);
   MapType get(Point p);
+
   void set(Point p, MapType c);
 
   bool in_bounds(Point p) const;

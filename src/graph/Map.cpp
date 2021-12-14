@@ -19,6 +19,7 @@ Map::Map(int width, int height) {
   this->data.resize(width * height);
 }
 
+MapType Map::get(Node n) { return data[n]; }
 MapType Map::get(Point p) { return data[point_to_node(p)]; }
 
 void Map::set(Point p, MapType c) { data[point_to_node(p)] = c; }

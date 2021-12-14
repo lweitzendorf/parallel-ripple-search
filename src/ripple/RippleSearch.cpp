@@ -17,18 +17,13 @@ RippleSearch::RippleSearch(Map &map, Node source, Node goal)
 }
 
 std::optional<Path<Node>> RippleSearch::search() {
-  Path<Node> high_level_path = create_high_level_path(map, source, goal);
-  if (high_level_path.size() < NUM_SEARCH_THREADS) {
-    std::cout << "Failed to find enough nodes for high level path, found: "
-              << high_level_path.size() << std::endl;
-    return {};
+  Path<Node> high_level_path = { source };
+  for (int i = 1; i < NUM_SEARCH_THREADS-1; i++) {
+    Node n = i*std::abs(goal-source)/(NUM_SEARCH_THREADS-1);
+    while (!map.get(n)) n++;
+    high_level_path.push_back(n);
   }
-
-  // TODO probably better to call create_high_level_path with number of nodes directly
-  // TODO do something smart to choose the best NUM_SEARCH_THREADS points
-  while (high_level_path.size() > NUM_SEARCH_THREADS) {
-    high_level_path.erase(high_level_path.begin() + high_level_path.size() / 2);
-  }
+  high_level_path.push_back(goal);
 
   // Initialize first node of cache for each thread.
   // we do this here before starting any thread

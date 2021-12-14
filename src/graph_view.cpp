@@ -240,7 +240,13 @@ void fringe_draw(Image &img, Map &map, Fringe &search) {
 };
 
 void ripple_draw(Image &img, Map &map, RippleSearch &search) {
-  Color colors[] = { YELLOW, DARKGREEN, SKYBLUE, DARKPURPLE, LIME, BROWN, VIOLET, YELLOW, BLUE, ORANGE };
+  Color colors[] = { YELLOW, DARKGREEN, SKYBLUE, DARKPURPLE, LIME, BROWN, VIOLET, YELLOW,
+                     BLUE, ORANGE, PINK, BLUE, GREEN,  DARKBROWN, DARKBLUE, DARKGRAY,
+                     BEIGE, GOLD, GRAY, MAGENTA,
+                     CLITERAL(Color){ 125, 33, 55, 255 },
+                     CLITERAL(Color){ 33, 125, 55, 255 },
+                     CLITERAL(Color){ 55, 33, 125, 255 },
+                     CLITERAL(Color){ 200, 100, 50, 255 }};
 
   // Draw cache
   std::atomic_thread_fence(std::memory_order_seq_cst);
@@ -303,8 +309,8 @@ int main(int argc, char **argv) {
 #else
 
   // Initialization
-  const int SCREEN_WIDTH = 1000;
-  const int SCREEN_HEIGHT = 1000;
+  const int SCREEN_WIDTH = 800;
+  const int SCREEN_HEIGHT = 800;
   const Rectangle WINDOW = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
 
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Graph View");

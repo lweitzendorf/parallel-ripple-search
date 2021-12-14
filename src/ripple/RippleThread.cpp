@@ -79,17 +79,15 @@ FringeInterruptAction RippleThread::check_message_queue() {
       // does not arrive to source thread
       case MESSAGE_PHASE_2: {
         Log("Message - Phase2");
-
         if (id == THREAD_SOURCE || id == THREAD_GOAL) {
           finalize_path(message.final_node, source);
           response_action = EXIT;
         } else {
-          reset_for_phase_2(message.phase_info.source, message.phase_info.target);
+          set_src_and_goal(message.phase_info.source, message.phase_info.target);
           response_action = RESET;
         }
       } break;
-
-        // Only arrives to slave threads if they do not have to work in phase 2
+      // Only arrives to worker threads if they do not have to work in phase 2
       case MESSAGE_STOP:
         Log("Message - Stop");
         response_action = EXIT;
@@ -101,10 +99,6 @@ FringeInterruptAction RippleThread::check_message_queue() {
     }
   }
   return response_action;
-}
-
-void RippleThread::reset_for_phase_2(Node src, Node target) {
-  set_src_and_goal(src, target);
 }
 
 // Initialize fringe search list, heuristic and source node cache entry.
@@ -176,12 +170,20 @@ void RippleThread::search(Phase phase) {
 
     do {
       switch (check_message_queue()) {
-      case RESET:
-        return search(PHASE_2);
-      case EXIT:
-        return exit();
-      case NONE:
-        break;
+        case RESET:
+          return search(PHASE_2);
+        case EXIT:
+          return exit();
+        case NONE:
+          break;
+      }
+
+      // If we found our goal in phase 2 we are done and can exit;
+      if (phase == PHASE_2) {
+        if (*node == goal)
+          return phase_2_conclusion();
+      } else if (*node == goal || (goal_2.has_value() && *node == goal_2.value())) {
+        AssertUnreachable("Goal nodes should already be acquired in phase 1!");
       }
 
       // Load info for the current node
@@ -204,86 +206,68 @@ void RippleThread::search(Phase phase) {
       for (auto &neighbour_offset : Map::neighbour_offsets) {
         Point neigh = np + neighbour_offset;
 
-        // If the neighbour coordinates are inside the map
-        if (map.in_bounds(neigh)) {
-          Node neighbour = map.point_to_node(neigh);
-
-          // If it's a wall skip
-          if (!map.get(neigh)) {
-            continue;
-          }
-
-          // If we found our goal in phase 2 we are done and can exit;
-          if (phase == PHASE_2) {
-            if (*node == goal) {
-              return phase_2_conclusion();
-            }
-          } else {
-            // This should never happen in phase 1 as the goal threads
-            // are already acquired
-            if (*node == goal ||
-                (goal_2.has_value() && *node == goal_2.value())) {
-              assert(false);
-            }
-          }
-
-          // Compute cost of path to s
-          int gs = g + 1;
-
-          // Check if already owned, otherwise try to acquire
-          ThreadId owner =
-              cache[neighbour].thread.load(std::memory_order_relaxed);
-
-          // In phase two we skip all nodes that are not owned by us
-          if (phase == PHASE_2 && owner != id) {
-            continue;
-          }
-
-          if (phase == PHASE_1) {
-            // We test the following things in order:
-            // - if we don't already own the node
-            // - if someone else owns the node or we failed to acquire the node
-            // If any of these is true a collision has happened.
-            // The order is important as we want to avoid the expensive compare
-            // and swap if any of first two checks short circuits.
-            if (owner != id &&
-                (owner != THREAD_NONE ||
-                 !cache[neighbour].thread.compare_exchange_strong(
-                     owner, id, std::memory_order_seq_cst,
-                     std::memory_order_seq_cst))) {
-              // If we failed to acquire the node we need to handle the
-              // collision
-              handle_collision(neighbour, *node, owner);
-
-              // Skip the node
-              continue;
-            }
-          }
-
-          // Skip neighbour if already visited in this phase with a lower cost
-          FringeNode &neighbour_cache = cache[neighbour].node;
-          if (neighbour_cache.phase2 == phase && neighbour_cache.visited &&
-              gs >= neighbour_cache.g) {
-            continue;
-          }
-
-          // If already in list in this phase, remove it
-          if (neighbour_cache.phase2 == phase && neighbour_cache.in_list) {
-            fringe_list.erase(neighbour_cache.list_entry);
-            neighbour_cache.in_list = false;
-          }
-
-          // Insert neighbour in the list right after the current node
-          fringe_list.insert(std::next(node), neighbour);
-
-          // Update neighbour cache entry
-          neighbour_cache.visited = true;
-          neighbour_cache.g = gs;
-          neighbour_cache.parent = *node;
-          neighbour_cache.list_entry = std::next(node);
-          neighbour_cache.in_list = true;
-          neighbour_cache.phase2 = phase;
+        if (!map.in_bounds(neigh) || !map.get(neigh)) {
+          continue;
         }
+
+        Node neighbour = map.point_to_node(neigh);
+
+        // Compute cost of path to s
+        int gs = g + 1;
+
+        // Check if already owned, otherwise try to acquire
+        ThreadId owner =
+            cache[neighbour].thread.load(std::memory_order_relaxed);
+
+        // In phase two we skip all nodes that are not owned by us
+        if (phase == PHASE_2 && owner != id) {
+          continue;
+        }
+
+        if (phase == PHASE_1) {
+          // We test the following things in order:
+          // - if we don't already own the node
+          // - if someone else owns the node or we failed to acquire the node
+          // If any of these is true a collision has happened.
+          // The order is important as we want to avoid the expensive compare
+          // and swap if any of first two checks short circuits.
+          if (owner != id &&
+              (owner != THREAD_NONE ||
+               !cache[neighbour].thread.compare_exchange_strong(
+                   owner, id, std::memory_order_seq_cst,
+                   std::memory_order_seq_cst))) {
+            // If we failed to acquire the node we need to handle the
+            // collision
+            handle_collision(neighbour, *node, owner);
+
+            // Skip the node
+            continue;
+          }
+        }
+
+        // Skip neighbour if already visited in this phase with a lower cost
+        FringeNode &neighbour_cache = cache[neighbour].node;
+        if (neighbour_cache.phase2 == phase && neighbour_cache.visited &&
+            gs >= neighbour_cache.g) {
+          continue;
+        }
+
+        // If already in list in this phase, remove it
+        if (neighbour_cache.phase2 == phase && neighbour_cache.in_list) {
+          fringe_list.erase(neighbour_cache.list_entry);
+          neighbour_cache.in_list = false;
+        }
+
+        // Insert neighbour in the list right after the current node
+        fringe_list.insert(std::next(node), neighbour);
+
+        // Update neighbour cache entry
+        neighbour_cache.visited = true;
+        neighbour_cache.g = gs;
+        neighbour_cache.parent = *node;
+        neighbour_cache.list_entry = std::next(node);
+        neighbour_cache.in_list = true;
+        neighbour_cache.phase2 = phase;
       }
 
       // Update current node cache entry
