@@ -94,7 +94,7 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
   Message msg;
   int working_threads = NUM_SEARCH_THREADS;
 
-  while (working_threads) {
+  while (working_threads > 0) {
     if (message_queues[THREAD_COORDINATOR].try_pop(msg)) {
       switch (msg.type) {
         case MESSAGE_COLLISION: {

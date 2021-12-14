@@ -55,7 +55,7 @@ std::optional<std::vector<Node>> FringeSearch::search() {
             Point np = map.node_to_point(*nnode);
 
             // For each neighbour
-            for(int i = 0; i < 8; i++) {
+            for (int i = 0; i < Map::NEIGHBOURS_COUNT; i++) {
                 Point neigh = Map::neighbour_offsets[i];
                 neigh.x += np.x;
                 neigh.y += np.y;

@@ -1,9 +1,6 @@
 #include "FringeSearchSimd.h"
 
-#include <limits.h>
-
-#include <stdio.h>
-#include <math.h>
+#include <cmath>
 
 #include <immintrin.h>
 
@@ -33,7 +30,7 @@ std::optional<std::vector<Node>> FringeSearchSimd::search() {
 
     int32_t current_list = 0;
     while(!found && !now_list.empty()) {
-        float fmin = INT_MAX;
+        float fmin = std::numeric_limits<float>::max();
         
         do {
             Node node = now_list.back();
@@ -143,7 +140,7 @@ std::optional<std::vector<Node>> FringeSearchSimd::search() {
             _mm256_mask_compressstoreu_epi32(now_end, to_push, s);
         #else 
             // For each neighbour
-            for(int i = 0; i < 8; i++) {
+            for(int i = 0; i < Map::NEIGHBOURS_COUNT; i++) {
                 Point neigh = Map::neighbour_offsets[i];
                 neigh.x += np.x;
                 neigh.y += np.y;
