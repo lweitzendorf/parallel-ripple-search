@@ -4,6 +4,7 @@
 
 #define NUM_THREADS 5
 #define NUM_SEARCH_THREADS (NUM_THREADS - 1)
+static_assert(NUM_SEARCH_THREADS >= 2);
 
 enum ThreadId : int8_t {
   THREAD_NONE = -1,

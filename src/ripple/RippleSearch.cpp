@@ -76,7 +76,7 @@ std::optional<Path<Node>> RippleSearch::search() {
   Path<Node> path;
   for (auto &id : collision_path.value_or(Path<ThreadId>())) {
     auto &p = threads[id]->get_final_path();
-    if (id == THREAD_SOURCE) {
+    if (id == THREAD_GOAL) {
       std::reverse_copy(p.begin(), p.end(), std::back_inserter(path));
     } else {
       std::copy(p.begin(), p.end(), std::back_inserter(path));
@@ -98,8 +98,8 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
     if (message_queues[THREAD_COORDINATOR].try_pop(msg)) {
       switch (msg.type) {
         case MESSAGE_COLLISION: {
-          LogfNOID("Message - Collision: %d -> %d", msg.collision_source,
-                   msg.collision_target);
+          LogfNOID("Message - Collision: %d -> %d", msg.collision_info.collision_source,
+                   msg.collision_info.collision_target);
           collision_graph.add_collision(msg.collision_info.collision_source,
                                         msg.collision_info.collision_target,
                                         msg.collision_info.collision_node,
@@ -201,9 +201,6 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
   // Start reconstructing path from source to first
   Collision first_collision =
       collision_graph.get_collision(THREAD_SOURCE, found_path[1]);
-  Node current = first_collision.parent;
-  if (first_collision.target == THREAD_SOURCE)
-    current = cache[first_collision.node].node.parent;
 
   // GOAL
   // Update the cache, so that the parent of the last collision is always a
@@ -213,12 +210,23 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
       collision_graph.get_collision(second_last, THREAD_GOAL);
 
   if (last_collision.target != THREAD_GOAL) {
-    cache[last_collision.node].thread.store(THREAD_GOAL,
-                                            std::memory_order_seq_cst);
+    assert(cache[last_collision.node].thread.load() == second_last);
+    assert(cache[last_collision.parent].thread.load() == THREAD_GOAL);
+    std::cout << "Owned by second_last" << std::endl;
+
+    std::swap(last_collision.node, last_collision.parent);
+  } else {
+    assert(cache[last_collision.node].thread.load() == THREAD_GOAL);
+    assert(cache[last_collision.parent].thread.load() == second_last);
+    std::cout << "Owned by THREAD_GOAL" << std::endl;
+
+    last_collision.node = cache[last_collision.node].node.parent;
     cache[last_collision.node].node.parent = last_collision.parent;
-  } else
-    assert(cache[last_collision.node].thread.load(std::memory_order_seq_cst) ==
-           THREAD_GOAL);
+  }
+
+  if (first_collision.target != THREAD_SOURCE) {
+    std::swap(first_collision.node, first_collision.parent);
+  }
 
   msg = Message{.type = MESSAGE_PHASE_2, .final_node = first_collision.node};
   message_queues[THREAD_SOURCE].push(msg);

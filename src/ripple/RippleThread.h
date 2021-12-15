@@ -116,7 +116,7 @@ private:
 
   // Reverse the path from 'from' to 'to using the node cache
   // and store it into final_path
-  void finalize_path(Node from, Node to, bool include_to = true);
+  void finalize_path(Node to, Node from, bool include_to = true);
 
   void send_message(Message &msg);
   bool recv_message(Message &msg);

@@ -109,7 +109,6 @@ void RippleThread::initialize_fringe_search(Phase phase) {
   fringe_list.push_front(source);
 
   if (phase == PHASE_2) {
-    assert(cache[source].thread.load() != id);
     assert(cache[goal].thread.load() == id);
   }
 
@@ -256,6 +255,7 @@ void RippleThread::search(Phase phase) {
 
         // If already in list in this phase, remove it
         if (neighbor_cache.phase == phase && neighbor_cache.in_list) {
+          assert(int(std::distance(node, neighbor_cache.list_entry)) > 0);
           fringe_list.erase(neighbor_cache.list_entry);
           neighbor_cache.in_list = false;
         }
