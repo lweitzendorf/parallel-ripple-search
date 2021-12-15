@@ -13,7 +13,7 @@ std::optional<std::vector<Node>> FringeSearch::search() {
     // Add source node to fringe list
     fringe_list.push_front(source);
     cache[source].in_list = true;
-    cache[source].g = 0;
+    cache[source].cost = 0;
     cache[source].parent = source;
     cache[source].list_entry = fringe_list.begin();
     cache[source].visited = true;
@@ -42,7 +42,7 @@ std::optional<std::vector<Node>> FringeSearch::search() {
 
             auto& n = cache[*nnode];
 
-            int g = n.g;
+            int g = n.cost;
             int f = g + h(*nnode);
 
             if(f > flimit) {
@@ -69,7 +69,7 @@ std::optional<std::vector<Node>> FringeSearch::search() {
 
                     int gs = g + 1;
                     if(cache[s].visited) {
-                        int gi = cache[s].g;
+                        int gi = cache[s].cost;
                         if(gs >= gi) {
                             continue;
                         }
@@ -81,7 +81,7 @@ std::optional<std::vector<Node>> FringeSearch::search() {
                     }
 
                     cache[s].visited = true;
-                    cache[s].g = gs;
+                    cache[s].cost = gs;
                     cache[s].parent = *nnode;
                     //cache[s].h = h(s);
                     

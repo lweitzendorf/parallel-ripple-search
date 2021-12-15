@@ -104,8 +104,9 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
                                         msg.collision_info.collision_target,
                                         msg.collision_info.collision_node,
                                         msg.collision_info.collision_parent);
-          if (auto maybe_path = check_collision_path())
+          if (auto maybe_path = check_collision_path()) {
             return maybe_path;
+          }
         } break;
 
         case MESSAGE_DONE: {

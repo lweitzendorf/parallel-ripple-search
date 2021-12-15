@@ -11,9 +11,9 @@ struct FringeNode {
   // Replace with flags
   bool visited = false;
   bool in_list = false;
-  bool phase2 = false;
+  bool phase = false;
 
-  int g; // Cost from source to node
+  int cost; // Cost from source to node
   Node parent;
   FringeEntry list_entry;
 };

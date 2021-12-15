@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include <memory>
+#include <limits>
 
 #include "HighLevelGraph.h"
 #include "RippleThread.h"
@@ -72,7 +73,7 @@ FringeInterruptAction RippleThread::check_message_queue() {
   FringeInterruptAction response_action = NONE;
   Message message;
 
-  while (recv_message(message)) {
+  if (recv_message(message)) {
     switch (message.type) {
       // Only arrives to worker threads if they need to switch to phase 2
       // and to the goal thread to know that it is done
@@ -88,10 +89,10 @@ FringeInterruptAction RippleThread::check_message_queue() {
         }
       } break;
       // Only arrives to worker threads if they do not have to work in phase 2
-      case MESSAGE_STOP:
+      case MESSAGE_STOP: {
         Log("Message - Stop");
         response_action = EXIT;
-        break;
+      } break;
 
       default: {
         AssertUnreachable("This kind of message should only be sent to the coordinator!");
@@ -107,12 +108,17 @@ void RippleThread::initialize_fringe_search(Phase phase) {
   fringe_list.clear();
   fringe_list.push_front(source);
 
+  if (phase == PHASE_2) {
+    assert(cache[source].thread.load() != id);
+    assert(cache[goal].thread.load() == id);
+  }
+
   // Set source node cache entry
   cache[source].node.in_list = true;
-  cache[source].node.g = 0;
+  cache[source].node.cost = 0;
   cache[source].node.visited = true;
   cache[source].node.list_entry = fringe_list.begin();
-  cache[source].node.phase2 = phase; // set to true if we are in phase 2
+  cache[source].node.phase = phase; // set to true if we are in phase 2
 
   // Relies on the fact that goal is closer than goal_2
   heuristic = [this](Node n) {
@@ -161,18 +167,17 @@ void RippleThread::search(Phase phase) {
   timer.start();
   initialize_fringe_search(phase);
 
-  // Fringe search step towards G
-  auto node = fringe_list.end();
-
   while (!fringe_list.empty()) {
-    int fmin = INT_MAX;
-    node = fringe_list.begin();
+    int fmin = std::numeric_limits<int>::max();
+    auto node = fringe_list.begin();
 
-    do {
+    for (auto node = fringe_list.begin(); node != fringe_list.end(); node++) {
       switch (check_message_queue()) {
         case RESET:
+          assert(phase == PHASE_1);
           return search(PHASE_2);
         case EXIT:
+          assert(phase == PHASE_1);
           return exit();
         case NONE:
           break;
@@ -190,34 +195,33 @@ void RippleThread::search(Phase phase) {
       FringeNode &node_info = cache[*node].node;
 
       // Compute fringe heuristic for current node
-      int g = node_info.g;
-      int f = g + heuristic(*node);
+      int cost = node_info.cost;
+      int f = cost + heuristic(*node);
 
       // Skip node if fringe heuristic lower than the threshold
       if (f > flimit) {
         fmin = std::min(fmin, f);
-        node++;
         continue;
       }
 
-      Point np = map.node_to_point(*node);
+      Point point = map.node_to_point(*node);
 
       // For each neighbour
       for (auto &neighbour_offset : Map::neighbour_offsets) {
-        Point neigh = np + neighbour_offset;
+        Point neighbor_point = point + neighbour_offset;
 
-        if (!map.in_bounds(neigh) || !map.get(neigh)) {
+        if (!map.in_bounds(neighbor_point) || !map.get(neighbor_point)) {
           continue;
         }
 
-        Node neighbour = map.point_to_node(neigh);
+        const Node neighbor = map.point_to_node(neighbor_point);
 
         // Compute cost of path to s
-        int gs = g + 1;
+        int cost_nb = cost + 1;
 
         // Check if already owned, otherwise try to acquire
         ThreadId owner =
-            cache[neighbour].thread.load(std::memory_order_relaxed);
+            cache[neighbor].thread.load(std::memory_order_relaxed);
 
         // In phase two we skip all nodes that are not owned by us
         if (phase == PHASE_2 && owner != id) {
@@ -233,51 +237,47 @@ void RippleThread::search(Phase phase) {
           // and swap if any of first two checks short circuits.
           if (owner != id &&
               (owner != THREAD_NONE ||
-               !cache[neighbour].thread.compare_exchange_strong(
-                   owner, id, std::memory_order_seq_cst,
-                   std::memory_order_seq_cst))) {
+               !cache[neighbor].thread.compare_exchange_strong(owner, id))) {
             // If we failed to acquire the node we need to handle the
             // collision
-            handle_collision(neighbour, *node, owner);
+            handle_collision(neighbor, *node, owner);
 
             // Skip the node
             continue;
           }
         }
 
-        // Skip neighbour if already visited in this phase with a lower cost
-        FringeNode &neighbour_cache = cache[neighbour].node;
-        if (neighbour_cache.phase2 == phase && neighbour_cache.visited &&
-            gs >= neighbour_cache.g) {
+        // Skip neighbor if already visited in this phase with a lower cost
+        FringeNode &neighbor_cache = cache[neighbor].node;
+        if (neighbor_cache.phase == phase && neighbor_cache.visited &&
+            cost_nb >= neighbor_cache.cost) {
           continue;
         }
 
         // If already in list in this phase, remove it
-        if (neighbour_cache.phase2 == phase && neighbour_cache.in_list) {
-          fringe_list.erase(neighbour_cache.list_entry);
-          neighbour_cache.in_list = false;
+        if (neighbor_cache.phase == phase && neighbor_cache.in_list) {
+          fringe_list.erase(neighbor_cache.list_entry);
+          neighbor_cache.in_list = false;
         }
 
         // Insert neighbour in the list right after the current node
-        fringe_list.insert(std::next(node), neighbour);
+        fringe_list.insert(std::next(node), neighbor);
 
         // Update neighbour cache entry
-        neighbour_cache.visited = true;
-        neighbour_cache.g = gs;
-        neighbour_cache.parent = *node;
-        neighbour_cache.list_entry = std::next(node);
-        neighbour_cache.in_list = true;
-        neighbour_cache.phase2 = phase;
+        neighbor_cache.visited = true;
+        neighbor_cache.cost = cost_nb;
+        neighbor_cache.parent = *node;
+        neighbor_cache.list_entry = std::next(node);
+        neighbor_cache.in_list = true;
+        neighbor_cache.phase = phase;
       }
-
       // Update current node cache entry
       node_info.in_list = false;
 
       // Remove current node from the list
-      auto tmp = std::next(node);
-      fringe_list.erase(node);
-      node = tmp;
-    } while (node != fringe_list.end());
+      node = fringe_list.erase(node);
+      node--;
+    }
 
     // Update fring search threshold with the minimum value present in the new
     // list
@@ -285,6 +285,7 @@ void RippleThread::search(Phase phase) {
   }
 
   // TODO this should not happen in phase 2
+  //assert(phase == PHASE_1);
   return phase == PHASE_1 ? phase_1_conclusion() : phase_2_conclusion();
 
   // NOTE We can immediately jump here when a thread is supposed to stop what
@@ -324,20 +325,12 @@ void RippleThread::phase_1_conclusion() {
 
 void RippleThread::phase_2_conclusion() {
   Log("Worker finish");
-
-  // Reconstruct the path
-  if (cache[goal].node.visited)
-    finalize_path(goal, source, false);
-
-  Message msg{.type = MESSAGE_DONE};
-  send_message(msg);
+  finalize_path(goal, source, false);
+  return exit();
 }
 
 void RippleThread::exit() {
   Log("Thread Exiting");
-  timer.stop();
-  time_second = timer.get_microseconds() / 1000.0;
-
   Message msg{.type = MESSAGE_DONE};
   send_message(msg);
 }
