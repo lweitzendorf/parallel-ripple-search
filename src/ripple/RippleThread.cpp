@@ -292,8 +292,9 @@ void RippleThread::search(Phase phase) {
   // TODO this should not happen in phase 2
   if (phase == PHASE_2) {
     std::cout << "Thread " << id << " didn't find goal in phase 2!" << std::endl;
+    assert(false);
   }
-  return phase == PHASE_1 ? phase_1_conclusion() : phase_2_conclusion();
+  return phase_1_conclusion();
 
   // NOTE We can immediately jump here when a thread is supposed to stop what
   // it's
@@ -332,10 +333,7 @@ void RippleThread::phase_1_conclusion() {
 
 void RippleThread::phase_2_conclusion() {
   Log("Worker finish");
-  bool include = (id == THREAD_GOAL);
-  std::cout << id << "| phase_2_conclusion(): " << '[';
-  std::cout << goal << ", " << source << (include ? ']' : ')') << std::endl;
-  finalize_path(goal, source, include);
+  finalize_path(goal, source, id == THREAD_GOAL);
   return exit();
 }
 

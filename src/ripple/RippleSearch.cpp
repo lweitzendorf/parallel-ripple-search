@@ -86,8 +86,8 @@ std::optional<Path<Node>> RippleSearch::search() {
 
   // TODO do we have a debug directive we can wrap this in?
   //      the path is always wrong
-  is_valid_path(path);
 
+  assert(is_valid_path(path));
   return path.empty() ? std::nullopt : std::optional<Path<Node>>{path};
 }
 
