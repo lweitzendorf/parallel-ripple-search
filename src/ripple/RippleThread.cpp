@@ -116,13 +116,6 @@ void RippleThread::initialize_fringe_search(Phase phase) {
     assert(cache[goal].thread.load() == id);
   }
 
-  // Set source node cache entry
-  cache[source].node.in_list = true;
-  cache[source].node.cost = 0;
-  cache[source].node.visited = true;
-  cache[source].node.list_entry = fringe_list.begin();
-  cache[source].node.phase = phase; // set to true if we are in phase 2
-
   // Relies on the fact that goal is closer than goal_2
   heuristic = [this](Node n) {
     return map.distance(n, goal);
@@ -198,7 +191,7 @@ void RippleThread::search(Phase phase) {
       FringeNode &node_info = cache[*node].node;
 
       // Compute fringe heuristic for current node
-      int cost = node_info.cost;
+      int cost = (*node == source ? 0 : node_info.cost);
       int f = cost + heuristic(*node);
 
       // Skip node if fringe heuristic lower than the threshold
@@ -218,6 +211,9 @@ void RippleThread::search(Phase phase) {
         }
 
         const Node neighbor = map.point_to_node(neighbor_point);
+
+        if (neighbor == source)
+          continue;
 
         // Compute cost of path to s
         int cost_nb = cost + 1;
@@ -254,6 +250,11 @@ void RippleThread::search(Phase phase) {
         FringeNode &neighbor_cache = cache[neighbor].node;
         if (neighbor_cache.phase == phase && neighbor_cache.visited &&
             cost_nb >= neighbor_cache.cost) {
+
+          if (phase == PHASE_2 && neighbor == goal) {
+            std::cout << id << ": " << cost_nb << " <= " << neighbor_cache.cost << std::endl;
+          }
+
           continue;
         }
 
