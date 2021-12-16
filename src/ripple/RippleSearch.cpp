@@ -76,7 +76,8 @@ std::optional<Path<Node>> RippleSearch::search() {
   Path<Node> path;
   for (auto &id : collision_path.value_or(Path<ThreadId>())) {
     auto &p = threads[id]->get_final_path();
-    if (id == THREAD_GOAL) {
+
+    if (/* id == THREAD_SOURCE */ false) {
       std::reverse_copy(p.begin(), p.end(), std::back_inserter(path));
     } else {
       std::copy(p.begin(), p.end(), std::back_inserter(path));
@@ -85,7 +86,7 @@ std::optional<Path<Node>> RippleSearch::search() {
 
   // TODO do we have a debug directive we can wrap this in?
   //      the path is always wrong
-  //assert(is_valid_path(path));
+  is_valid_path(path);
 
   return path.empty() ? std::nullopt : std::optional<Path<Node>>{path};
 }
@@ -173,8 +174,7 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
     };
 
     // Set ownership of goal node to the current thread
-    cache[msg.phase_info.target].thread.store(thread,
-                                              std::memory_order_seq_cst);
+    cache[msg.phase_info.target].thread.store(thread);
     message_queues[thread].push(msg);
     works_in_phase2[thread] = true;
 
@@ -209,29 +209,26 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
   Collision last_collision =
       collision_graph.get_collision(second_last, THREAD_GOAL);
 
-  if (last_collision.target != THREAD_GOAL) {
-    assert(cache[last_collision.node].thread.load() == second_last);
-    assert(cache[last_collision.parent].thread.load() == THREAD_GOAL);
-    std::cout << "Owned by second_last" << std::endl;
-
-    std::swap(last_collision.node, last_collision.parent);
-  } else {
-    assert(cache[last_collision.node].thread.load() == THREAD_GOAL);
-    assert(cache[last_collision.parent].thread.load() == second_last);
-    std::cout << "Owned by THREAD_GOAL" << std::endl;
-
-    last_collision.node = cache[last_collision.node].node.parent;
-    cache[last_collision.node].node.parent = last_collision.parent;
-  }
-
-  if (first_collision.target != THREAD_SOURCE) {
-    std::swap(first_collision.node, first_collision.parent);
-  }
-
-  msg = Message{.type = MESSAGE_PHASE_2, .final_node = first_collision.node};
+  msg = Message {
+          .type = MESSAGE_PHASE_2,
+          .phase_info =
+                  {
+                          .source = first_collision.node,
+                          .target = source,
+                  },
+  };
   message_queues[THREAD_SOURCE].push(msg);
 
-  msg = Message{.type = MESSAGE_PHASE_2, .final_node = last_collision.node};
+  msg = Message {
+          .type = MESSAGE_PHASE_2,
+          .phase_info =
+                  {
+                          .source = goal,
+                          .target = last_collision.node,
+                  },
+  };
+  // msg = Message{.type = MESSAGE_PHASE_2, .final_node = last_collision.node};
+  cache[last_collision.node].thread.store(THREAD_GOAL);
   message_queues[THREAD_GOAL].push(msg);
 
   return found_path;

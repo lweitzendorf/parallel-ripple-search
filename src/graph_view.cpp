@@ -203,6 +203,8 @@ Image test_search(std::string name, Map &map, Node source, Node goal,
   printf("%s time: %.3fms (%d nodes)\n", name.c_str(),
          (double)t.get_milliseconds(), (int)path.size());
 
+  //print_path(path.begin(), path.end());
+
   // Create image and draw walls
   Image img = GenImageColor(map.width(), map.height(), WHITE);
 

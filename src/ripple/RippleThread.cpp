@@ -52,6 +52,9 @@ void RippleThread::finalize_path(Node from, Node to, bool include_to) {
   do  {
     final_path.push_back(current);
     current = cache[current].node.parent;
+
+    //if (current != to)
+    //  assert(cache[current].thread.load() == id);
   } while (current != to && current != from);
 
   if (current == from) {
@@ -80,7 +83,7 @@ FringeInterruptAction RippleThread::check_message_queue() {
       // does not arrive to source thread
       case MESSAGE_PHASE_2: {
         Log("Message - Phase2");
-        if (id == THREAD_SOURCE || id == THREAD_GOAL) {
+        if (/* id == THREAD_GOAL */ false) {
           finalize_path(message.final_node, source);
           response_action = EXIT;
         } else {
@@ -109,6 +112,7 @@ void RippleThread::initialize_fringe_search(Phase phase) {
   fringe_list.push_front(source);
 
   if (phase == PHASE_2) {
+    //cache[goal].thread.store(id);
     assert(cache[goal].thread.load() == id);
   }
 
@@ -285,7 +289,9 @@ void RippleThread::search(Phase phase) {
   }
 
   // TODO this should not happen in phase 2
-  //assert(phase == PHASE_1);
+  if (phase == PHASE_2) {
+    std::cout << "Thread " << id << " didn't find goal in phase 2!" << std::endl;
+  }
   return phase == PHASE_1 ? phase_1_conclusion() : phase_2_conclusion();
 
   // NOTE We can immediately jump here when a thread is supposed to stop what
@@ -325,7 +331,10 @@ void RippleThread::phase_1_conclusion() {
 
 void RippleThread::phase_2_conclusion() {
   Log("Worker finish");
-  finalize_path(goal, source, false);
+  bool include = (id == THREAD_GOAL);
+  std::cout << id << "| phase_2_conclusion(): " << '[';
+  std::cout << goal << ", " << source << (include ? ']' : ')') << std::endl;
+  finalize_path(goal, source, include);
   return exit();
 }
 
