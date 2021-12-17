@@ -4,6 +4,9 @@
 [submodule "oneTBB"]
 	path = oneTBB
 	url = https://github.com/oneapi-src/oneTBB.git
+[submodule "glm"]
+	path = glm
+	url = https://github.com/g-truc/glm
 [submodule "liblsb"]
 	path = liblsb
 	url = https://github.com/spcl/liblsb.git
