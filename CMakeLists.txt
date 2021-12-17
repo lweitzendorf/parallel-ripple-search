@@ -18,7 +18,7 @@ set_common_project_settings(tbb)
 # add_compile_options(-Wall -Werror)
 
 # Set to TRUE to make a debug build
-set(DEBUG TRUE)
+set(DEBUG FALSE)
 # Set to TRUE to enable avx512 vectorization
 set(AVX512 FALSE)
 
@@ -42,5 +42,5 @@ target_include_directories(graph_view PUBLIC src)
 target_link_libraries(graph_view raylib TBB::tbb Threads::Threads)
 
 add_executable(bench src/benchmark/bench.cpp ${RippleSources} ${BaselineSources})
-target_include_directories(bench PUBLIC src)
+target_include_directories(bench PUBLIC src glm)
 target_link_libraries(bench raylib TBB::tbb Threads::Threads)
