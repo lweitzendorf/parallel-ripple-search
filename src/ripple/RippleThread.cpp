@@ -87,7 +87,7 @@ FringeInterruptAction RippleThread::check_message_queue() {
           finalize_path(message.final_node, source);
           response_action = EXIT;
         } else {
-          set_src_and_goal(message.phase_info.source, message.phase_info.target);
+          set_src_and_goal(message.path_info.source, message.path_info.target);
           response_action = RESET;
         }
       } break;
@@ -165,7 +165,6 @@ void RippleThread::search(Phase phase) {
 
   while (!fringe_list.empty()) {
     int fmin = std::numeric_limits<int>::max();
-    auto node = fringe_list.begin();
 
     for (auto node = fringe_list.begin(); node != fringe_list.end(); node++) {
       switch (check_message_queue()) {
@@ -180,11 +179,8 @@ void RippleThread::search(Phase phase) {
       }
 
       // If we found our goal in phase 2 we are done and can exit;
-      if (phase == PHASE_2) {
-        if (*node == goal)
-          return phase_2_conclusion();
-      } else if (*node == goal || (goal_2.has_value() && *node == goal_2.value())) {
-        AssertUnreachable("Goal nodes should already be acquired in phase 1!");
+      if (phase == PHASE_2 && *node == goal) {
+        return phase_2_conclusion();
       }
 
       // Load info for the current node
@@ -284,49 +280,38 @@ void RippleThread::search(Phase phase) {
       node--;
     }
 
-    // Update fring search threshold with the minimum value present in the new
+    // Update fringe search threshold with the minimum value present in the new
     // list
     flimit = fmin;
   }
 
-  // TODO this should not happen in phase 2
   if (phase == PHASE_2) {
     std::cout << "Thread " << id << " didn't find goal in phase 2!" << std::endl;
     assert(false);
   }
-  return phase_1_conclusion();
 
-  // NOTE We can immediately jump here when a thread is supposed to stop what
-  // it's
-  //      doing. This is considered an interrupt action.
+  return phase_1_conclusion();
 }
 
 void RippleThread::phase_1_conclusion() {
   timer.stop();
   time_first = timer.get_microseconds() / 1000.0;
 
-  // If we had no collision (TODO: we could also check if we are a slave with
-  // only 1 collision)
+  Log("Waiting");
+  Message msg {
+    .type = MESSAGE_WAITING,
+    .id = id,
+  };
+  send_message(msg);
 
-  if (collision_mask == 0) {
-    // If we are the source or goal thread abort the search
-    if (id == THREAD_SOURCE || id == THREAD_GOAL) {
-      AssertUnreachable("Path does not exist, currently not handled");
-    } else {
-      return exit();
-    }
-  } else {
-    // TODO Wait for messages and then go back to reset
-    Log("Waiting");
-    while (true) {
-      switch (check_message_queue()) {
-        case RESET:
-          return search(PHASE_2);
-        case EXIT:
-          return exit();
-        case NONE:
-          break;
-      }
+  while (true) {
+    switch (check_message_queue()) {
+      case RESET:
+        return search(PHASE_2);
+      case EXIT:
+        return exit();
+      case NONE:
+        break;
     }
   }
 }
@@ -339,7 +324,7 @@ void RippleThread::phase_2_conclusion() {
 
 void RippleThread::exit() {
   Log("Thread Exiting");
-  Message msg{.type = MESSAGE_DONE};
+  Message msg { .type = MESSAGE_DONE };
   send_message(msg);
 }
 

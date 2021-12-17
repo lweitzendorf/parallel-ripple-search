@@ -94,9 +94,10 @@ std::optional<Path<Node>> RippleSearch::search() {
 std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
   Message msg;
   int working_threads = NUM_SEARCH_THREADS;
+  int waiting_essential = 0, waiting_non_essential = 0;
 
   while (working_threads > 0) {
-    if (message_queues[THREAD_COORDINATOR].try_pop(msg)) {
+    while (message_queues[THREAD_COORDINATOR].try_pop(msg)) {
       switch (msg.type) {
         case MESSAGE_COLLISION: {
           LogfNOID("Message - Collision: %d -> %d", msg.collision_info.collision_source,
@@ -114,10 +115,27 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
           working_threads--;
         } break;
 
+        case MESSAGE_WAITING: {
+          if (msg.id == THREAD_SOURCE || msg.id == THREAD_GOAL) {
+            waiting_essential++;
+          } else {
+            waiting_non_essential++;
+          }
+        }
+
         default:
           AssertUnreachable("Coordinator thread should only receive "
                             "MESSAGE_COLLISION and MESSAGE_DONE messages!");
       }
+    }
+
+    int waiting_threads = waiting_essential + waiting_non_essential;
+    if (waiting_essential == 2 || working_threads == waiting_threads) { // no path
+      msg = Message { .type = MESSAGE_STOP };
+      for (int thread = THREAD_SOURCE; thread <= THREAD_GOAL; thread++) {
+        message_queues[thread].push(msg);
+      }
+      break;
     }
   }
   return {};
@@ -166,7 +184,7 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
 
     Message msg{
         .type = MESSAGE_PHASE_2,
-        .phase_info =
+        .path_info =
             {
                 .source = collision_with_next.node,
                 .target = collision_with_prev.node,
@@ -174,7 +192,7 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
     };
 
     // Set ownership of goal node to the current thread
-    cache[msg.phase_info.target].thread.store(thread);
+    cache[msg.path_info.target].thread.store(thread);
     message_queues[thread].push(msg);
     works_in_phase2[thread] = true;
 
@@ -211,7 +229,7 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
 
   msg = Message {
           .type = MESSAGE_PHASE_2,
-          .phase_info =
+          .path_info =
                   {
                           .source = first_collision.node,
                           .target = source,
@@ -221,7 +239,7 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
 
   msg = Message {
           .type = MESSAGE_PHASE_2,
-          .phase_info =
+          .path_info =
                   {
                           .source = goal,
                           .target = last_collision.node,

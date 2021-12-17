@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Thread.h"
-#include "graph/map.h"
+#include "Contants.h"
+#include "graph/Map.h"
 
 // Message type
 enum MessageType {
@@ -13,6 +13,7 @@ enum MessageType {
                 // has no work to do in phase 2
   MESSAGE_DONE, // Sent by other threads to the source thread to signal that
                 // they finished their phase 2 work
+  MESSAGE_WAITING,
 };
 
 // Struct representing a message that is sent between ripple threads
@@ -21,10 +22,12 @@ struct Message {
   MessageType type;
 
   union {
+    ThreadId id;
+
     struct {
       Node source;
       Node target;
-    } phase_info; // type = MESSAGE_PHASE_2 for worker threads
+    } path_info; // type = MESSAGE_PHASE_2 for worker threads
 
     Node final_node; // type = MESSAGE_PHASE_2 for goal thread
 

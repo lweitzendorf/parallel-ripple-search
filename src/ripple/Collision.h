@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Thread.h"
+#include "Contants.h"
 #include "graph/Map.h"
 
 #include <type_traits>

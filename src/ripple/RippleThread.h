@@ -2,7 +2,7 @@
 
 #include "Collision.h"
 #include "Message.h"
-#include "Thread.h"
+#include "Contants.h"
 #include "graph/Map.h"
 #include "reference/FringeSearch.h"
 #include "utility/Timer.h"
@@ -13,26 +13,6 @@
 #include <oneapi/tbb/concurrent_queue.h>
 
 using oneapi::tbb::concurrent_queue;
-
-#define LOG_ENABLED false
-
-#define AssertUnreachable(...)                                                 \
-  do {                                                                         \
-    LogNOID(__VA_ARGS__);                                                      \
-    assert(false);                                                             \
-  } while (0)
-
-#if LOG_ENABLED
-#define Log(str) printf("%d|" str "\n", id)
-#define LogNOID(str) printf(str "\n")
-#define Logf(fmt, ...) printf("%d|" fmt "\n", id, __VA_ARGS__)
-#define LogfNOID(fmt, ...) printf(fmt "\n", __VA_ARGS__)
-#else
-#define Log(...)
-#define LogNOID(...)
-#define Log(...)
-#define LogfNOID(...)
-#endif
 
 // Question: can we put some of these enums within the class? is this a better
 // design?
@@ -45,11 +25,6 @@ struct RippleCacheNode {
 
   // Fringe search data
   FringeNode node;
-};
-
-enum Phase :bool {
-  PHASE_1 = false,
-  PHASE_2 = true
 };
 
 // Class representing a thread of the ripple search algorithm
