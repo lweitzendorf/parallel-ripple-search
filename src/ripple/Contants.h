@@ -24,7 +24,8 @@
 
 #define NUM_THREADS 5
 #define NUM_SEARCH_THREADS (NUM_THREADS - 1)
-static_assert(NUM_SEARCH_THREADS >= 2);
+#define NUM_ESSENTIAL_THREADS 2
+static_assert(NUM_SEARCH_THREADS >= NUM_ESSENTIAL_THREADS);
 
 enum ThreadId : int8_t {
   THREAD_NONE = -1,
@@ -33,7 +34,7 @@ enum ThreadId : int8_t {
   THREAD_COORDINATOR = NUM_THREADS - 1
 };
 
-enum Phase :bool {
+enum Phase : bool {
   PHASE_1 = false,
   PHASE_2 = true
 };

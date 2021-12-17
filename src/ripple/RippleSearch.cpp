@@ -30,8 +30,7 @@ std::optional<Path<Node>> RippleSearch::search() {
   // to avoid race conditions in which a thread tries to
   // acquire the starting node of another thread.
   for (int i = 0; i < high_level_path.size(); i++) {
-    cache[high_level_path[i]].thread.store((ThreadId)i,
-                                           std::memory_order_seq_cst);
+    cache[high_level_path[i]].thread.store((ThreadId)i);
   }
 
   std::vector<std::unique_ptr<RippleThread>> threads;
@@ -130,7 +129,7 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
     }
 
     int waiting_threads = waiting_essential + waiting_non_essential;
-    if (waiting_essential == 2 || working_threads == waiting_threads) { // no path
+    if (waiting_essential == NUM_ESSENTIAL_THREADS || waiting_threads == working_threads) { // no path
       msg = Message { .type = MESSAGE_STOP };
       for (int thread = THREAD_SOURCE; thread <= THREAD_GOAL; thread++) {
         message_queues[thread].push(msg);

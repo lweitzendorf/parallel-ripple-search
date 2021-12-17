@@ -112,7 +112,6 @@ void RippleThread::initialize_fringe_search(Phase phase) {
   fringe_list.push_front(source);
 
   if (phase == PHASE_2) {
-    //cache[goal].thread.store(id);
     assert(cache[goal].thread.load() == id);
   }
 
@@ -133,15 +132,15 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
   // collision
   if (collision_mask & (1 << other))
     return;
-  else
-    collision_mask |= (1 << other);
 
   // For worker threads update the heuristic
-  if (goal_2 && collision_mask == (1 << other)) {
+  if (goal_2 && !collision_mask) {
     heuristic = [this](Node n) {
         return map.distance(n, goal_2.value());
     };
   }
+
+  collision_mask |= (1 << other);
 
   // Message the coordinator thread about the collision
   Message message{
@@ -208,8 +207,9 @@ void RippleThread::search(Phase phase) {
 
         const Node neighbor = map.point_to_node(neighbor_point);
 
-        if (neighbor == source)
+        if (neighbor == source) {
           continue;
+        }
 
         // Compute cost of path to s
         int cost_nb = cost + 1;
@@ -246,11 +246,6 @@ void RippleThread::search(Phase phase) {
         FringeNode &neighbor_cache = cache[neighbor].node;
         if (neighbor_cache.phase == phase && neighbor_cache.visited &&
             cost_nb >= neighbor_cache.cost) {
-
-          if (phase == PHASE_2 && neighbor == goal) {
-            std::cout << id << ": " << cost_nb << " <= " << neighbor_cache.cost << std::endl;
-          }
-
           continue;
         }
 
