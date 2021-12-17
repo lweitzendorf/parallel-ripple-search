@@ -47,22 +47,15 @@ bool RippleThread::join() {
 
 void RippleThread::finalize_path(Node from, Node to, bool include_to) {
   Log("Attempting to finalize path");
-
   Node current = from;
   do  {
     final_path.push_back(current);
     current = cache[current].node.parent;
+  } while (current != to);
 
-    //if (current != to)
-    //  assert(cache[current].thread.load() == id);
-  } while (current != to && current != from);
-
-  if (current == from) {
-    std::cout << "Thread " << id << ": detected cycle of size " << final_path.size() << "!" << std::endl;
-  }
-
-  if (include_to)
+  if (include_to) {
     final_path.push_back(to);
+  }
 
   Log("Finished finalizing path");
 }
@@ -83,8 +76,8 @@ FringeInterruptAction RippleThread::check_message_queue() {
       // does not arrive to source thread
       case MESSAGE_PHASE_2: {
         Log("Message - Phase2");
-        if (/* id == THREAD_GOAL */ false) {
-          finalize_path(message.final_node, source);
+        if (id == THREAD_SOURCE || id == THREAD_GOAL) {
+          finalize_path(message.final_node, source, true);
           response_action = EXIT;
         } else {
           set_src_and_goal(message.path_info.source, message.path_info.target);

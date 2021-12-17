@@ -76,22 +76,19 @@ std::optional<Path<Node>> RippleSearch::search() {
   for (auto &id : collision_path.value_or(Path<ThreadId>())) {
     auto &p = threads[id]->get_final_path();
 
-    if (/* id == THREAD_SOURCE */ false) {
+    if (id == THREAD_SOURCE) {
       std::reverse_copy(p.begin(), p.end(), std::back_inserter(path));
     } else {
       std::copy(p.begin(), p.end(), std::back_inserter(path));
     }
   }
 
-  // TODO do we have a debug directive we can wrap this in?
-  //      the path is always wrong
-
   assert(is_valid_path(path));
   return path.empty() ? std::nullopt : std::optional<Path<Node>>{path};
 }
 
 std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
-  Message msg;
+  Message msg{};
   int working_threads = NUM_SEARCH_THREADS;
   int waiting_essential = 0, waiting_non_essential = 0;
 
@@ -120,7 +117,7 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
           } else {
             waiting_non_essential++;
           }
-        }
+        } break;
 
         default:
           AssertUnreachable("Coordinator thread should only receive "
@@ -227,25 +224,22 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
       collision_graph.get_collision(second_last, THREAD_GOAL);
 
   msg = Message {
-          .type = MESSAGE_PHASE_2,
-          .path_info =
-                  {
-                          .source = first_collision.node,
-                          .target = source,
-                  },
+    .type = MESSAGE_PHASE_2,
+    .final_node = (first_collision.target == THREAD_SOURCE ? cache[first_collision.node].node.parent : first_collision.parent),
   };
+  assert(cache[msg.final_node].thread.load() == THREAD_SOURCE);
   message_queues[THREAD_SOURCE].push(msg);
+
+  if (last_collision.target != THREAD_GOAL) {
+    cache[last_collision.node].thread.store(THREAD_GOAL);
+    cache[last_collision.node].node.parent = last_collision.parent;
+  }
 
   msg = Message {
           .type = MESSAGE_PHASE_2,
-          .path_info =
-                  {
-                          .source = goal,
-                          .target = last_collision.node,
-                  },
+          .final_node = last_collision.node,
   };
-  // msg = Message{.type = MESSAGE_PHASE_2, .final_node = last_collision.node};
-  cache[last_collision.node].thread.store(THREAD_GOAL);
+  assert(cache[msg.final_node].thread.load() == THREAD_GOAL);
   message_queues[THREAD_GOAL].push(msg);
 
   return found_path;
