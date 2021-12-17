@@ -98,25 +98,6 @@ FringeInterruptAction RippleThread::check_message_queue() {
   return response_action;
 }
 
-// Initialize fringe search list, heuristic and source node cache entry.
-void RippleThread::initialize_fringe_search(Phase phase) {
-  // Initialize fring list with source node only
-  fringe_list.clear();
-  fringe_list.push_front(source);
-
-  if (phase == PHASE_2) {
-    assert(cache[goal].thread.load() == id);
-  }
-
-  // Relies on the fact that goal is closer than goal_2
-  heuristic = [this](Node n) {
-    return map.distance(n, goal);
-  };
-
-  // Set fringe threshold
-  flimit = heuristic(source);
-}
-
 // Called when a collision happens during the search
 void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
   assert(other != id);
@@ -152,8 +133,17 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
 void RippleThread::entry() { search(PHASE_1); }
 
 void RippleThread::search(Phase phase) {
-  timer.start();
-  initialize_fringe_search(phase);
+  // Relies on the fact that goal is closer than goal_2
+  heuristic = [this](Node n) {
+    return map.distance(n, goal);
+  };
+
+  if (phase == PHASE_2) {
+    assert(cache[goal].thread.load() == id);
+  }
+
+  FringeList fringe_list = { source };
+  int flimit = heuristic(source);
 
   while (!fringe_list.empty()) {
     int fmin = std::numeric_limits<int>::max();
@@ -282,9 +272,6 @@ void RippleThread::search(Phase phase) {
 }
 
 void RippleThread::phase_1_conclusion() {
-  timer.stop();
-  time_first = timer.get_microseconds() / 1000.0;
-
   Log("Waiting");
   Message msg {
     .type = MESSAGE_WAITING,

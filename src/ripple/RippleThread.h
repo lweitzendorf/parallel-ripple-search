@@ -29,11 +29,6 @@ struct RippleCacheNode {
 
 // Class representing a thread of the ripple search algorithm
 class RippleThread {
-public:
-  double time_first;
-  double time_second;
-  Timer timer;
-
 private:
   std::unique_ptr<std::thread> thread;
 
@@ -47,11 +42,6 @@ private:
   // Message queues for sending to other threads
   std::vector<concurrent_queue<Message>> &message_queues;
 
-  // Condition variable and mutex for putting the thread to sleep
-  // when it has to wait for other threads
-  std::mutex wait_mutex;
-  std::condition_variable wait_cv;
-
   // Current source ang goals for the thread.
   // Worker threads have 2 goals because they search in both directions
   // until they have a collision with one of the two.
@@ -60,9 +50,7 @@ private:
   std::optional<Node> goal_2;
 
   // Fringe search info
-  FringeList fringe_list;
   std::function<int(Node)> heuristic;
-  int flimit;
 
   // Reference to vector of node info for fringe search, shared between all
   // threads
@@ -80,14 +68,8 @@ private:
   // from other threads
   FringeInterruptAction check_message_queue();
 
-  // Initialize fringe search list, heuristic and source node cache entry.
-  void initialize_fringe_search(Phase phase);
-
   // Called when a collision happens during the search
   void handle_collision(Node node, Node parent, ThreadId other);
-
-  // Reset internal state for phase 2 iterations
-  void reset_for_phase_2(Node source, Node target);
 
   // Reverse the path from 'from' to 'to using the node cache
   // and store it into final_path

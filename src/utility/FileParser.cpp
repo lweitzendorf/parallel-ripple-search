@@ -41,6 +41,10 @@ bool BitMapParser::build_graph(WeightedGraph& g) {
 bool DotParser::build_graph(WeightedGraph& g) {
   std::ifstream graph_file(file_path);
 
+  if (!graph_file.is_open()) {
+    std::cout << "File doesn't exist." << std::endl;
+  }
+
   std::string block;
   graph_file >> block;
 
