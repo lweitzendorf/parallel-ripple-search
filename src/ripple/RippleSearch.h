@@ -7,7 +7,7 @@ class RippleSearch {
 private:
   Map &map;
   std::vector<concurrent_queue<Message>> message_queues;
-  std::vector<RippleCacheNode> cache;
+  std::vector<std::atomic<ThreadId>> node_owners;
   CollisionGraph collision_graph;
   Node source;
   Node goal;

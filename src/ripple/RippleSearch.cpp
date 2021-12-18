@@ -8,11 +8,11 @@
 
 // Ripple search utilities
 RippleSearch::RippleSearch(Map &map, Node source, Node goal)
-    : map(map), cache(map.size()), collision_graph(map, goal), source(source),
+    : map(map), node_owners(map.size()), collision_graph(map, goal), source(source),
       goal(goal) {
   message_queues.resize(NUM_THREADS);
-  for (auto &entry : cache) {
-    entry.thread.store(THREAD_NONE, std::memory_order_relaxed);
+  for (auto &entry : node_owners) {
+    entry.store(THREAD_NONE, std::memory_order_relaxed);
   }
 }
 
@@ -30,14 +30,14 @@ std::optional<Path<Node>> RippleSearch::search() {
   // to avoid race conditions in which a thread tries to
   // acquire the starting node of another thread.
   for (int i = 0; i < high_level_path.size(); i++) {
-    cache[high_level_path[i]].thread.store((ThreadId)i);
+    node_owners[high_level_path[i]].store((ThreadId)i);
   }
 
   std::vector<std::unique_ptr<RippleThread>> threads;
 
   // Start source thread
   {
-    auto source_thread = std::make_unique<RippleThread>(THREAD_SOURCE, map, cache, message_queues);
+    auto source_thread = std::make_unique<RippleThread>(THREAD_SOURCE, map, node_owners, message_queues);
     source_thread->set_src_and_goal(source, goal);
 
     threads.push_back(std::move(source_thread));
@@ -45,7 +45,7 @@ std::optional<Path<Node>> RippleSearch::search() {
 
   // Start worker threads
   for (int i = 1; i < NUM_SEARCH_THREADS - 1; i++) {
-    auto worker_thread = std::make_unique<RippleThread>((ThreadId)i, map, cache, message_queues);
+    auto worker_thread = std::make_unique<RippleThread>((ThreadId)i, map, node_owners, message_queues);
     worker_thread->set_src_and_goals(high_level_path[i], high_level_path[i - 1],
                                      high_level_path[i + 1]);
 
@@ -54,7 +54,7 @@ std::optional<Path<Node>> RippleSearch::search() {
 
   // Start goals thread
   {
-    auto goal_thread = std::make_unique<RippleThread>(THREAD_GOAL, map, cache, message_queues);
+    auto goal_thread = std::make_unique<RippleThread>(THREAD_GOAL, map, node_owners, message_queues);
     goal_thread->set_src_and_goal(goal, source);
 
     threads.push_back(std::move(goal_thread));
@@ -163,7 +163,6 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
 
   // Send message with next source and target to all threads
   // that aren't the source / target thread.
-
   bool works_in_phase2[NUM_SEARCH_THREADS] = {};
 
   // Workers working
@@ -188,7 +187,7 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
     };
 
     // Set ownership of goal node to the current thread
-    cache[msg.path_info.target].thread.store(thread);
+    node_owners[msg.path_info.target].store(thread);
     message_queues[thread].push(msg);
     works_in_phase2[thread] = true;
 
@@ -220,33 +219,25 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
   // Update the cache, so that the parent of the last collision is always a
   // node that was discovered by goal thread.
   ThreadId second_last = found_path[found_path.size() - 2];
-  Collision last_collision =
-      collision_graph.get_collision(second_last, THREAD_GOAL);
+  Collision last_collision = collision_graph.get_collision(second_last, THREAD_GOAL);
 
   msg = Message {
     .type = MESSAGE_PHASE_2,
-    .final_node = (first_collision.target == THREAD_SOURCE ? cache[first_collision.node].node.parent : first_collision.parent),
+    .final_node = first_collision.node,
   };
-  assert(cache[msg.final_node].thread.load() == THREAD_SOURCE);
   message_queues[THREAD_SOURCE].push(msg);
 
-  if (last_collision.target != THREAD_GOAL) {
-    cache[last_collision.node].thread.store(THREAD_GOAL);
-    cache[last_collision.node].node.parent = last_collision.parent;
-  }
-
   msg = Message {
-          .type = MESSAGE_PHASE_2,
-          .final_node = last_collision.node,
+    .type = MESSAGE_PHASE_2,
+    .final_node = last_collision.node,
   };
-  assert(cache[msg.final_node].thread.load() == THREAD_GOAL);
   message_queues[THREAD_GOAL].push(msg);
 
   return found_path;
 }
 
 ThreadId RippleSearch::get_owner(Point p) const {
-  return cache[map.point_to_node(p)].thread.load(std::memory_order_relaxed);
+  return node_owners[map.point_to_node(p)].load(std::memory_order_relaxed);
 }
 
 bool RippleSearch::is_adjacent_pair(Node n1, Node n2) const {

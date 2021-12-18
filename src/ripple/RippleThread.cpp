@@ -7,10 +7,10 @@
 #include "RippleThread.h"
 
 RippleThread::RippleThread(
-    ThreadId id, Map &map, std::vector<RippleCacheNode> &cache,
+    ThreadId id, Map &map, std::vector<std::atomic<ThreadId>> &node_owners,
     std::vector<tbb::detail::d2::concurrent_queue<Message>> &message_queues)
     : id(id), thread(nullptr), map(map), message_queues(message_queues),
-      cache(cache) {}
+      node_owners(node_owners), cache(node_owners.size()) {}
 
 void RippleThread::set_src_and_goal(Node s, Node g) {
   source = s;
@@ -50,7 +50,7 @@ void RippleThread::finalize_path(Node from, Node to, bool include_to) {
   Node current = from;
   do  {
     final_path.push_back(current);
-    current = cache[current].node.parent;
+    current = cache[current].parent;
   } while (current != to);
 
   if (include_to) {
@@ -76,7 +76,10 @@ FringeInterruptAction RippleThread::check_message_queue() {
       // does not arrive to source thread
       case MESSAGE_PHASE_2: {
         Log("Message - Phase2");
-        if (id == THREAD_SOURCE || id == THREAD_GOAL) {
+        if (id == THREAD_SOURCE) {
+          finalize_path(cache[message.final_node].parent, source, true);
+          response_action = EXIT;
+        } else if (id == THREAD_GOAL) {
           finalize_path(message.final_node, source, true);
           response_action = EXIT;
         } else {
@@ -106,6 +109,8 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
   // collision
   if (collision_mask & (1 << other))
     return;
+
+  cache[node].parent = parent;
 
   // For worker threads update the heuristic
   if (goal_2 && !collision_mask) {
@@ -139,11 +144,19 @@ void RippleThread::search(Phase phase) {
   };
 
   if (phase == PHASE_2) {
-    assert(cache[goal].thread.load() == id);
+    assert(node_owners[goal].load() == id);
   }
 
   FringeList fringe_list = { source };
   int flimit = heuristic(source);
+
+  cache[source] = {
+      .visited = true,
+      .in_list = true,
+      .phase = phase,
+      .cost = 0,
+      .list_entry = fringe_list.begin(),
+  };
 
   while (!fringe_list.empty()) {
     int fmin = std::numeric_limits<int>::max();
@@ -166,10 +179,10 @@ void RippleThread::search(Phase phase) {
       }
 
       // Load info for the current node
-      FringeNode &node_info = cache[*node].node;
+      FringeNode &node_info = cache[*node];
 
       // Compute fringe heuristic for current node
-      int cost = (*node == source ? 0 : node_info.cost);
+      int cost = node_info.cost;
       int f = cost + heuristic(*node);
 
       // Skip node if fringe heuristic lower than the threshold
@@ -190,16 +203,12 @@ void RippleThread::search(Phase phase) {
 
         const Node neighbor = map.point_to_node(neighbor_point);
 
-        if (neighbor == source) {
-          continue;
-        }
-
         // Compute cost of path to s
         int cost_nb = cost + 1;
 
         // Check if already owned, otherwise try to acquire
         ThreadId owner =
-            cache[neighbor].thread.load(std::memory_order_relaxed);
+            node_owners[neighbor].load(std::memory_order_relaxed);
 
         // In phase two we skip all nodes that are not owned by us
         if (phase == PHASE_2 && owner != id) {
@@ -215,7 +224,7 @@ void RippleThread::search(Phase phase) {
           // and swap if any of first two checks short circuits.
           if (owner != id &&
               (owner != THREAD_NONE ||
-               !cache[neighbor].thread.compare_exchange_strong(owner, id))) {
+               !node_owners[neighbor].compare_exchange_strong(owner, id))) {
             // If we failed to acquire the node we need to handle the
             // collision
             handle_collision(neighbor, *node, owner);
@@ -226,7 +235,7 @@ void RippleThread::search(Phase phase) {
         }
 
         // Skip neighbor if already visited in this phase with a lower cost
-        FringeNode &neighbor_cache = cache[neighbor].node;
+        FringeNode &neighbor_cache = cache[neighbor];
         if (neighbor_cache.phase == phase && neighbor_cache.visited &&
             cost_nb >= neighbor_cache.cost) {
           continue;
@@ -310,3 +319,4 @@ inline void RippleThread::send_message(Message &msg) {
 inline bool RippleThread::recv_message(Message &msg) {
   return message_queues[id].try_pop(msg);
 }
+

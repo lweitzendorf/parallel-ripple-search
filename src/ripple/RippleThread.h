@@ -19,13 +19,6 @@ using oneapi::tbb::concurrent_queue;
 enum FringeInterruptAction { NONE, RESET, EXIT };
 // TODO: test aligning this struct to cache line size to avoid
 // false sharing between threads that are exploring neighbouring nodes
-struct RippleCacheNode {
-  // Id of the thread that first discovered the Node and thus owns it
-  std::atomic<ThreadId> thread;
-
-  // Fringe search data
-  FringeNode node;
-};
 
 // Class representing a thread of the ripple search algorithm
 class RippleThread {
@@ -52,9 +45,8 @@ private:
   // Fringe search info
   std::function<int(Node)> heuristic;
 
-  // Reference to vector of node info for fringe search, shared between all
-  // threads
-  std::vector<RippleCacheNode> &cache;
+  std::vector<FringeNode> cache;
+  std::vector<std::atomic<ThreadId>> &node_owners;
 
   // Mask of threads that we collided with, the i-th bit is 1 if we collided
   // with the i-th thread
@@ -89,7 +81,7 @@ private:
 
 public:
   RippleThread(
-      ThreadId id, Map &map, std::vector<RippleCacheNode> &cache,
+      ThreadId id, Map &map, std::vector<std::atomic<ThreadId>> &node_owners,
       std::vector<tbb::detail::d2::concurrent_queue<Message>> &message_queues);
 
   bool start();
