@@ -49,24 +49,24 @@ bool check_source_and_goal(Map &map, Node source, Node goal) {
 }
 
 void build_graph(WeightedGraph &g, Map &map) {
-  int x_size = map.width();
-  int y_size = map.height();
+  for (int y = 0; y < map.height(); y++) {
+    for (int x = 0; x < map.width(); x++) {
+      Point p(x, y);
+      g.add_vertex(p);
+      Node n = map.point_to_node(p);
 
-  std::vector<bool> is_path(x_size);
-  for (int y = 0; y < y_size; y++) {
-    for (int x = 0; x < x_size; x++) {
-      bool current_is_path = map.get(Point(x, y));
+      if (map.get(Point(x, y))) {
+        for (auto offset : Map::neighbour_offsets) {
+          Point neighbor = p + offset;
 
-      vertex_t vertex_number = g.add_vertex(Point(x, y));
-
-      if (current_is_path) {
-        if (x > 0 && is_path.at(x - 1))
-          g.add_edge(vertex_number - 1, vertex_number, 1);
-
-        if (y > 0 && is_path.at(x))
-          g.add_edge(vertex_number - x_size, vertex_number, 1);
+          if (map.in_bounds(neighbor) && map.get(neighbor)) {
+            Node neighbor_node = map.point_to_node(neighbor);
+            if (neighbor_node < n) {
+              g.add_edge(neighbor_node, n, 1);
+            }
+          }
+        }
       }
-      is_path.at(x) = current_is_path;
     }
   }
 }
