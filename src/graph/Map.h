@@ -47,7 +47,7 @@ private:
 public:
   explicit Map(int width = 0, int height = 0);
 
-  static constexpr int NEIGHBOURS_COUNT = 4;
+  static constexpr int NEIGHBOURS_COUNT = 8;
   static Point neighbour_offsets[NEIGHBOURS_COUNT];
 
   static std::function<bool(Node)> node_eq_predicate(Node n1) {
