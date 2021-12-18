@@ -158,49 +158,23 @@ Image test_Astar(Map &map, Node source, Node goal) {
   return img;
 }
 
-Image test_Astar_2(Map &map, Node source, Node goal) {
-  Timer t;
-  t.start();
-
-  // auto path = search(map, source, goal);
-  Path<Node> path; // placeholder
-
-  t.stop();
-  printf("Astar 2 search time: %.3fms\n", t.get_microseconds() / 1000.0);
-  // print_path(path.begin(), path.end());
-  // std::cout << std::endl;
-
-  // Create image and draw walls
-  Image img = GenImageColor(map.width(), map.height(), WHITE);
-  draw_walls(img, map);
-
-  // Draw path
-  for (auto it : path) {
-    Point p = map.node_to_point(it);
-    ImageDrawPixel(&img, p.x, p.y, RED);
-  }
-
-  // Draw source and goal
-  Point sp = map.node_to_point(source);
-  Point gp = map.node_to_point(goal);
-  ImageDrawPixel(&img, sp.x, sp.y, GREEN);
-  ImageDrawPixel(&img, gp.x, gp.y, YELLOW);
-
-  return img;
-}
-
 template <typename Search>
 Image test_search(std::string name, Map &map, Node source, Node goal,
                   std::function<void(Image &, Map &, Search &)> draw) {
   Timer t;
+
   t.start();
-
   Search search(map, source, goal);
-  auto path = search.search().value_or(Path<Node>());
-
   t.stop();
 
-  printf("%s time: %.3fms (%d nodes)\n", name.c_str(),
+  printf("%s construction time: %.3fms\n", name.c_str(),
+         (double)t.get_milliseconds());
+
+  t.start();
+  auto path = search.search().value_or(Path<Node>());
+  t.stop();
+
+  printf("%s search time: %.3fms (%d nodes)\n", name.c_str(),
          (double)t.get_milliseconds(), (int)path.size());
 
   //print_path(path.begin(), path.end());
