@@ -8,9 +8,8 @@
 
 // Ripple search utilities
 RippleSearch::RippleSearch(Map &map, Node source, Node goal)
-    : map(map), node_owners(map.size()), collision_graph(map, goal), source(source),
-      goal(goal) {
-  message_queues.resize(NUM_THREADS);
+    : map(map), node_owners(map.size()), collision_graph(map, goal),
+      source(source), goal(goal), message_queues(NUM_THREADS) {
   for (auto &entry : node_owners) {
     entry.store(THREAD_NONE, std::memory_order_relaxed);
   }
@@ -83,7 +82,8 @@ std::optional<Path<Node>> RippleSearch::search() {
     }
   }
 
-  assert(is_valid_path(path));
+  bool valid = is_valid_path(path);
+  assert(valid);
   return path.empty() ? std::nullopt : std::optional<Path<Node>>{path};
 }
 
@@ -202,30 +202,22 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
     if (!works_in_phase2[i])
       message_queues[i].push(msg);
 
-  // NOTE:
-  // The order between source and goal here is important when the only
-  // collision is the one between source and goal. In that case we
-  // first store into current the node that source starts reversing from
-  // and then update the node cache so that goal is able to reverse his.
-  // This should probably be made more robust once we handle collisions
-  // better.
-
   // SOURCE
   // Start reconstructing path from source to first
   Collision first_collision =
       collision_graph.get_collision(THREAD_SOURCE, found_path[1]);
+
+  msg = Message {
+          .type = MESSAGE_PHASE_2,
+          .final_node = first_collision.node,
+  };
+  message_queues[THREAD_SOURCE].push(msg);
 
   // GOAL
   // Update the cache, so that the parent of the last collision is always a
   // node that was discovered by goal thread.
   ThreadId second_last = found_path[found_path.size() - 2];
   Collision last_collision = collision_graph.get_collision(second_last, THREAD_GOAL);
-
-  msg = Message {
-    .type = MESSAGE_PHASE_2,
-    .final_node = first_collision.node,
-  };
-  message_queues[THREAD_SOURCE].push(msg);
 
   msg = Message {
     .type = MESSAGE_PHASE_2,

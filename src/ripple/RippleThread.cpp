@@ -162,19 +162,21 @@ void RippleThread::search(Phase phase) {
     int fmin = std::numeric_limits<int>::max();
 
     for (auto node = fringe_list.begin(); node != fringe_list.end(); node++) {
-      switch (check_message_queue()) {
-        case RESET:
-          assert(phase == PHASE_1);
-          return search(PHASE_2);
-        case EXIT:
-          assert(phase == PHASE_1);
-          return exit();
-        case NONE:
-          break;
+      if (!message_queues[id].empty()) {
+        switch (check_message_queue()) {
+          case RESET:
+            assert(phase == PHASE_1);
+            return search(PHASE_2);
+          case EXIT:
+            assert(phase == PHASE_1);
+            return exit();
+          case NONE:
+            break;
+        }
       }
 
       // If we found our goal in phase 2 we are done and can exit;
-      if (phase == PHASE_2 && *node == goal) {
+      if (*node == goal && phase == PHASE_2) {
         return phase_2_conclusion();
       }
 
@@ -243,7 +245,6 @@ void RippleThread::search(Phase phase) {
 
         // If already in list in this phase, remove it
         if (neighbor_cache.phase == phase && neighbor_cache.in_list) {
-          assert(int(std::distance(node, neighbor_cache.list_entry)) > 0);
           fringe_list.erase(neighbor_cache.list_entry);
           neighbor_cache.in_list = false;
         }
