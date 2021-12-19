@@ -47,15 +47,12 @@ bool RippleThread::join() {
 
 void RippleThread::finalize_path(Node from, Node to, bool include_to) {
   Log("Attempting to finalize path");
-  Node current = from;
-  do  {
-    final_path.push_back(current);
-    current = cache[current].parent;
-  } while (current != to);
 
-  if (include_to) {
+  for (Node current = from; current != to; current = cache[current].parent)
+    final_path.push_back(current);
+
+  if (include_to)
     final_path.push_back(to);
-  }
 
   Log("Finished finalizing path");
 }
