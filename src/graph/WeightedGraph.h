@@ -70,14 +70,14 @@ private:
   };
 
   class euclidean_distance_heuristic
-      : public boost::astar_heuristic<weighted_graph_t, int> {
+      : public boost::astar_heuristic<weighted_graph_t, double> {
   public:
     euclidean_distance_heuristic(std::vector<Point> l, vertex_t goal)
         : m_location(std::move(l)), m_goal(goal) {}
-    int operator()(vertex_t u) {
+    double operator()(vertex_t u) {
       int dx = m_location[m_goal].x - m_location[u].x;
       int dy = m_location[m_goal].y - m_location[u].y;
-      return dx * dx + dy * dy;
+      return std::sqrt(dx * dx + dy * dy);
     }
 
   private:

@@ -55,7 +55,7 @@ void build_graph(WeightedGraph &g, Map &map) {
       g.add_vertex(p);
       Node n = map.point_to_node(p);
 
-      if (map.get(Point(x, y))) {
+      if (map.get(p)) {
         for (auto offset : Map::neighbour_offsets) {
           Point neighbor = p + offset;
 
