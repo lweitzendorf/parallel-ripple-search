@@ -2,6 +2,7 @@
 #include <iostream>
 #include <raylib.h>
 #include <filesystem>
+#include <liblsb.h>
 
 #include "graph/WeightedGraph.h"
 #include "graph/Map.h"
@@ -13,6 +14,10 @@
 #include "reference/Astar.h"
 #include "ripple/HighLevelGraph.h"
 #include "benchmark/benchmarks.h"
+
+#define MIN_COST 300
+#define SCENARIOS_PER_MAP 50
+#define RUNS_PER_SCENARIO 20
 
 void flush_cache() {
   const int size = 128 * 1024 * 1024;
@@ -26,28 +31,16 @@ void flush_cache() {
 }
 
 template <typename Search>
-void benchmark_search(std::string name, Map &map, Node source, Node goal) {
-  const int COUNT = 20;
-  double min_time = 10e10, max_time = 0, avg_time = 0;
-  double avg_init = 0;
-
-  for (int i = 0; i < COUNT; i++) {
+void benchmark_search(int index, Map &map, Node source, Node goal) {
+  for (int i = 0; i < RUNS_PER_SCENARIO; i++) {
     flush_cache();
 
-    Timer t;
-    t.start();
-    Search fringe(map, source, goal);
-    auto shortest_path = fringe.search().value_or(Path<Node>());
-    t.stop();
-
-    double ms = t.get_microseconds() / 1000.0;
-    min_time = std::min(min_time, ms);
-    max_time = std::max(max_time, ms);
-    avg_time += ms * (1.0 / COUNT);
+    LSB_Res();
+    Search search(map, source, goal);
+    auto shortest_path = search.search().value_or(Path<Node>());
+    LSB_Rec(index);
+    LSB_Reg_param("%ld\n", shortest_path.size());
   }
-
-  printf("%s: %3.2fms avg | %3.2fms min | %3.2fms max\n", name.c_str(),
-         avg_time, min_time, max_time);
 }
 
 
@@ -65,8 +58,33 @@ int main(int argc, char **argv) {
     scenarios.push_back(std::move(scen));
   }
 
-  auto& m = maps.front();
-  auto& map = m.second;
-  auto s = scenarios.front().back();
-  benchmark_search<FringeSearchSimd>("Fringe Vec", map, map.point_to_node(s.source), map.point_to_node(s.goal));
+  LSB_Init("ripple", 0);
+  int benchmark_index = 0;
+
+  for (int i = 0; i < scenarios.size(); i++) {
+    std::cout << "Map " << i+1 << "/" << scenarios.size() << ": " << maps[i].first << " - " ;
+    std::cout << scenarios[i].size() << " benchmarks" << std::endl;
+    Map &map = maps[i].second;
+
+    int j = 0;
+    while (scenarios[i][j++].cost < MIN_COST);
+    size_t step_size = (scenarios[i].size() - j) / SCENARIOS_PER_MAP;
+
+    for (; j < scenarios[i].size(); j+=step_size) {
+      Scenario &scenario = scenarios[i][j];
+      Node source_node = map.point_to_node(scenario.source);
+      Node goal_node = map.point_to_node(scenario.goal);
+
+      std::cout << j+1 << "/" << scenarios[i].size() << ": ";
+      std::cout << source_node << " -> " << goal_node << std::endl;
+
+      LSB_Reg_param("Optimal cost: %f\n", scenario.cost);
+      benchmark_search<RippleSearch>(benchmark_index++, map, source_node, goal_node);
+    }
+    std::cout << std::endl;
+  }
+
+  LSB_Finalize();
+
+
 }

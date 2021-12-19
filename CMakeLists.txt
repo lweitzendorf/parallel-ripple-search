@@ -42,7 +42,7 @@ target_link_libraries(graph_view raylib TBB::tbb Threads::Threads)
 
 add_executable(bench src/bin/bench.cpp ${Sources})
 target_include_directories(bench PUBLIC src glm)
-target_link_libraries(bench raylib TBB::tbb Threads::Threads)
+target_link_libraries(bench raylib TBB::tbb Threads::Threads lsb)
 
 add_executable(high src/bin/high.cpp ${Sources})
 target_include_directories(high PUBLIC src glm)
