@@ -22,25 +22,28 @@
 #define RIPPLE_IMG_FN "../imgs/ripple_img.png"
 #endif
 
-bool check_source_and_goal(Map &map, Node source, Node goal) {
+bool check_source_and_goal(WeightedGraph &graph, Node source, Node goal) {
+  auto source_point = graph.vertex_to_point(source);
+  auto goal_point = graph.vertex_to_point(goal);
+
   // bounds check on source and goal
-  if (!map.in_bounds(map.node_to_point(source))) {
+  if (!source_point) {
     std::cout << "Source node out of bounds" << std::endl;
     return false;
   }
 
-  if (!map.in_bounds(map.node_to_point(goal))) {
+  if (!goal_point) {
     std::cout << "Goal node out of bounds" << std::endl;
     return false;
   }
 
   // check that both goal and source are not walls
-  if (!map.get(map.node_to_point(source))) {
+  if (!graph.is_reachable(source_point.value())) {
     std::cout << "Source is a wall" << std::endl;
     return false;
   }
 
-  if (!map.get(map.node_to_point(goal))) {
+  if (!graph.is_reachable(goal_point.value())) {
     std::cout << "Goal is a wall" << std::endl;
     return false;
   }
@@ -48,33 +51,10 @@ bool check_source_and_goal(Map &map, Node source, Node goal) {
   return true;
 }
 
-void build_graph(WeightedGraph &g, Map &map) {
-  for (int y = 0; y < map.height(); y++) {
-    for (int x = 0; x < map.width(); x++) {
-      Point p(x, y);
-      g.add_vertex(p);
-      Node n = map.point_to_node(p);
-
-      if (map.get(p)) {
-        for (auto offset : Map::neighbour_offsets) {
-          Point neighbor = p + offset;
-
-          if (map.in_bounds(neighbor) && map.get(neighbor)) {
-            Node neighbor_node = map.point_to_node(neighbor);
-            if (neighbor_node < n) {
-              g.add_edge(neighbor_node, n, 1);
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-void draw_walls(Image img, Map &map) {
-  for (int y = 0; y < map.height(); y++) {
-    for (int x = 0; x < map.width(); x++) {
-      if (!map.get(Point(x, y))) {
+void draw_walls(Image img, WeightedGraph &graph) {
+  for (int y = 0; y < graph.height(); y++) {
+    for (int x = 0; x < graph.width(); x++) {
+      if (!graph.is_reachable(Point(x, y))) {
         ImageDrawPixel(&img, x, y, BLACK);
       }
     }
@@ -97,9 +77,7 @@ template <typename Iterator> void print_path(Iterator begin, Iterator end) {
   std::cout << std::endl;
 }
 
-Image test_boost_a_star(Map &map, Node source, Node goal) {
-  WeightedGraph graph;
-  build_graph(graph, map);
+Image test_boost_a_star(WeightedGraph &graph, Node source, Node goal) {
   Timer t;
   t.start();
   auto path = graph.a_star_search(source, goal);
@@ -110,28 +88,28 @@ Image test_boost_a_star(Map &map, Node source, Node goal) {
   // std::cout << std::endl;
 
   // Create image and draw walls
-  Image img = GenImageColor(map.width(), map.height(), WHITE);
-  draw_walls(img, map);
+  Image img = GenImageColor(graph.width(), graph.height(), WHITE);
+  draw_walls(img, graph);
 
   for (auto it : path) {
-    Point p = map.node_to_point(it);
+    Point p = graph.vertex_to_point(it).value();
     ImageDrawPixel(&img, p.x, p.y, RED);
   }
 
   // Draw source and goal
-  Point sp = map.node_to_point(source);
-  Point gp = map.node_to_point(goal);
+  Point sp = graph.vertex_to_point(source).value();
+  Point gp = graph.vertex_to_point(goal).value();
   ImageDrawPixel(&img, sp.x, sp.y, GREEN);
   ImageDrawPixel(&img, gp.x, gp.y, YELLOW);
 
   return img;
 }
 
-Image test_Astar(Map &map, Node source, Node goal) {
+Image test_Astar(WeightedGraph &graph, Node source, Node goal) {
   Timer t;
   t.start();
 
-  Path<Node> path = a_star_search(map, source, goal).value_or(Path<Node>());
+  Path<Node> path = a_star_search(graph, source, goal).value_or(Path<Node>());
 
   t.stop();
   printf("Astar search time: %.3fms (%d nodes)\n",
@@ -140,18 +118,18 @@ Image test_Astar(Map &map, Node source, Node goal) {
   // std::cout << std::endl;
 
   // Create image and draw walls
-  Image img = GenImageColor(map.width(), map.height(), WHITE);
-  draw_walls(img, map);
+  Image img = GenImageColor(graph.width(), graph.height(), WHITE);
+  draw_walls(img, graph);
 
   // Draw path
   for (auto it : path) {
-    Point p = map.node_to_point(it);
+    Point p = graph.vertex_to_point(it).value();
     ImageDrawPixel(&img, p.x, p.y, RED);
   }
 
   // Draw source and goal
-  Point sp = map.node_to_point(source);
-  Point gp = map.node_to_point(goal);
+  Point sp = graph.vertex_to_point(source).value();
+  Point gp = graph.vertex_to_point(goal).value();
   ImageDrawPixel(&img, sp.x, sp.y, GREEN);
   ImageDrawPixel(&img, gp.x, gp.y, YELLOW);
 
@@ -159,12 +137,12 @@ Image test_Astar(Map &map, Node source, Node goal) {
 }
 
 template <typename Search>
-Image test_search(std::string name, Map &map, Node source, Node goal,
-                  std::function<void(Image &, Map &, Search &)> draw) {
+Image test_search(std::string name, WeightedGraph &graph, Node source, Node goal,
+                  std::function<void(Image &, WeightedGraph &, Search &)> draw) {
   Timer t;
 
   t.start();
-  Search search(map, source, goal);
+  Search search(graph, source, goal);
   t.stop();
 
   printf("%s construction time: %.3fms\n", name.c_str(),
@@ -180,23 +158,23 @@ Image test_search(std::string name, Map &map, Node source, Node goal,
   //print_path(path.begin(), path.end());
 
   // Create image and draw walls
-  Image img = GenImageColor(map.width(), map.height(), WHITE);
+  Image img = GenImageColor(graph.width(), graph.height(), WHITE);
 
   // Custom draw
-  draw(img, map, search);
+  draw(img, graph, search);
 
   // Draw walls
-  draw_walls(img, map);
+  draw_walls(img, graph);
 
   // Draw path
   for (auto it : path) {
-    Point p = map.node_to_point(it);
+    Point p = graph.vertex_to_point(it).value();
     ImageDrawPixel(&img, p.x, p.y, RED);
   }
 
   // Draw source and goal
-  Point sp = map.node_to_point(source);
-  Point gp = map.node_to_point(goal);
+  Point sp = graph.vertex_to_point(source).value();
+  Point gp = graph.vertex_to_point(goal).value();
   ImageDrawPixel(&img, sp.x, sp.y, GREEN);
   ImageDrawPixel(&img, gp.x, gp.y, YELLOW);
 
@@ -204,10 +182,10 @@ Image test_search(std::string name, Map &map, Node source, Node goal,
 }
 
 template <typename Fringe>
-void fringe_draw(Image &img, Map &map, Fringe &search) {
-  for (int y = 0; y < map.height(); y++) {
-    for (int x = 0; x < map.width(); x++) {
-      int index = map.point_to_node(Point(x, y));
+void fringe_draw(Image &img, WeightedGraph &graph, Fringe &search) {
+  for (int y = 0; y < graph.height(); y++) {
+    for (int x = 0; x < graph.width(); x++) {
+      Node index = graph.point_to_vertex(Point(x, y)).value();
       if (search.cache[index].visited) {
         ImageDrawPixel(&img, x, y, LIME);
       }
@@ -215,7 +193,7 @@ void fringe_draw(Image &img, Map &map, Fringe &search) {
   }
 };
 
-void ripple_draw(Image &img, Map &map, RippleSearch &search) {
+void ripple_draw(Image &img, WeightedGraph &graph, RippleSearch &search) {
   Color colors[] = { YELLOW, DARKGREEN, SKYBLUE, DARKPURPLE, LIME, BROWN, VIOLET, YELLOW,
                      BLUE, ORANGE, PINK, BLUE, GREEN,  DARKBROWN, DARKBLUE, DARKGRAY,
                      BEIGE, GOLD, GRAY, MAGENTA,
@@ -227,8 +205,8 @@ void ripple_draw(Image &img, Map &map, RippleSearch &search) {
   // Draw cache
   std::atomic_thread_fence(std::memory_order_seq_cst);
 
-  for (int y = 0; y < map.height(); y++) {
-    for (int x = 0; x < map.width(); x++) {
+  for (int y = 0; y < graph.height(); y++) {
+    for (int x = 0; x < graph.width(); x++) {
       auto id = search.get_owner(Point(x, y));
       if (id != THREAD_NONE) {
         ImageDrawPixel(&img, x, y, colors[id]);
@@ -246,15 +224,14 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  Map map;
+
+  WeightedGraph graph;
   std::string file_path(argv[1]);
 
   if (file_path.ends_with(".png")) {
-    map.load_from_image_file(argv[1]);
+    graph.load_from_image(argv[1]);
   } else if (file_path.ends_with(".dot")) {
-    WeightedGraph graph;
     DotParser(argv[1]).build_graph(graph);
-    map = graph.create_map();
   } else {
     std::cout << "Unsupported file type!" << std::endl;
     return 2;
@@ -263,17 +240,14 @@ int main(int argc, char **argv) {
   Node source = strtol(argv[2], nullptr, 10);
   Node goal = strtol(argv[3], nullptr, 10);
 
-  if (!check_source_and_goal(map, source, goal))
+  if (!check_source_and_goal(graph, source, goal))
     return 3;
 
   const std::vector<Image> images = {
-      test_search<RippleSearch>("Ripple", map, source, goal, ripple_draw),
-      test_search<FringeSearchSimd>("Fringe Vec", map, source, goal,
-                                    fringe_draw<FringeSearchSimd>),
-      test_search<FringeSearch>("Fringe", map, source, goal,
-                                fringe_draw<FringeSearch>),
-      test_boost_a_star(map, source, goal),
-      test_Astar(map, source, goal),
+      test_search<RippleSearch>("Ripple", graph, source, goal, ripple_draw),
+      test_search<FringeSearch>("Fringe", graph, source, goal,fringe_draw<FringeSearch>),
+      test_boost_a_star(graph, source, goal),
+      test_Astar(graph, source, goal),
   };
 
 #ifdef ONLY_EXPORT_IMGS

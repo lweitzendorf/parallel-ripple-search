@@ -21,7 +21,7 @@ bool BitMapParser::build_graph(WeightedGraph& g) {
       bool current_is_path;
       graph_file >> current_is_path;
 
-      vertex_t vertex_number = g.add_vertex(Point(x, y));
+      Node vertex_number = g.add_vertex(Point(x, y));
 
       if (current_is_path) {
         if (x > 0 && is_path.at(x - 1))
@@ -86,8 +86,8 @@ bool DotParser::build_graph(WeightedGraph& g) {
 
     graph_file >> direction >> node_2 >> block >> block;
 
-    vertex_t node_nr_1 = stoi(str_after(node_1, "node"));
-    vertex_t node_nr_2 = stoi(str_between(node_2, "node", ";"));
+    Node node_nr_1 = stoi(str_after(node_1, "node"));
+    Node node_nr_2 = stoi(str_between(node_2, "node", ";"));
 
     g.add_edge(node_nr_1, node_nr_2, 1);
   }

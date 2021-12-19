@@ -7,8 +7,8 @@
 #include <memory>
 
 // Ripple search utilities
-RippleSearch::RippleSearch(Map &map, Node source, Node goal)
-    : map(map), node_owners(map.size()), collision_graph(map, goal),
+RippleSearch::RippleSearch(WeightedGraph &graph, Node source, Node goal)
+    : graph(graph), node_owners(graph.num_vertices()),
       source(source), goal(goal), message_queues(NUM_THREADS) {
   for (auto &entry : node_owners) {
     entry.store(THREAD_NONE, std::memory_order_relaxed);
@@ -18,8 +18,8 @@ RippleSearch::RippleSearch(Map &map, Node source, Node goal)
 std::optional<Path<Node>> RippleSearch::search() {
   Path<Node> high_level_path = { source };
   for (int i = 1; i < NUM_SEARCH_THREADS-1; i++) {
-    Node n = i*std::abs(goal-source)/(NUM_SEARCH_THREADS-1);
-    while (!map.get(n)) n++;
+    Node n = i*std::abs(ssize_t(goal)-ssize_t(source))/(NUM_SEARCH_THREADS-1);
+    while (!graph.vertex_to_point()) n++;
     high_level_path.push_back(n);
   }
   high_level_path.push_back(goal);
@@ -36,7 +36,7 @@ std::optional<Path<Node>> RippleSearch::search() {
 
   // Start source thread
   {
-    auto source_thread = std::make_unique<RippleThread>(THREAD_SOURCE, map, node_owners, message_queues);
+    auto source_thread = std::make_unique<RippleThread>(THREAD_SOURCE, graph, node_owners, message_queues);
     source_thread->set_src_and_goal(source, goal);
 
     threads.push_back(std::move(source_thread));
@@ -44,7 +44,7 @@ std::optional<Path<Node>> RippleSearch::search() {
 
   // Start worker threads
   for (int i = 1; i < NUM_SEARCH_THREADS - 1; i++) {
-    auto worker_thread = std::make_unique<RippleThread>((ThreadId)i, map, node_owners, message_queues);
+    auto worker_thread = std::make_unique<RippleThread>((ThreadId)i, graph, node_owners, message_queues);
     worker_thread->set_src_and_goals(high_level_path[i], high_level_path[i - 1],
                                      high_level_path[i + 1]);
 
@@ -53,7 +53,7 @@ std::optional<Path<Node>> RippleSearch::search() {
 
   // Start goals thread
   {
-    auto goal_thread = std::make_unique<RippleThread>(THREAD_GOAL, map, node_owners, message_queues);
+    auto goal_thread = std::make_unique<RippleThread>(THREAD_GOAL, graph, node_owners, message_queues);
     goal_thread->set_src_and_goal(goal, source);
 
     threads.push_back(std::move(goal_thread));
@@ -90,7 +90,7 @@ std::optional<Path<Node>> RippleSearch::search() {
 std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
   Message msg{};
   int working_threads = NUM_SEARCH_THREADS;
-  int waiting_essential = 0, waiting_non_essential = 0;
+  int waiting_threads = 0;
 
   while (working_threads > 0) {
     while (message_queues[THREAD_COORDINATOR].try_pop(msg)) {
@@ -112,11 +112,7 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
         } break;
 
         case MESSAGE_WAITING: {
-          if (msg.id == THREAD_SOURCE || msg.id == THREAD_GOAL) {
-            waiting_essential++;
-          } else {
-            waiting_non_essential++;
-          }
+          waiting_threads++;
         } break;
 
         default:
@@ -125,8 +121,7 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
       }
     }
 
-    int waiting_threads = waiting_essential + waiting_non_essential;
-    if (waiting_essential == NUM_ESSENTIAL_THREADS || waiting_threads == working_threads) { // no path
+    if (waiting_threads == working_threads) { // no path
       msg = Message { .type = MESSAGE_STOP };
       for (int thread = THREAD_SOURCE; thread <= THREAD_GOAL; thread++) {
         message_queues[thread].push(msg);
@@ -229,13 +224,14 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
 }
 
 ThreadId RippleSearch::get_owner(Point p) const {
-  return node_owners[map.point_to_node(p)].load(std::memory_order_relaxed);
+  auto node = graph.point_to_vertex(p);
+  return node ? node_owners[node.value()].load(std::memory_order_relaxed) : THREAD_NONE;
 }
 
 bool RippleSearch::is_adjacent_pair(Node n1, Node n2) const {
-  auto neighbors = map.neighbours(n1);
+  auto neighbors = graph.neighbors(n1);
   return std::any_of(neighbors.begin(), neighbors.end(),
-                     Map::node_eq_predicate(n2));
+                     WeightedGraph::node_eq_predicate(n2));
 }
 
 bool RippleSearch::is_valid_path(Path<Node> &path) const {

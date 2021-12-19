@@ -3,8 +3,8 @@
 
 #include "benchmarks.h"
 
-std::vector<std::pair<std::string, Map>> load_maps(const std::string& dir) {
-  std::vector<std::pair<std::string, Map>> result;
+std::vector<std::pair<std::string, WeightedGraph>> load_maps(const std::string& dir) {
+  std::vector<std::pair<std::string, WeightedGraph>> result;
   for (const auto& entry : std::filesystem::directory_iterator(dir))
   {
     auto path = entry.path();
@@ -16,22 +16,30 @@ std::vector<std::pair<std::string, Map>> load_maps(const std::string& dir) {
     int width, height;
     f >> trash >> type >> trash >> height >> trash >> width >> trash;
 
-    Map map(width, height);
+    WeightedGraph graph;
 
-    for(int y = 0; y < height; y++) {
-      for(int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        Point p(x, y);
+        Node n = graph.add_vertex(p);
+
         char c; f >> c;
-        if(c == '@' || c == 'T') {
-          map.set(Point(x, y), 0);
-        } else if(c == '.') {
-          map.set(Point(x, y), 1);
+        if(c == '.') {
+          for (auto offset : Map::neighbour_offsets) {
+            Point neighbor = p + offset;
+
+            if (graph.is_reachable(p) && graph.is_reachable(neighbor)) {
+              Node neighbor_node = graph.point_to_vertex(neighbor).value();
+              graph.add_edge(neighbor_node, n, 1);
+            }
+          }
         } else {
-          assert(false);
+          assert(c == '@' || c == 'T');
         }
       }
     }
 
-    result.push_back(std::make_pair(path.filename(), std::move(map)));
+    result.push_back(std::make_pair(path.filename(), std::move(graph)));
   }
 
   return result;

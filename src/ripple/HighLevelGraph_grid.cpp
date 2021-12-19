@@ -10,15 +10,15 @@ using glm::vec2;
 // Width and height of the grid that is sampled to create the high level graph
 const int GRID_SIZE = 32;
 
-GridHighLevelGraph::GridHighLevelGraph(Map& map): map(map), grid(GRID_SIZE, GRID_SIZE), adj(GRID_SIZE * GRID_SIZE) {
-  cell = vec2((float)map.width() / (GRID_SIZE), (float)map.height() / (GRID_SIZE));
+GridHighLevelGraph::GridHighLevelGraph(WeightedGraph& graph): graph(graph), adj(GRID_SIZE * GRID_SIZE) {
+  cell = vec2((float)graph.width() / (GRID_SIZE), (float)graph.height() / (GRID_SIZE));
   
   // Initialize grid
   for(int y = 0; y < GRID_SIZE; y++) {
     for(int x = 0; x < GRID_SIZE; x++) {
       vec2 v = grid_to_map(vec2(x, y));
       Point p(v.x, v.y);
-      if(map.get(p)) {
+      if (graph.is_reachable(p)) {
         grid.set(Point(x, y), 1);
       } else {
         grid.set(Point(x, y), 0);
@@ -41,7 +41,7 @@ GridHighLevelGraph::GridHighLevelGraph(Map& map): map(map), grid(GRID_SIZE, GRID
       for(int x_before = x - 1; x_before >= 0; x_before--) {
         Point p_before(x_before, y);
 
-        if(!grid.get(p_before)) {
+        if(!grid.is_reachable(p_before)) {
           continue;
         }
 
@@ -149,7 +149,7 @@ Point GridHighLevelGraph::get_closest_point_on_grid(Point point) {
     for(int x = 0; x < GRID_SIZE; x++) {
       vec2 v = grid_to_map(vec2(x, y));
       Point p(v.x, v.y);
-      if(map.get(p)) {
+      if(graph.get(p)) {
         grid.set(Point(x, y), 1);
 
         float ds = glm::distance2(v, pointv);
@@ -168,14 +168,14 @@ std::vector<Point> GridHighLevelGraph::get_full_path(Point source, Point goal) {
   Point closest_source = get_closest_point_on_grid(source);
   Point closest_goal = get_closest_point_on_grid(goal);
 
-  auto grid_path_opt = a_star_search(*this, grid.point_to_node(closest_source), grid.point_to_node(closest_goal));
+  auto grid_path_opt = a_star_search(*this, grid.point_to_vertex(closest_source), grid.point_to_vertex(closest_goal));
 
   if(grid_path_opt.has_value()) {
     std::vector<Point> points;
     points.reserve(grid_path_opt.value().size());
 
     for(auto n: grid_path_opt.value()) {
-      Point point = grid.node_to_point(n);
+      Point point = grid.vertex_to_point(n);
       points.emplace_back(grid_to_map(point));
     }
 
@@ -187,7 +187,7 @@ std::vector<Point> GridHighLevelGraph::get_full_path(Point source, Point goal) {
 }
 
 Path<Node> GridHighLevelGraph::create_high_level_path(Node source, Node goal, int num) {
-  auto full_path = get_full_path(map.node_to_point(source), map.node_to_point(goal));
+  auto full_path = get_full_path(graph.vertex_to_point(source).value(), graph.vertex_to_point(goal).value());
   auto refined_path = refine_high_level_path(full_path, num);
 
   std::vector<Node> result;

@@ -2,7 +2,7 @@
 
 #include "Collision.h"
 #include "Message.h"
-#include "Contants.h"
+#include "Constants.h"
 #include "graph/Map.h"
 #include "reference/FringeSearch.h"
 #include "utility/Timer.h"
@@ -31,7 +31,7 @@ private:
   // internal thread
 
   // Map
-  Map &map;
+  WeightedGraph &graph;
   // Message queues for sending to other threads
   std::vector<concurrent_queue<Message>> &message_queues;
 
@@ -81,7 +81,7 @@ private:
 
 public:
   RippleThread(
-      ThreadId id, Map &map, std::vector<std::atomic<ThreadId>> &node_owners,
+      ThreadId id, WeightedGraph &graph, std::vector<std::atomic<ThreadId>> &node_owners,
       std::vector<tbb::detail::d2::concurrent_queue<Message>> &message_queues);
 
   bool start();

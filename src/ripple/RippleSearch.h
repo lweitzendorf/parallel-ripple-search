@@ -5,7 +5,7 @@
 // Utility class for initializing and invoking ripple search
 class RippleSearch {
 private:
-  Map &map;
+  WeightedGraph &graph;
   std::vector<concurrent_queue<Message>> message_queues;
   std::vector<std::atomic<ThreadId>> node_owners;
   CollisionGraph collision_graph;
@@ -19,7 +19,7 @@ private:
 
   public:
   // Initialize search on a map
-  RippleSearch(Map &map, Node source, Node goal);
+  RippleSearch(WeightedGraph &graph, Node source, Node goal);
 
   // Start the search from source to goal, they must be valid nodes
   std::optional<Path<Node>> search();

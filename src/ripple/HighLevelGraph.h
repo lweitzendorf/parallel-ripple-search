@@ -8,20 +8,20 @@
 #include "graph/Map.h"
 
 // Old knn based approach
-Path<Node> create_high_level_path(Map& map, Node source, Node goal);
+Path<Node> create_high_level_path(WeightedGraph& graph, Node source, Node goal);
 
 
 // New grid based approach
 class GridHighLevelGraph {
-    Map& map;
+  WeightedGraph& graph;
     glm::vec2 cell;
 
 public:
-    Map grid;
+    WeightedGraph grid;
     std::vector<std::vector<int>> adj;
 
     // Creates the high level path for a given map
-    GridHighLevelGraph(Map& map);
+    GridHighLevelGraph(WeightedGraph& graph);
 
     // High level path from 'source' to 'goal' that uses up to 'num' points
     Path<Node> create_high_level_path(Node source, Node goal, int num);

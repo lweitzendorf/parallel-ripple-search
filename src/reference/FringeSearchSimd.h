@@ -4,7 +4,7 @@
 #include <optional>
 #include <stdint.h>
 
-#include "graph/Map.h"
+#include "graph/WeightedGraph.h"
 
 struct FringeNodeSimd {
   Node parent;
@@ -13,13 +13,11 @@ struct FringeNodeSimd {
   int32_t list_index = -1;
 };
 
-static_assert(sizeof(FringeNodeSimd) == 4 * 4);
-
 class FringeSearchSimd {
   // Constants
   Node source;
   Node goal;
-  Map &map;
+  WeightedGraph &graph;
 
   // Updated by step
   std::vector<Node> now_list;
@@ -28,6 +26,6 @@ class FringeSearchSimd {
 public:
   std::vector<FringeNodeSimd> cache;
 
-  FringeSearchSimd(Map &map, Node source, Node goal);
+  FringeSearchSimd(WeightedGraph &graph, Node source, Node goal);
   std::optional<std::vector<Node>> search();
 };

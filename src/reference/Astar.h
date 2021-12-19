@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graph/Map.h"
+#include "graph/WeightedGraph.h"
 #include "utility/PriorityQueue.h"
 #include <optional>
 #include <vector>
@@ -36,7 +36,7 @@ std::optional<Path<Node>> a_star_search(Graph &graph, Node start, Node goal) {
       return reconstruct_path(start, goal, came_from);
 
     // For each neighbour
-    for (Node s : graph.neighbours(current)) {
+    for (Node s : graph.neighbors(current)) {
       double new_cost = cost_so_far[current].value() + graph.cost(current, s);
 
       if (!cost_so_far[s] || new_cost < cost_so_far[s].value()) {

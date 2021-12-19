@@ -1,10 +1,7 @@
 #pragma once
 
-#include "Contants.h"
-#include "graph/Map.h"
-
-#include <type_traits>
-
+#include "Constants.h"
+#include "graph/WeightedGraph.h"
 
 // Struct representing a collision between threads.
 struct Collision {
@@ -21,8 +18,6 @@ struct Collision {
 };
 
 class CollisionGraph {
-  Map &map;
-  Node goal;
   std::vector<ThreadId> neighbors;
 
   uint32_t masks[NUM_SEARCH_THREADS] = {};
@@ -31,9 +26,7 @@ class CollisionGraph {
 public:
   std::vector<std::vector<std::pair<ThreadId, Collision>>> graph;
 
-  CollisionGraph(Map &map, Node goal) : map(map), goal(goal) {
-    graph.resize(NUM_SEARCH_THREADS);
-  }
+  CollisionGraph() : graph(NUM_SEARCH_THREADS) {}
 
   size_t size() const { return graph.size(); }
 

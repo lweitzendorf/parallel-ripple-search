@@ -7,9 +7,9 @@
 #include "RippleThread.h"
 
 RippleThread::RippleThread(
-    ThreadId id, Map &map, std::vector<std::atomic<ThreadId>> &node_owners,
+    ThreadId id, WeightedGraph &graph, std::vector<std::atomic<ThreadId>> &node_owners,
     std::vector<tbb::detail::d2::concurrent_queue<Message>> &message_queues)
-    : id(id), thread(nullptr), map(map), message_queues(message_queues),
+    : id(id), thread(nullptr), graph(graph), message_queues(message_queues),
       node_owners(node_owners), cache(node_owners.size()) {}
 
 void RippleThread::set_src_and_goal(Node s, Node g) {
@@ -20,8 +20,8 @@ void RippleThread::set_src_and_goal(Node s, Node g) {
 
 void RippleThread::set_src_and_goals(Node s, Node g1, Node g2) {
   source = s;
-  float d1 = map.distance(source, g1);
-  float d2 = map.distance(source, g2);
+  double d1 = graph.distance(source, g1);
+  double d2 = graph.distance(source, g2);
   goal = (d1 < d2 ? g1 : g2);
   goal_2 = (d1 < d2 ? g2 : g1);
 }
@@ -112,7 +112,7 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
   // For worker threads update the heuristic
   if (goal_2 && !collision_mask) {
     heuristic = [this](Node n) {
-        return map.distance(n, goal_2.value());
+        return graph.distance(n, goal_2.value());
     };
   }
 
@@ -137,7 +137,7 @@ void RippleThread::entry() { search(PHASE_1); }
 void RippleThread::search(Phase phase) {
   // Relies on the fact that goal is closer than goal_2
   heuristic = [this](Node n) {
-    return map.distance(n, goal);
+    return graph.distance(n, goal);
   };
 
   if (phase == PHASE_2) {
@@ -190,17 +190,13 @@ void RippleThread::search(Phase phase) {
         continue;
       }
 
-      Point point = map.node_to_point(*node);
-
       // For each neighbour
-      for (auto &neighbour_offset : Map::neighbour_offsets) {
-        Point neighbor_point = point + neighbour_offset;
+      for (auto &neighbor : graph.neighbors(*node)) {
+        Point neighbor_point = graph.vertex_to_point(neighbor).value();
 
-        if (!map.in_bounds(neighbor_point) || !map.get(neighbor_point)) {
+        if (!graph.is_reachable(neighbor_point)) {
           continue;
         }
-
-        const Node neighbor = map.point_to_node(neighbor_point);
 
         // Compute cost of path to s
         int cost_nb = cost + 1;

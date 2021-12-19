@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graph/Map.h"
+#include "graph/WeightedGraph.h"
 #include <list>
 #include <optional>
 
@@ -22,12 +22,12 @@ class FringeSearch {
   // Constants
   Node source;
   Node goal;
-  Map &map;
+  WeightedGraph &graph;
   FringeList fringe_list;
 
 public:
   std::vector<FringeNode> cache;
   std::optional<std::vector<Node>> search();
 
-  FringeSearch(Map &map, Node source, Node goal);
+  FringeSearch(WeightedGraph &graph, Node source, Node goal);
 };

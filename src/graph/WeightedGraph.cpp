@@ -1,13 +1,14 @@
 #include "WeightedGraph.h"
-#include <iterator>
+
+#include <raylib.h>
 
 WeightedGraph::WeightedGraph() {
   g = weighted_graph_t(0);
   weights = boost::get(boost::edge_weight, g);
 }
 
-vertex_t WeightedGraph::add_vertex(Point p) {
-  vertex_t v = boost::add_vertex(g);
+Node WeightedGraph::add_vertex(Point p) {
+  Node v = boost::add_vertex(g);
   locations.push_back(p);
   location_to_vertex[p] = v;
 
@@ -19,7 +20,7 @@ vertex_t WeightedGraph::add_vertex(Point p) {
   return v;
 }
 
-std::optional<edge_t> WeightedGraph::add_edge(vertex_t vertex_1, vertex_t vertex_2, int weight) {
+std::optional<edge_t> WeightedGraph::add_edge(Node vertex_1, Node vertex_2, int weight) {
   if (vertex_1 >= num_vertices() || vertex_2 >= num_vertices())
     return std::nullopt;
 
@@ -28,31 +29,39 @@ std::optional<edge_t> WeightedGraph::add_edge(vertex_t vertex_1, vertex_t vertex
   return e;
 }
 
-std::optional<vertex_t> WeightedGraph::point_to_vertex(Point p) {
+std::optional<Node> WeightedGraph::point_to_vertex(Point p) {
   if (location_to_vertex.contains(p)) {
     return location_to_vertex[p];
   }
   return std::nullopt;
 }
 
-auto WeightedGraph::neighbors(vertex_t vertex) {
-  auto out_edges = boost::out_edges(vertex, g);
-  std::vector<vertex_t> out(out_edges.second - out_edges.first);
-  return std::transform(out_edges.first, out_edges.second, out.begin(),
-                        [&](auto edge) -> vertex_t {
-                          auto s = boost::source(edge, g);
-                          auto t = boost::target(edge, g);
-                          return s == vertex ? t : s;
-                        });
+std::optional<Point> WeightedGraph::vertex_to_point(Node v) {
+  if (v < num_vertices()) {
+    return locations[v];
+  }
+  return std::nullopt;
 }
 
-std::list<vertex_t> WeightedGraph::a_star_search(vertex_t start,
-                                                 vertex_t goal) {
+std::vector<Node> WeightedGraph::neighbors(Node vertex) {
+  auto out_edges = boost::out_edges(vertex, g);
+  std::vector<Node> out(out_edges.second - out_edges.first);
+  std::transform(out_edges.first, out_edges.second, out.begin(),
+                        [&](auto edge) -> Node {
+                          Node s = boost::source(edge, g);
+                          Node t = boost::target(edge, g);
+                          return s == vertex ? t : s;
+                        });
+  return out;
+}
+
+std::list<Node> WeightedGraph::a_star_search(Node start,
+                                             Node goal) {
   if (start < 0 || goal < 0 || start >= num_vertices() ||
       goal >= num_vertices())
     return {};
 
-  std::vector<vertex_t> p(num_vertices());
+  std::vector<Node> p(num_vertices());
   std::vector<int> d(num_vertices());
 
   try {
@@ -61,8 +70,8 @@ std::list<vertex_t> WeightedGraph::a_star_search(vertex_t start,
         boost::predecessor_map(&p[0]).distance_map(&d[0]).visitor(
             astar_goal_visitor(goal)));
   } catch (found_goal fg) {
-    std::list<vertex_t> shortest_path = {goal};
-    for (vertex_t v = p[goal]; v != shortest_path.front(); v = p[v]) {
+    std::list<Node> shortest_path = {goal};
+    for (Node v = p[goal]; v != shortest_path.front(); v = p[v]) {
       shortest_path.push_front(v);
     }
     return shortest_path;
@@ -70,25 +79,45 @@ std::list<vertex_t> WeightedGraph::a_star_search(vertex_t start,
   return {};
 }
 
-Map WeightedGraph::create_map() {
-  int width = 0, height = 0;
-
-  for (const auto loc : locations) {
-    width = std::max(width, loc.x + 1);
-    height = std::max(height, loc.y + 1);
+bool WeightedGraph::is_reachable(Point p) {
+  if (location_to_vertex.contains(p)) {
+    Node v = location_to_vertex[p];
+    return (boost::in_degree(v, g) > 0);
   }
+  return false;
+}
 
-  Map map(width, height);
+double WeightedGraph::cost(Node n1, Node n2) {
+  return distance(n1, n2);
+}
 
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      map.set(Point(x, y), 0);
+double WeightedGraph::distance(Node n1, Node n2) {
+  int dx = locations[n2].x - locations[n1].x;
+  int dy = locations[n2].y - locations[n1].y;
+  return std::sqrt(dx * dx + dy * dy);
+}
+
+void WeightedGraph::load_from_image(std::string file_path) {
+  Image img = LoadImage(file_path.c_str());
+
+  for (int y = 0; y < img.height; y++) {
+    for (int x = 0; x < img.width; x++) {
+      Point p(x, y);
+      Node n = add_vertex(p);
+
+      if (GetImageColor(img, x, y).r != 0) {
+        for (auto offset : Map::neighbour_offsets) {
+          Point neighbor = p + offset;
+
+          if (is_reachable(p) && is_reachable(neighbor)) {
+            Node neighbor_node = point_to_vertex(neighbor).value();
+            add_edge(neighbor_node, n, 1);
+          }
+        }
+      }
     }
   }
 
-  for (int v = 0; v < num_vertices(); v++) {
-    map.set(locations[v], boost::in_degree(v, g) != 0);
-  }
-
-  return map;
+  UnloadImage(img);
 }
+
