@@ -28,7 +28,7 @@ struct RippleNode {
   bool in_list = false;
   bool phase = false;
 
-  int cost; // Cost from source to node
+  float cost; // Cost from source to node
   
   FringeEntry list_entry;
   int32_t list_index = -1;
@@ -102,7 +102,7 @@ private:
   void entry();
 
   void search(Phase phase);
-  void search_vec(Phase phase);
+  void search_list(Phase phase);
 
   void phase_1_conclusion();
   void phase_2_conclusion(Node parent_of_goal);

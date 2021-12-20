@@ -13,7 +13,7 @@ struct FringeNode {
   bool in_list = false;
   bool phase = false;
 
-  int cost; // Cost from source to node
+  float cost; // Cost from source to node
   Node parent = -1;
   FringeEntry list_entry;
 };

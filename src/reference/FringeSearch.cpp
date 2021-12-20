@@ -40,7 +40,7 @@ std::optional<std::vector<Node>> FringeSearch::search(Node source, Node goal) {
 
             auto& n = cache[*nnode];
 
-            int g = n.cost;
+            float g = n.cost;
 
             Point np = map.node_to_point(*nnode);
             float f = g + map.distance(np, goalp);
@@ -67,7 +67,7 @@ std::optional<std::vector<Node>> FringeSearch::search(Node source, Node goal) {
 
                     float gs = i >= 4 ? g + 1 : g + sqrtf(2);
                     if(cache[s].visited) {
-                        int gi = cache[s].cost;
+                        float gi = cache[s].cost;
                         if(gs >= gi) {
                             continue;
                         }

@@ -147,7 +147,7 @@ void benchmark_scenario(int index, Map &map, Node source, Node goal) {
     Search search(map); //maybe this needs to be out
     auto shortest_path = search.search(source, goal).value_or(Path<Node>());
     LSB_Rec(index);
-    LSB_Reg_param("%ld\n", shortest_path.size());
+    LSB_Reg_param("%ld", shortest_path.size());
   }
 }
 
@@ -162,7 +162,7 @@ void benchmark(std::string name, std::vector<std::pair<std::string, Map>> &maps,
     std::cout << scenarios[i].size() << " benchmarks" << std::endl;
     Map &map = maps[i].second;
 
-    for (int j = 0; j < scenarios[i].size(); j++) { //for each map scenarios
+    for (int j = scenarios[i].size() * 3 / 4; j < scenarios[i].size(); j++) { //for each map scenarios
       Scenario &scenario = scenarios[i][j];
       Node source_node = map.point_to_node(scenario.source);
       Node goal_node = map.point_to_node(scenario.goal);
@@ -181,6 +181,8 @@ void benchmark(std::string name, std::vector<std::pair<std::string, Map>> &maps,
 }
 
 int main(int argc, char **argv) {
+
+# if 0
   std::string bench = "bg512";
   //std::string bench = "sc1";
   auto maps = load_maps("../benchmarks/" + bench + "-map");
@@ -194,46 +196,47 @@ int main(int argc, char **argv) {
   }
 
   benchmark<RippleSearch>("ripple", maps, scenarios);
+#endif
 
-  // std::string bench = "bg512";
-  // //std::string bench = "sc1";
-  // auto maps = load_maps("../benchmarks/" + bench + "-map");
-  // //std::cout << "Benchmark: " << bench <<" - loaded " << maps.size() << " maps" << std::endl;
+  std::string bench = "bg512";
+  //std::string bench = "sc1";
+  auto maps = load_maps("../benchmarks/" + bench + "-map");
+  std::cout << "Benchmark: " << bench <<" - loaded " << maps.size() << " maps" << std::endl;
 
-  // std::vector<std::vector<Scenario>> scenarios;
+  std::vector<std::vector<Scenario>> scenarios;
 
-  // for(auto &m : maps) {
-  //   auto& map = m.second;
-  //   auto scen = load_scenarios("../benchmarks/" + bench + "-scen/", m.first);
-  //   scenarios.push_back(std::move(scen));
-  // }
+  for(auto &m : maps) {
+    auto& map = m.second;
+    auto scen = load_scenarios("../benchmarks/" + bench + "-scen/", m.first);
+    scenarios.push_back(std::move(scen));
+  }
 
 
-  // FILE* f_ripple = fopen("sc1b_ripple.dat", "w");
-  // FILE* f_fringe_vec = fopen("sc1b_fringe_vec.dat", "w");
-  // FILE* f_fringe = fopen("sc1b_fringe.dat", "w");
-  // FILE* f_astar = fopen("sc1b_astar.dat", "w");
-  // FILE* f_boost = fopen("sc1b_boost.dat", "w");
+  FILE* f_ripple = fopen("sc1b_ripple.dat", "w");
+  FILE* f_fringe_vec = fopen("sc1b_fringe_vec.dat", "w");
+  FILE* f_fringe = fopen("sc1b_fringe.dat", "w");
+  FILE* f_astar = fopen("sc1b_astar.dat", "w");
+  FILE* f_boost = fopen("sc1b_boost.dat", "w");
 
-  // //int map_index = atoi(argv[1]);
+  //int map_index = atoi(argv[1]);
 
-  // for(int map_index = 0; map_index < (int)maps.size(); map_index++)
-  // {
-  //   auto& m = maps[map_index];
-  //   auto& map = m.second;
-  //   auto s = scenarios[map_index];
-  //   printf("Benchmarking %s (%d - %d x %d) with %d scenarios:\n", m.first.c_str(), map_index, map.width(), map.height(), (int)s.size());
-  //   benchmark_all_scenarios<RippleSearch>("Ripple", map, s, f_ripple);
-  //   // benchmark_all_scenarios<FringeSearchSimd>("Fringe Vec", map, s, f_fringe_vec);
-  //   // benchmark_all_scenarios<FringeSearch>("Fringe", map, s, f_fringe);
-  //   // benchmark_all_scenarios<AstarSearch>("Astar", map, s, f_astar);
-  //   // benchmark_all_scenarios<BoostSearch>("Boost", map, s, f_boost);
-  // }
+  for(int map_index = 0; map_index < (int)maps.size(); map_index++)
+  {
+    auto& m = maps[map_index];
+    auto& map = m.second;
+    auto s = scenarios[map_index];
+    printf("Benchmarking %s (%d - %d x %d) with %d scenarios:\n", m.first.c_str(), map_index, map.width(), map.height(), (int)s.size());
+    benchmark_all_scenarios<RippleSearch>("Ripple", map, s, f_ripple);
+    benchmark_all_scenarios<FringeSearchSimd>("Fringe Vec", map, s, f_fringe_vec);
+    benchmark_all_scenarios<FringeSearch>("Fringe", map, s, f_fringe);
+    //benchmark_all_scenarios<AstarSearch>("Astar", map, s, f_astar);
+    //benchmark_all_scenarios<BoostSearch>("Boost", map, s, f_boost);
+  }
 
-  // fclose(f_ripple);
-  // fclose(f_fringe_vec);
-  // fclose(f_fringe);
-  // fclose(f_astar);
-  // fclose(f_boost);
+  fclose(f_ripple);
+  fclose(f_fringe_vec);
+  fclose(f_fringe);
+  fclose(f_astar);
+  fclose(f_boost);
 
 }

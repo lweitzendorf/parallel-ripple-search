@@ -22,7 +22,7 @@
   #define LogfNOID(...)
 #endif
 
-#define NUM_THREADS 13
+#define NUM_THREADS 9
 #define NUM_SEARCH_THREADS (NUM_THREADS - 1)
 #define NUM_ESSENTIAL_THREADS 2
 static_assert(NUM_SEARCH_THREADS >= NUM_ESSENTIAL_THREADS);

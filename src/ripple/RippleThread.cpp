@@ -138,9 +138,26 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
 
   // For worker threads update the heuristic
   if (goal_2 && !collision_mask) {
-    heuristic = [this](Node n) {
+    float dist1 = map.distance(node, goal);
+    float dist2 = map.distance(node, goal_2.value());
+
+#if 1
+    if(dist1 < dist2) {
+      //If we hit closer to goal
+      heuristic = [this](Node n) {
         return map.distance(n, goal_2.value());
-    };
+      };
+    } else if(dist1 > dist2) {
+      //If we hit closer to goal_2
+      heuristic = [this](Node n) {
+        return map.distance(n, goal);
+      };
+    }
+#else
+      heuristic = [this](Node n) {
+        return map.distance(n, goal_2.value());
+      };
+#endif
   }
 
   collision_mask |= (1 << other);
@@ -161,7 +178,7 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
 
 void RippleThread::entry() { search(PHASE_1); }
 
-void RippleThread::search(Phase phase) {
+void RippleThread::search_list(Phase phase) {
   // auto heuristic = nullptr;
   #if 1
   if(phase == PHASE_1 && goal_2.has_value()){
@@ -176,8 +193,7 @@ void RippleThread::search(Phase phase) {
       return map.distance(n, goal);
     };
   }
-  #endif
-  #if 0
+  #else
   // Relies on the fact that goal is closer than goal_2
     heuristic = [this](Node n) {
       return map.distance(n, goal);
@@ -200,10 +216,10 @@ void RippleThread::search(Phase phase) {
   }
 
   FringeList fringe_list = { source };
-  int flimit = heuristic(source);
+  float flimit = heuristic(source);
 
   while (!fringe_list.empty()) {
-    int fmin = std::numeric_limits<int>::max();
+    float fmin = std::numeric_limits<float>::max();
 
     for (auto node = fringe_list.begin(); node != fringe_list.end(); node++) {
       switch (check_message_queue()) {
@@ -221,11 +237,11 @@ void RippleThread::search(Phase phase) {
       RippleNode &node_info = cache[*node].node;
 
       // Compute fringe heuristic for current node
-      int cost = (*node == source ? 0 : node_info.cost);
-      int f = cost + heuristic(*node);
+      float cost = (*node == source ? 0 : node_info.cost);
+      float f = cost + heuristic(*node);
 
       // Skip node if fringe heuristic lower than the threshold
-      if (f > flimit) {
+      if (f > flimit + 1) {
         fmin = std::min(fmin, f);
         continue;
       }
@@ -233,8 +249,8 @@ void RippleThread::search(Phase phase) {
       Point point = map.node_to_point(*node);
 
       // For each neighbour
-      for (auto &neighbour_offset : Map::neighbour_offsets) {
-        Point neighbor_point = point + neighbour_offset;
+      for (int i = 0; i < Map::NEIGHBOURS_COUNT; i++) {
+        Point neighbor_point = point + Map::neighbour_offsets[i];
 
         if (!map.in_bounds(neighbor_point) || !map.get(neighbor_point)) {
           continue;
@@ -248,13 +264,13 @@ void RippleThread::search(Phase phase) {
           return;
         }
 
-        // TODO can't hit if we initialize cache of the source node
+        // TODO maybe good for phase 2? can't hit if we initialize cache of the source node
         if (neighbor == source) {
           continue;
         }
 
         // Compute cost of path to s
-        int cost_nb = cost + 1;
+        float cost_nb = i >= 4 ? cost + 1 : cost + sqrtf(2);
 
         // Check if already owned, otherwise try to acquire
         uint64_t thread_parent = cache[neighbor].thread_parent.load(std::memory_order_relaxed);
@@ -376,16 +392,26 @@ inline bool RippleThread::recv_message(Message &msg) {
 }
 
 
-void RippleThread::search_vec(Phase phase) {
+void RippleThread::search(Phase phase) {
   // Relies on the fact that goal is closer than goal_2
-  heuristic = [this](Node n) {
-    return map.distance(n, goal);
-  };
+  if(phase == PHASE_1 && goal_2.has_value()){
+    heuristic = [this] (Node n){
+      return std::min(map.distance(n, goal), map.distance(n, goal_2.value()));
+    };
+    // printf("worker heuristic %d", id);
+  }
+  else{
+    // Relies on the fact that goal is closer than goal_2
+    heuristic = [this](Node n) {
+      return map.distance(n, goal);
+    };
+  }
 
   if (phase == PHASE_1) {
     cache[source].node.visited = true;
     cache[source].node.cost = 0;
     cache[source].node.list_index = 0;
+    cache[source].node.phase = phase;
   }
 
   if (phase == PHASE_2) {
@@ -396,7 +422,7 @@ void RippleThread::search_vec(Phase phase) {
     //assert(cache[goal].thread_parent.load(std::memory_order_seq_cst) == id);
   }
 
-  int flimit = heuristic(source);
+  float flimit = heuristic(source);
 
   std::vector<Node> now_list;
   std::vector<Node> later_list;
@@ -404,8 +430,9 @@ void RippleThread::search_vec(Phase phase) {
 
   now_list.push_back(source);
 
+  int counter = 0;
   while (!now_list.empty()) {
-    int fmin = std::numeric_limits<int>::max();
+    float fmin = std::numeric_limits<float>::max();
 
     do {
       Node node = now_list.back();
@@ -424,29 +451,30 @@ void RippleThread::search_vec(Phase phase) {
 
       // Load info for the current node
       RippleNode &node_info = cache[node].node;
-
-      if(node_info.list_index != current_list) {
+      
+      if(node != source && node_info.list_index != current_list) {
         continue;
       }
       node_info.list_index = -1;
 
       // Compute fringe heuristic for current node
-      int cost = node_info.cost;
-      int f = cost + heuristic(node);
+      float cost = node_info.cost;
+      float f = cost + heuristic(node);
 
       // Skip node if fringe heuristic lower than the threshold
-      if (f > flimit + 1) {
+      if (node != source && f > flimit + 1) {
         fmin = std::min(fmin, f);
         later_list.push_back(node);
         node_info.list_index = 1 - current_list;
+        counter++;
         continue;
       }
 
       Point point = map.node_to_point(node);
 
       // For each neighbour
-      for (auto &neighbour_offset : Map::neighbour_offsets) {
-        Point neighbor_point = point + neighbour_offset;
+      for(int i = 0; i < Map::NEIGHBOURS_COUNT; i++) {
+        Point neighbor_point = point + Map::neighbour_offsets[i];
 
         if (!map.in_bounds(neighbor_point) || !map.get(neighbor_point)) {
           continue;
@@ -460,14 +488,13 @@ void RippleThread::search_vec(Phase phase) {
           return;
         }
 
-        // TODO can't hit if we initialize cache of the source node
         if (neighbor == source) {
           continue;
         }
 
         // Compute cost of path to s
-        int cost_nb = cost + 1;
-
+        float cost_nb = i >= 4 ? cost + 1 : cost + sqrtf(2);
+        
         // Check if already owned, otherwise try to acquire
         uint64_t thread_parent = cache[neighbor].thread_parent.load(std::memory_order_relaxed);
         ThreadId owner = NODE_OWNER(thread_parent);
@@ -503,6 +530,10 @@ void RippleThread::search_vec(Phase phase) {
           continue;
         }
 
+        if(neighbor_cache.phase != phase) {
+          neighbor_cache.list_index = -1;
+        }
+
         // Update neighbour cache entry
         neighbor_cache.visited = true;
         neighbor_cache.cost = cost_nb;
@@ -513,6 +544,7 @@ void RippleThread::search_vec(Phase phase) {
 
         // Insert in now list if not already in it
         if(neighbor_cache.list_index != current_list) {
+            counter++;
             now_list.push_back(neighbor);
             neighbor_cache.list_index = current_list;
         }
@@ -525,10 +557,12 @@ void RippleThread::search_vec(Phase phase) {
     // Update fringe search threshold with the minimum value present in the new
     // list
     flimit = fmin;
+
+    counter += 10000;
   }
 
   if (phase == PHASE_2) {
-    Log("Didn't find goal in phase 2!");
+    Logf("Didn't find goal in phase 2! %d -> %d (%d)", source, goal, counter);
     assert(false);
   }
 
