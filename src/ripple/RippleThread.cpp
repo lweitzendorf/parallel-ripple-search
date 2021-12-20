@@ -162,10 +162,27 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
 void RippleThread::entry() { search(PHASE_1); }
 
 void RippleThread::search(Phase phase) {
+  // auto heuristic = nullptr;
+  #if 1
+  if(phase == PHASE_1 && goal_2.has_value()){
+    heuristic = [this] (Node n){
+      return std::min(map.distance(n, goal), map.distance(n, goal_2.value()));
+    };
+    // printf("worker heuristic %d", id);
+  }
+  else{
+    // Relies on the fact that goal is closer than goal_2
+    heuristic = [this](Node n) {
+      return map.distance(n, goal);
+    };
+  }
+  #endif
+  #if 0
   // Relies on the fact that goal is closer than goal_2
-  heuristic = [this](Node n) {
-    return map.distance(n, goal);
-  };
+    heuristic = [this](Node n) {
+      return map.distance(n, goal);
+    };
+  #endif
 
   if (phase == PHASE_1) {
     //cache[source].node.thread_parent.store(MAKE_OWNER_PARENT(), std::memory_order_seq_cst);
