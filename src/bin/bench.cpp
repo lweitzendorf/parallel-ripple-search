@@ -80,7 +80,7 @@ int main() {
     scenarios.push_back(std::move(scen));
   }
 
-  //benchmark<FringeSearch>("fringe", maps, scenarios);
   benchmark<RippleSearch>("ripple", maps, scenarios);
+  benchmark<FringeSearch>("fringe", maps, scenarios);
   benchmark<FringeSearchSimd>("fringe_simd", maps, scenarios);
 }

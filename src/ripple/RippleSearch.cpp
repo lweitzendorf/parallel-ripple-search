@@ -82,8 +82,7 @@ std::optional<Path<Node>> RippleSearch::search() {
     }
   }
 
-  bool valid = is_valid_path(path);
-  assert(valid);
+  assert(is_valid_path(path));
   return path.empty() ? std::nullopt : std::optional<Path<Node>>{path};
 }
 

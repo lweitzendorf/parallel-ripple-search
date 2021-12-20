@@ -18,7 +18,7 @@ set_common_project_settings(tbb)
 # add_compile_options(-Wall -Werror)
 
 # Set to TRUE to make a debug build
-set(DEBUG TRUE)
+set(DEBUG False)
 # Set to TRUE to enable avx512 vectorization
 set(AVX512 FALSE)
 
