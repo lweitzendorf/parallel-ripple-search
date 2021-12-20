@@ -2,31 +2,15 @@
 #include <liblsb.h>
 
 #include "graph/Map.h"
-#include "reference/FringeSearch.h"
 #include "reference/FringeSearchSimd.h"
 #include "ripple/RippleSearch.h"
 #include "benchmark/benchmarks.h"
 
-#define MIN_COST 0
-#define SCENARIOS_PER_MAP 50
 #define RUNS_PER_SCENARIO 20
-
-inline void flush_cache() {
-  const int size = 128 * 1024 * 1024;
-  volatile uint8_t *volatile data = (uint8_t *)malloc(size);
-  for (int i = 0; i < size; i++) {
-    data[i] = 0xcc;
-    volatile uint8_t v = data[i];
-  }
-
-  free((void *)data);
-}
 
 template <typename Search>
 void benchmark_scenario(int index, Map &map, Node source, Node goal) {
   for (int i = 0; i < RUNS_PER_SCENARIO; i++) {
-    flush_cache();
-
     LSB_Res();
     Search search(map, source, goal);
     auto shortest_path = search.search().value_or(Path<Node>());
@@ -46,11 +30,7 @@ void benchmark(std::string name, std::vector<std::pair<std::string, Map>> &maps,
     std::cout << scenarios[i].size() << " benchmarks" << std::endl;
     Map &map = maps[i].second;
 
-    int j = 0;
-    while (scenarios[i][j].cost < MIN_COST) j++;
-    size_t step_size = 1 + (scenarios[i].size() - j) / SCENARIOS_PER_MAP;
-
-    for (; j < scenarios[i].size(); j+=step_size) {
+    for (int j = 0; j < scenarios[i].size(); j++) {
       Scenario &scenario = scenarios[i][j];
       Node source_node = map.point_to_node(scenario.source);
       Node goal_node = map.point_to_node(scenario.goal);
@@ -80,7 +60,7 @@ int main() {
     scenarios.push_back(std::move(scen));
   }
 
-  benchmark<RippleSearch>("ripple", maps, scenarios);
   benchmark<FringeSearch>("fringe", maps, scenarios);
+  benchmark<RippleSearch>("ripple", maps, scenarios);
   benchmark<FringeSearchSimd>("fringe_simd", maps, scenarios);
 }
