@@ -14,7 +14,7 @@ RippleSearch::RippleSearch(Map &map)
 std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
   // Initialize cache
   for (auto &entry : cache) {
-    entry.thread.store(THREAD_NONE, std::memory_order_relaxed);
+    entry.thread_parent.store(MAKE_OWNER_PARENT(THREAD_NONE, -1), std::memory_order_relaxed);
     entry.node = {};
   }
 
@@ -46,7 +46,8 @@ std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
   // to avoid race conditions in which a thread tries to
   // acquire the starting node of another thread.
   for (int i = 0; i < high_level_path.size(); i++) {
-    cache[high_level_path[i]].thread.store((ThreadId)i);
+    Node thread_source = high_level_path[i];
+    cache[thread_source].thread_parent.store(MAKE_OWNER_PARENT(i, thread_source), std::memory_order_seq_cst);
   }
 
   std::vector<std::unique_ptr<RippleThread>> threads;
@@ -99,6 +100,8 @@ std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
     }
   }
 
+
+  // TODO: Enable this once we fix the double node problem and the no node for goal problem
   //if(!is_valid_path(path)) {
     //return std::nullopt;
   //}
@@ -116,10 +119,13 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
     while (message_queues[THREAD_COORDINATOR].try_pop(msg)) {
       switch (msg.type) {
         case MESSAGE_COLLISION: {
-          LogfNOID("Message - Collision: %d -> %d | %d -> %d (parent %d owned by %d)", msg.collision_info.collision_source,
-                   msg.collision_info.collision_target, msg.collision_info.collision_parent, msg.collision_info.collision_node,
-                   cache[msg.collision_info.collision_node].node.parent,
-                   cache[msg.collision_info.collision_node].thread.load());
+          LogfNOID("Message - Collision: %d -> %d | %d -> %d (parent %d owned by %d)", 
+                   msg.collision_info.collision_source,
+                   msg.collision_info.collision_target, 
+                   msg.collision_info.collision_parent, 
+                   msg.collision_info.collision_node,
+                   NODE_PARENT(cache[msg.collision_info.collision_node].thread_parent),
+                   NODE_OWNER(cache[msg.collision_info.collision_node].thread_parent));
 
           collision_graph.add_collision(msg.collision_info.collision_source,
                                         msg.collision_info.collision_target,
@@ -260,34 +266,40 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
 
   if(first_collision.target == THREAD_SOURCE) {
     //usleep(10 * 1000);
-    msg.final_node = cache[first_collision.node].node.parent;
-    LogfNOID("Collision target thread is source. Collision node: %d - Node %d - owner %d", first_collision.node, msg.final_node, cache[msg.final_node].thread.load());
+    msg.final_node = NODE_PARENT(cache[first_collision.node].thread_parent);
+    LogfNOID("Collision target thread is source. Collision node: %d - Node %d - owner %d", first_collision.node, msg.final_node, 
+      NODE_OWNER(cache[msg.final_node].thread_parent.load(std::memory_order_seq_cst)));
     LogfNOID("First collision: %d - %d - %d", first_collision.target, first_collision.node, first_collision.parent);
   } else {
     msg.final_node = first_collision.parent;
     LogfNOID("Collision target %d", first_collision.target);
   }
 
-  assert(cache[msg.final_node].thread.load() == THREAD_SOURCE);
+  assert(NODE_OWNER(cache[msg.final_node].thread_parent.load(std::memory_order_seq_cst)) == THREAD_SOURCE);
   message_queues[THREAD_SOURCE].push(msg);
 
+#if 0
   if (last_collision.target != THREAD_GOAL) {
-    cache[last_collision.node].node.parent = last_collision.parent;
-    cache[last_collision.node].thread.store(THREAD_GOAL);
+    cache[last_collision.node].thread_parent.store(MAKE_OWNER_PARENT(THREAD_GOAL, last_collision.parent), std::memory_order_seq_cst);
   }
+#endif
 
+  // TODO: ensure someone still pushes the node last_collision.node in the case
+  // that last_collision.target != THREAD_GOAL, since it's the source node of the worker
+  // and thus he does not include it
   msg = Message {
-          .type = MESSAGE_PHASE_2,
-          .final_node = last_collision.node,
+    .type = MESSAGE_PHASE_2,
+    .final_node = last_collision.target != THREAD_GOAL ? last_collision.parent : last_collision.node,
   };
-  assert(cache[msg.final_node].thread.load() == THREAD_GOAL);
+
+  assert(NODE_OWNER(cache[msg.final_node].thread_parent.load(std::memory_order_seq_cst)) == THREAD_GOAL);
   message_queues[THREAD_GOAL].push(msg);
 
   return found_path;
 }
 
 ThreadId RippleSearch::get_owner(Point p) const {
-  return cache[map.point_to_node(p)].thread.load(std::memory_order_relaxed);
+  return NODE_OWNER(cache[map.point_to_node(p)].thread_parent.load(std::memory_order_relaxed));
 }
 
 bool RippleSearch::is_adjacent_pair(Node n1, Node n2) const {

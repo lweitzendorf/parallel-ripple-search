@@ -21,12 +21,28 @@ enum FringeInterruptAction { NONE, RESET, EXIT };
 
 // TODO: test aligning this struct to cache line size to avoid
 // false sharing between threads that are exploring neighbouring nodes
-struct RippleCacheNode {
-  // Id of the thread that first discovered the Node and thus owns it
-  std::atomic<ThreadId> thread;
 
+struct RippleNode {
   // Fringe search data
-  FringeNode node;
+  bool visited = false;
+  bool in_list = false;
+  bool phase = false;
+
+  int cost; // Cost from source to node
+  FringeEntry list_entry;
+};
+
+static_assert(sizeof(ThreadId) <= 4 && sizeof(Node) <= 4);
+#define NODE_PARENT(v) ((Node)(v & 0xFFFFFFFF))
+#define NODE_OWNER(v) ((ThreadId)(v >> 32))
+#define MAKE_OWNER_PARENT(owner, parent) ((uint64_t)owner << 32 | (uint64_t)parent)
+
+struct RippleCacheNode {
+  // Packed id and parent node for atomic update:
+  // high 32 bits: id of the thread that first discovered the Node and thus owns it
+  // low  32 bits: parent Node 
+  std::atomic<uint64_t> thread_parent;
+  RippleNode node;
 };
 
 // Class representing a thread of the ripple search algorithm
@@ -52,7 +68,7 @@ private:
   std::optional<Node> goal_2;
 
   // Fringe search info
-  std::function<int(Node)> heuristic;
+  std::function<float(Node)> heuristic;
 
   // Reference to vector of node info for fringe search, shared between all
   // threads

@@ -14,7 +14,7 @@ struct FringeNode {
   bool phase = false;
 
   int cost; // Cost from source to node
-  Node parent = -34; // TODO losco
+  Node parent = -1;
   FringeEntry list_entry;
 };
 

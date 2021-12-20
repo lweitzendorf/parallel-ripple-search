@@ -71,7 +71,7 @@ void RippleThread::finalize_path(Node from, Node to, bool include_to) {
     }
 
     final_path.push_back(current);
-    current = cache[current].node.parent;
+    current = NODE_PARENT(cache[current].thread_parent.load(std::memory_order_seq_cst));
   }
   #endif
 
@@ -161,7 +161,7 @@ void RippleThread::search(Phase phase) {
   };
 
   if (phase == PHASE_1) {
-    cache[source].node.parent = source;
+    //cache[source].node.thread_parent.store(MAKE_OWNER_PARENT(), std::memory_order_seq_cst);
     cache[source].node.visited = true;
     cache[source].node.cost = 0;
     cache[source].node.in_list = true;
@@ -169,11 +169,10 @@ void RippleThread::search(Phase phase) {
 
   if (phase == PHASE_2) {
     if(source == goal) {
-      // TODO handle this!
-      Log("Source equals goal in phase2!!!");
+      AssertUnreachable();
     }
 
-    assert(cache[goal].thread.load() == id);
+    assert(cache[goal].thread_parent.load(std::memory_order_seq_cst) == id);
   }
 
   FringeList fringe_list = { source };
@@ -195,7 +194,7 @@ void RippleThread::search(Phase phase) {
       }
 
       // Load info for the current node
-      FringeNode &node_info = cache[*node].node;
+      RippleNode &node_info = cache[*node].node;
 
       // Compute fringe heuristic for current node
       int cost = (*node == source ? 0 : node_info.cost);
@@ -234,8 +233,8 @@ void RippleThread::search(Phase phase) {
         int cost_nb = cost + 1;
 
         // Check if already owned, otherwise try to acquire
-        ThreadId owner =
-            cache[neighbor].thread.load(std::memory_order_relaxed);
+        uint64_t thread_parent = cache[neighbor].thread_parent.load(std::memory_order_relaxed);
+        ThreadId owner = NODE_OWNER(thread_parent);
 
         // In phase two we skip all nodes that are not owned by us
         if (phase == PHASE_2 && owner != id) {
@@ -249,12 +248,12 @@ void RippleThread::search(Phase phase) {
           // If any of these is true a collision has happened.
           // The order is important as we want to avoid the expensive compare
           // and swap if any of first two checks short circuits.
-          if (owner != id &&
+          if (owner != id && 
               (owner != THREAD_NONE ||
-               !cache[neighbor].thread.compare_exchange_strong(owner, id))) {
+                !cache[neighbor].thread_parent.compare_exchange_strong(thread_parent, MAKE_OWNER_PARENT(id, *node)))) {
             // If we failed to acquire the node we need to handle the
             // collision
-            handle_collision(neighbor, *node, owner);
+            handle_collision(neighbor, *node, NODE_OWNER(thread_parent));
 
             // Skip the node
             continue;
@@ -262,7 +261,7 @@ void RippleThread::search(Phase phase) {
         }
 
         // Skip neighbor if already visited in this phase with a lower cost
-        FringeNode &neighbor_cache = cache[neighbor].node;
+        RippleNode& neighbor_cache = cache[neighbor].node;
         if (neighbor_cache.phase == phase && neighbor_cache.visited &&
             cost_nb >= neighbor_cache.cost) {
           continue;
@@ -281,10 +280,12 @@ void RippleThread::search(Phase phase) {
         // Update neighbour cache entry
         neighbor_cache.visited = true;
         neighbor_cache.cost = cost_nb;
-        neighbor_cache.parent = *node;
         neighbor_cache.list_entry = std::next(node);
         neighbor_cache.in_list = true;
         neighbor_cache.phase = phase;
+
+        // Update neighbour parent
+        cache[neighbor].thread_parent = MAKE_OWNER_PARENT(id, *node);
       }
       // Update current node cache entry
       node_info.in_list = false;

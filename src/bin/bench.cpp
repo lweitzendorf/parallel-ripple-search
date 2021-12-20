@@ -156,19 +156,19 @@ int main(int argc, char **argv) {
   FILE* f_astar = fopen("sc1b_astar.dat", "w");
   FILE* f_boost = fopen("sc1b_boost.dat", "w");
 
-  int map_index = atoi(argv[1]);
+  //int map_index = atoi(argv[1]);
 
-  //for(int map_index = 0; map_index < (int)maps.size(); map_index++) {
+  for(int map_index = 0; map_index < (int)maps.size(); map_index++)
   {
     auto& m = maps[map_index];
     auto& map = m.second;
     auto s = scenarios[map_index];
     printf("Benchmarking %s (%d - %d x %d) with %d scenarios:\n", m.first.c_str(), map_index, map.width(), map.height(), (int)s.size());
     benchmark_all_scenarios<RippleSearch>("Ripple", map, s, f_ripple);
-    benchmark_all_scenarios<FringeSearchSimd>("Fringe Vec", map, s, f_fringe_vec);
-    benchmark_all_scenarios<FringeSearch>("Fringe", map, s, f_fringe);
-    benchmark_all_scenarios<AstarSearch>("Astar", map, s, f_astar);
-    benchmark_all_scenarios<BoostSearch>("Boost", map, s, f_boost);
+    //benchmark_all_scenarios<FringeSearchSimd>("Fringe Vec", map, s, f_fringe_vec);
+    //benchmark_all_scenarios<FringeSearch>("Fringe", map, s, f_fringe);
+    //benchmark_all_scenarios<AstarSearch>("Astar", map, s, f_astar);
+    //benchmark_all_scenarios<BoostSearch>("Boost", map, s, f_boost);
   }
 
   fclose(f_ripple);
