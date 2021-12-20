@@ -31,9 +31,9 @@ class CollisionGraph {
 public:
   std::vector<std::vector<std::pair<ThreadId, Collision>>> graph;
 
-  CollisionGraph(Map &map, Node goal) : map(map), goal(goal) {
-    graph.resize(NUM_SEARCH_THREADS);
-  }
+  CollisionGraph(Map &map) : map(map) { }
+
+  void init(Node goal);
 
   size_t size() const { return graph.size(); }
 

@@ -1,16 +1,17 @@
 #pragma once
 
 #include "RippleThread.h"
+#include "HighLevelGraph.h"
 
 // Utility class for initializing and invoking ripple search
 class RippleSearch {
 private:
   Map &map;
+  GridHighLevelGraph high_level_graph;
+
   std::vector<concurrent_queue<Message>> message_queues;
   std::vector<RippleCacheNode> cache;
   CollisionGraph collision_graph;
-  Node source;
-  Node goal;
 
   std::optional<Path<ThreadId>> coordinate_threads();
   std::optional<Path<ThreadId>> check_collision_path();
@@ -19,10 +20,10 @@ private:
 
   public:
   // Initialize search on a map
-  RippleSearch(Map &map, Node source, Node goal);
+  RippleSearch(Map &map);
 
   // Start the search from source to goal, they must be valid nodes
-  std::optional<Path<Node>> search();
+  std::optional<Path<Node>> search(Node source, Node goal);
 
   ThreadId get_owner(Point p) const;
 };

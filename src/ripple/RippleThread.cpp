@@ -46,12 +46,34 @@ bool RippleThread::join() {
 }
 
 void RippleThread::finalize_path(Node from, Node to, bool include_to) {
-  Log("Attempting to finalize path");
+  Logf("Attempting to finalize path from %d to %d", from, to);
   Node current = from;
+
+  #if 0
   do  {
+    if(id == THREAD_SOURCE) {
+      //printf("Source path finalize: %d - %d - %d\n", current, cache[current].thread.load(), map.get(current));
+      if(current == -34) {
+        std::exit(1);
+      }
+    }
+
     final_path.push_back(current);
     current = cache[current].node.parent;
   } while (current != to);
+  #else
+  while (current != to) {
+    if(id == THREAD_SOURCE) {
+      //printf("Source path finalize: %d - %d - %d\n", current, cache[current].thread.load(), map.get(current));
+      if(current == -34) {
+        std::exit(1);
+      }
+    }
+
+    final_path.push_back(current);
+    current = cache[current].node.parent;
+  }
+  #endif
 
   if (include_to) {
     final_path.push_back(to);
@@ -138,7 +160,19 @@ void RippleThread::search(Phase phase) {
     return map.distance(n, goal);
   };
 
+  if (phase == PHASE_1) {
+    cache[source].node.parent = source;
+    cache[source].node.visited = true;
+    cache[source].node.cost = 0;
+    cache[source].node.in_list = true;
+  }
+
   if (phase == PHASE_2) {
+    if(source == goal) {
+      // TODO handle this!
+      Log("Source equals goal in phase2!!!");
+    }
+
     assert(cache[goal].thread.load() == id);
   }
 
@@ -158,11 +192,6 @@ void RippleThread::search(Phase phase) {
           return exit();
         case NONE:
           break;
-      }
-
-      // If we found our goal in phase 2 we are done and can exit;
-      if (phase == PHASE_2 && *node == goal) {
-        return phase_2_conclusion();
       }
 
       // Load info for the current node
@@ -190,6 +219,13 @@ void RippleThread::search(Phase phase) {
 
         const Node neighbor = map.point_to_node(neighbor_point);
 
+        // If we found our goal in phase 2 we are done and can exit;
+        if (phase == PHASE_2 && neighbor == goal) {
+          phase_2_conclusion(*node);
+          return;
+        }
+
+        // TODO can't hit if we initialize cache of the source node
         if (neighbor == source) {
           continue;
         }
@@ -264,7 +300,7 @@ void RippleThread::search(Phase phase) {
   }
 
   if (phase == PHASE_2) {
-    std::cout << "Thread " << id << " didn't find goal in phase 2!" << std::endl;
+    Log("Didn't find goal in phase 2!");
     assert(false);
   }
 
@@ -291,9 +327,12 @@ void RippleThread::phase_1_conclusion() {
   }
 }
 
-void RippleThread::phase_2_conclusion() {
+void RippleThread::phase_2_conclusion(Node parent_of_goal) {
   Log("Worker finish");
-  finalize_path(goal, source, id == THREAD_GOAL);
+
+  final_path.push_back(goal);
+  finalize_path(parent_of_goal, source, id == THREAD_GOAL);
+
   return exit();
 }
 

@@ -14,20 +14,18 @@ struct FringeNode {
   bool phase = false;
 
   int cost; // Cost from source to node
-  Node parent;
+  Node parent = -34; // TODO losco
   FringeEntry list_entry;
 };
 
 class FringeSearch {
   // Constants
-  Node source;
-  Node goal;
   Map &map;
   FringeList fringe_list;
 
 public:
   std::vector<FringeNode> cache;
-  std::optional<std::vector<Node>> search();
+  std::optional<std::vector<Node>> search(Node source, Node goal);
 
-  FringeSearch(Map &map, Node source, Node goal);
+  FringeSearch(Map &map);
 };

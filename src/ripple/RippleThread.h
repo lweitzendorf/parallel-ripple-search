@@ -17,6 +17,8 @@ using oneapi::tbb::concurrent_queue;
 // Question: can we put some of these enums within the class? is this a better
 // design?
 enum FringeInterruptAction { NONE, RESET, EXIT };
+
+
 // TODO: test aligning this struct to cache line size to avoid
 // false sharing between threads that are exploring neighbouring nodes
 struct RippleCacheNode {
@@ -84,7 +86,7 @@ private:
   void search(Phase phase);
 
   void phase_1_conclusion();
-  void phase_2_conclusion();
+  void phase_2_conclusion(Node parent_of_goal);
   void exit();
 
 public:

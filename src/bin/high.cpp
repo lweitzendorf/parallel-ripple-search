@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
   SetTraceLogLevel(LOG_NONE);
 
   // Load benchmark set
-  std::string bench = "sc1";
+  std::string bench = "bg512";
   auto maps = load_maps("../benchmarks/" + bench + "-map");
   std::cout << "Benchmark: " << bench <<" - loaded " << maps.size() << " maps" << std::endl;
 
@@ -122,6 +122,10 @@ int main(int argc, char **argv) {
   // Main loop
   size_t scenario_index = 300;
   int num_non_essential_threads = 4;
+
+
+  printf("Selected map: %s\n", maps[0].first.c_str());
+
   for (unsigned texture_index = 0;
        !WindowShouldClose();) // Detect window close button or ESC key
   {

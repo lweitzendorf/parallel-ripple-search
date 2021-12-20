@@ -17,8 +17,6 @@ static_assert(sizeof(FringeNodeSimd) == 4 * 4);
 
 class FringeSearchSimd {
   // Constants
-  Node source;
-  Node goal;
   Map &map;
 
   // Updated by step
@@ -28,6 +26,6 @@ class FringeSearchSimd {
 public:
   std::vector<FringeNodeSimd> cache;
 
-  FringeSearchSimd(Map &map, Node source, Node goal);
-  std::optional<std::vector<Node>> search();
+  FringeSearchSimd(Map &map);
+  std::optional<std::vector<Node>> search(Node source, Node goal);
 };

@@ -19,7 +19,7 @@ vertex_t WeightedGraph::add_vertex(Point p) {
   return v;
 }
 
-std::optional<edge_t> WeightedGraph::add_edge(vertex_t vertex_1, vertex_t vertex_2, int weight) {
+std::optional<edge_t> WeightedGraph::add_edge(vertex_t vertex_1, vertex_t vertex_2, float weight) {
   if (vertex_1 >= num_vertices() || vertex_2 >= num_vertices())
     return std::nullopt;
 
@@ -46,8 +46,7 @@ auto WeightedGraph::neighbors(vertex_t vertex) {
                         });
 }
 
-std::list<vertex_t> WeightedGraph::a_star_search(vertex_t start,
-                                                 vertex_t goal) {
+Path<Node> WeightedGraph::a_star_search(vertex_t start, vertex_t goal) {
   if (start < 0 || goal < 0 || start >= num_vertices() ||
       goal >= num_vertices())
     return {};
@@ -61,11 +60,15 @@ std::list<vertex_t> WeightedGraph::a_star_search(vertex_t start,
         boost::predecessor_map(&p[0]).distance_map(&d[0]).visitor(
             astar_goal_visitor(goal)));
   } catch (found_goal fg) {
-    std::list<vertex_t> shortest_path = {goal};
-    for (vertex_t v = p[goal]; v != shortest_path.front(); v = p[v]) {
-      shortest_path.push_front(v);
+    Path<Node> path;
+    Node current = goal;
+    while (current != start) {
+      path.push_back(current);
+      current = p[current];
     }
-    return shortest_path;
+    path.push_back(start);
+    std::reverse(path.begin(), path.end());
+    return path;
   }
   return {};
 }
@@ -91,4 +94,29 @@ Map WeightedGraph::create_map() {
   }
 
   return map;
+}
+
+
+void WeightedGraph::build_from_map(Map &map) {
+  for (int y = 0; y < map.height(); y++) {
+    for (int x = 0; x < map.width(); x++) {
+      Point p(x, y);
+      add_vertex(p);
+      Node n = map.point_to_node(p);
+
+      if (map.get(Point(x, y))) {
+        for (auto offset : Map::neighbour_offsets) {
+          Point neighbor = p + offset;
+
+          if (map.in_bounds(neighbor) && map.get(neighbor)) {
+            Node neighbor_node = map.point_to_node(neighbor);
+            if (neighbor_node < n) {
+              float cost = neighbor.x == p.x || neighbor.y == p.y ? 1 : sqrtf(2);
+              add_edge(neighbor_node, n, 1);
+            }
+          }
+        }
+      }
+    }
+  }
 }

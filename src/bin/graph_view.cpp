@@ -11,6 +11,7 @@
 #include "reference/FringeSearchSimd.h"
 #include "ripple/RippleSearch.h"
 #include "utility/FileParser.h"
+#include "benchmark/benchmarks.h"
 
 #include "reference/Astar.h"
 
@@ -48,29 +49,6 @@ bool check_source_and_goal(Map &map, Node source, Node goal) {
   return true;
 }
 
-void build_graph(WeightedGraph &g, Map &map) {
-  for (int y = 0; y < map.height(); y++) {
-    for (int x = 0; x < map.width(); x++) {
-      Point p(x, y);
-      g.add_vertex(p);
-      Node n = map.point_to_node(p);
-
-      if (map.get(Point(x, y))) {
-        for (auto offset : Map::neighbour_offsets) {
-          Point neighbor = p + offset;
-
-          if (map.in_bounds(neighbor) && map.get(neighbor)) {
-            Node neighbor_node = map.point_to_node(neighbor);
-            if (neighbor_node < n) {
-              g.add_edge(neighbor_node, n, 1);
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
 void draw_walls(Image img, Map &map) {
   for (int y = 0; y < map.height(); y++) {
     for (int x = 0; x < map.width(); x++) {
@@ -99,7 +77,8 @@ template <typename Iterator> void print_path(Iterator begin, Iterator end) {
 
 Image test_boost_a_star(Map &map, Node source, Node goal) {
   WeightedGraph graph;
-  build_graph(graph, map);
+  graph.build_from_map(map);
+  
   Timer t;
   t.start();
   auto path = graph.a_star_search(source, goal);
@@ -192,16 +171,18 @@ Image test_Astar_2(Map &map, Node source, Node goal) {
 template <typename Search>
 Image test_search(std::string name, Map &map, Node source, Node goal,
                   std::function<void(Image &, Map &, Search &)> draw) {
+
+  Search search(map);
+  
   Timer t;
   t.start();
 
-  Search search(map, source, goal);
-  auto path = search.search().value_or(Path<Node>());
+  auto path = search.search(source, goal).value_or(Path<Node>());
 
   t.stop();
 
   printf("%s time: %.3fms (%d nodes)\n", name.c_str(),
-         (double)t.get_milliseconds(), (int)path.size());
+         (double)t.get_nanoseconds() / 1e6, (int)path.size());
 
   //print_path(path.begin(), path.end());
 
@@ -267,6 +248,7 @@ int main(int argc, char **argv) {
   // Disable raylib log
   SetTraceLogLevel(LOG_NONE);
 
+#if 0
   if (argc < 4) {
     std::cout << "Usage: " << argv[0] << " PATH START GOAL" << std::endl;
     return 1;
@@ -291,6 +273,38 @@ int main(int argc, char **argv) {
 
   if (!check_source_and_goal(map, source, goal))
     return 3;
+
+#else
+    std::string bench = "bg512";
+    //std::string bench = "sc1";
+    auto maps = load_maps("../benchmarks/" + bench + "-map");
+    //std::cout << "Benchmark: " << bench <<" - loaded " << maps.size() << " maps" << std::endl;
+
+    std::vector<std::vector<Scenario>> scenarios;
+
+    for(auto &m : maps) {
+      auto& map = m.second;
+      auto scen = load_scenarios("../benchmarks/" + bench + "-scen/", m.first);
+      scenarios.push_back(std::move(scen));
+    }
+
+    if(argc < 2) {
+      printf("Usage: %s <map index>\n", argv[0]);
+      exit(1);
+    }
+
+    int map_index = atoi(argv[1]);
+    auto& m = maps[map_index];
+    auto& map = m.second;
+    auto scen = scenarios[map_index];
+    int scen_index = 498;//scen.size() - 1;
+    
+    Node source = map.point_to_node(scen[scen_index].source);
+    Node goal = map.point_to_node(scen[scen_index].goal);
+
+
+    printf("%s with %d scenario (%d -> %d):\n", m.first.c_str(), (int)scen_index, source, goal);
+#endif
 
   const std::vector<Image> images = {
       test_search<RippleSearch>("Ripple", map, source, goal, ripple_draw),

@@ -1,5 +1,18 @@
 #include "Collision.h"
 
+void CollisionGraph::init(Node g) {
+  graph.clear();
+  graph.resize(NUM_SEARCH_THREADS);
+
+  neighbors.clear();
+
+  for(int i = 0; i < NUM_SEARCH_THREADS; i++) {
+    masks[i] = 0;
+  }
+  
+  goal = g;
+}
+
 void CollisionGraph::add_collision(ThreadId source, ThreadId target, Node node, Node parent) {
   assert(source != target);
 
