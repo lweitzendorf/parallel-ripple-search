@@ -46,7 +46,7 @@ bool RippleThread::join() {
 }
 
 void RippleThread::finalize_path(Node from, Node to, bool include_to) {
-  Log("Attempting to finalize path");
+  Logf("Attempting to finalize path %d -> %d", from, to);
 
   for (Node current = from; current != to; current = cache[current].parent)
     final_path.push_back(current);
@@ -74,7 +74,8 @@ FringeInterruptAction RippleThread::check_message_queue() {
       case MESSAGE_PHASE_2: {
         Log("Message - Phase2");
         if (id == THREAD_SOURCE) {
-          finalize_path(cache[message.final_node].parent, source, true);
+          if (message.final_node != source)
+            finalize_path(cache[message.final_node].parent, source, true);
           response_action = EXIT;
         } else if (id == THREAD_GOAL) {
           finalize_path(message.final_node, source, true);

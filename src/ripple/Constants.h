@@ -18,7 +18,7 @@
 #else
   #define Log(...)
   #define LogNOID(...)
-  #define Log(...)
+  #define Logf(...)
   #define LogfNOID(...)
 #endif
 

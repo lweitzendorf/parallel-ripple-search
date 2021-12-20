@@ -81,6 +81,6 @@ int main() {
   }
 
   //benchmark<FringeSearch>("fringe", maps, scenarios);
-  //benchmark<FringeSearchSimd>("fringe_simd", maps, scenarios);
   benchmark<RippleSearch>("ripple", maps, scenarios);
+  benchmark<FringeSearchSimd>("fringe_simd", maps, scenarios);
 }

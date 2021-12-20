@@ -90,7 +90,7 @@ std::optional<Path<Node>> RippleSearch::search() {
 std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
   Message msg{};
   int working_threads = NUM_SEARCH_THREADS;
-  int waiting_essential = 0, waiting_non_essential = 0;
+  int waiting_threads = 0;
 
   while (working_threads > 0) {
     while (message_queues[THREAD_COORDINATOR].try_pop(msg)) {
@@ -112,11 +112,7 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
         } break;
 
         case MESSAGE_WAITING: {
-          if (msg.id == THREAD_SOURCE || msg.id == THREAD_GOAL) {
-            waiting_essential++;
-          } else {
-            waiting_non_essential++;
-          }
+          waiting_threads++;
         } break;
 
         default:
@@ -125,8 +121,7 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
       }
     }
 
-    int waiting_threads = waiting_essential + waiting_non_essential;
-    if (waiting_essential == NUM_ESSENTIAL_THREADS || waiting_threads == working_threads) { // no path
+    if (waiting_threads == working_threads) { // no path
       msg = Message { .type = MESSAGE_STOP };
       for (int thread = THREAD_SOURCE; thread <= THREAD_GOAL; thread++) {
         message_queues[thread].push(msg);
@@ -171,9 +166,6 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
     ThreadId thread = found_path[i];
     auto collision_with_prev =
         collision_graph.get_collision(found_path[i - 1], found_path[i]);
-    // TODO we could make this /slightly/ faster by holding on to these values
-    //      as the 'collision_with_prev' at a later point. (same for the
-    //      collision_path values)
     auto collision_with_next =
         collision_graph.get_collision(found_path[i], found_path[i + 1]);
 
