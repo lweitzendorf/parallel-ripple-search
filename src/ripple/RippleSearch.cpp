@@ -26,10 +26,8 @@ std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
 
 #if 1
   auto high_level_path = high_level_graph.create_high_level_path(source, goal, NUM_SEARCH_THREADS);
-  if(high_level_path.size() != NUM_SEARCH_THREADS) {
-    printf("Failed to create high path\n");
-    return std::nullopt;
-  }
+  assert(high_level_path.size() >= 2);
+  working_threads = high_level_path.size();
 
 #else
   Path<Node> high_level_path = { source };
@@ -47,7 +45,9 @@ std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
   // acquire the starting node of another thread.
   for (int i = 0; i < high_level_path.size(); i++) {
     Node thread_source = high_level_path[i];
-    cache[thread_source].thread_parent.store(MAKE_OWNER_PARENT(i, thread_source), std::memory_order_seq_cst);
+
+    ThreadId owner = i == high_level_path.size() - 1 ? THREAD_GOAL : (ThreadId)i;
+    cache[thread_source].thread_parent.store(MAKE_OWNER_PARENT(owner, thread_source), std::memory_order_seq_cst);
   }
 
   std::vector<std::unique_ptr<RippleThread>> threads;
@@ -61,7 +61,7 @@ std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
   }
 
   // Start worker threads
-  for (int i = 1; i < NUM_SEARCH_THREADS - 1; i++) {
+  for (int i = 1; i < working_threads - 1; i++) {
     auto worker_thread = std::make_unique<RippleThread>((ThreadId)i, map, cache, message_queues);
     worker_thread->set_src_and_goals(high_level_path[i], high_level_path[i - 1],
                                      high_level_path[i + 1]);
@@ -91,7 +91,8 @@ std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
 
   Path<Node> path;
   for (auto &id : collision_path.value_or(Path<ThreadId>())) {
-    auto &p = threads[id]->get_final_path();
+    int thread_index = id == THREAD_GOAL ? working_threads - 1 : id;
+    auto &p = threads[thread_index]->get_final_path();
 
     if (id == THREAD_SOURCE) {
       std::reverse_copy(p.begin(), p.end(), std::back_inserter(path));
@@ -106,13 +107,12 @@ std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
     //return std::nullopt;
   //}
 
-  assert(is_valid_path(path));
+  //assert(is_valid_path(path));
   return path.empty() ? std::nullopt : std::optional<Path<Node>>{path};
 }
 
 std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
   Message msg{};
-  int working_threads = NUM_SEARCH_THREADS;
   int waiting_essential = 0, waiting_non_essential = 0;
 
   while (working_threads > 0) {
@@ -275,14 +275,8 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
     LogfNOID("Collision target %d", first_collision.target);
   }
 
-  assert(NODE_OWNER(cache[msg.final_node].thread_parent.load(std::memory_order_seq_cst)) == THREAD_SOURCE);
+  //assert(NODE_OWNER(cache[msg.final_node].thread_parent.load(std::memory_order_seq_cst)) == THREAD_SOURCE);
   message_queues[THREAD_SOURCE].push(msg);
-
-#if 0
-  if (last_collision.target != THREAD_GOAL) {
-    cache[last_collision.node].thread_parent.store(MAKE_OWNER_PARENT(THREAD_GOAL, last_collision.parent), std::memory_order_seq_cst);
-  }
-#endif
 
   // TODO: ensure someone still pushes the node last_collision.node in the case
   // that last_collision.target != THREAD_GOAL, since it's the source node of the worker
@@ -292,7 +286,7 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
     .final_node = last_collision.target != THREAD_GOAL ? last_collision.parent : last_collision.node,
   };
 
-  assert(NODE_OWNER(cache[msg.final_node].thread_parent.load(std::memory_order_seq_cst)) == THREAD_GOAL);
+  //assert(NODE_OWNER(cache[msg.final_node].thread_parent.load(std::memory_order_seq_cst)) == THREAD_GOAL);
   message_queues[THREAD_GOAL].push(msg);
 
   return found_path;

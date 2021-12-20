@@ -172,7 +172,7 @@ void RippleThread::search(Phase phase) {
       AssertUnreachable();
     }
 
-    assert(cache[goal].thread_parent.load(std::memory_order_seq_cst) == id);
+    //assert(cache[goal].thread_parent.load(std::memory_order_seq_cst) == id);
   }
 
   FringeList fringe_list = { source };

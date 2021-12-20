@@ -8,10 +8,12 @@ class RippleSearch {
 private:
   Map &map;
   GridHighLevelGraph high_level_graph;
+  int working_threads;
 
   std::vector<concurrent_queue<Message>> message_queues;
   std::vector<RippleCacheNode> cache;
   CollisionGraph collision_graph;
+
 
   std::optional<Path<ThreadId>> coordinate_threads();
   std::optional<Path<ThreadId>> check_collision_path();

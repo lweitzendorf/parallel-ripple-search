@@ -77,7 +77,7 @@ void benchmark_all_scenarios(const std::string& name, Map &map, std::vector<Scen
   for (int i = 0; i < COUNT; i++) {
     uint64_t total_time = 0;
 
-    for(size_t j = scenarios.size() / 2; j < scenarios.size(); j += 1) {
+    for(size_t j = 0; j < scenarios.size(); j += 1) {
       Scenario scen = scenarios[j];
       Node s = map.point_to_node(scen.source);
       Node g = map.point_to_node(scen.goal);
@@ -165,10 +165,10 @@ int main(int argc, char **argv) {
     auto s = scenarios[map_index];
     printf("Benchmarking %s (%d - %d x %d) with %d scenarios:\n", m.first.c_str(), map_index, map.width(), map.height(), (int)s.size());
     benchmark_all_scenarios<RippleSearch>("Ripple", map, s, f_ripple);
-    //benchmark_all_scenarios<FringeSearchSimd>("Fringe Vec", map, s, f_fringe_vec);
-    //benchmark_all_scenarios<FringeSearch>("Fringe", map, s, f_fringe);
-    //benchmark_all_scenarios<AstarSearch>("Astar", map, s, f_astar);
-    //benchmark_all_scenarios<BoostSearch>("Boost", map, s, f_boost);
+    // benchmark_all_scenarios<FringeSearchSimd>("Fringe Vec", map, s, f_fringe_vec);
+    // benchmark_all_scenarios<FringeSearch>("Fringe", map, s, f_fringe);
+    // benchmark_all_scenarios<AstarSearch>("Astar", map, s, f_astar);
+    // benchmark_all_scenarios<BoostSearch>("Boost", map, s, f_boost);
   }
 
   fclose(f_ripple);
