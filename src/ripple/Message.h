@@ -29,7 +29,10 @@ struct Message {
       Node target;
     } path_info; // type = MESSAGE_PHASE_2 for worker threads
 
-    Node final_node; // type = MESSAGE_PHASE_2 for goal thread
+    struct {
+      Node node; 
+      Node extra;
+    } final_info;// type = MESSAGE_PHASE_2 for goal thread
 
     struct {
       Node collision_node;   // Node that is already owned by the target thread

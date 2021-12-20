@@ -99,7 +99,14 @@ FringeInterruptAction RippleThread::check_message_queue() {
       case MESSAGE_PHASE_2: {
         Log("Message - Phase2");
         if (id == THREAD_SOURCE || id == THREAD_GOAL) {
-          finalize_path(message.final_node, source, true);
+          if(message.final_info.extra != -1) {
+            final_path.push_back(message.final_info.extra);
+          }
+
+          if(!(id == THREAD_SOURCE && message.final_info.node == source)) {
+            finalize_path(message.final_info.node, source, true);
+          }
+          
           response_action = EXIT;
         } else {
           set_src_and_goal(message.path_info.source, message.path_info.target);

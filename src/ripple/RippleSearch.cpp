@@ -103,9 +103,9 @@ std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
 
 
   // TODO: Enable this once we fix the double node problem and the no node for goal problem
-  //if(!is_valid_path(path)) {
-    //return std::nullopt;
-  //}
+  if(!is_valid_path(path)) {
+    return std::nullopt;
+  }
 
   //assert(is_valid_path(path));
   return path.empty() ? std::nullopt : std::optional<Path<Node>>{path};
@@ -266,16 +266,16 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
 
   if(first_collision.target == THREAD_SOURCE) {
     //usleep(10 * 1000);
-    msg.final_node = NODE_PARENT(cache[first_collision.node].thread_parent);
-    LogfNOID("Collision target thread is source. Collision node: %d - Node %d - owner %d", first_collision.node, msg.final_node, 
-      NODE_OWNER(cache[msg.final_node].thread_parent.load(std::memory_order_seq_cst)));
+    msg.final_info.node = NODE_PARENT(cache[first_collision.node].thread_parent);
+    LogfNOID("Collision target thread is source. Collision node: %d - Node %d - owner %d", first_collision.node, msg.final_info.node, 
+      NODE_OWNER(cache[msg.final_info.node].thread_parent.load(std::memory_order_seq_cst)));
     LogfNOID("First collision: %d - %d - %d", first_collision.target, first_collision.node, first_collision.parent);
   } else {
-    msg.final_node = first_collision.parent;
+    msg.final_info.node = first_collision.parent;
     LogfNOID("Collision target %d", first_collision.target);
   }
+  msg.final_info.extra = -1;
 
-  //assert(NODE_OWNER(cache[msg.final_node].thread_parent.load(std::memory_order_seq_cst)) == THREAD_SOURCE);
   message_queues[THREAD_SOURCE].push(msg);
 
   // TODO: ensure someone still pushes the node last_collision.node in the case
@@ -283,10 +283,16 @@ std::optional<Path<ThreadId>> RippleSearch::check_collision_path() {
   // and thus he does not include it
   msg = Message {
     .type = MESSAGE_PHASE_2,
-    .final_node = last_collision.target != THREAD_GOAL ? last_collision.parent : last_collision.node,
   };
 
-  //assert(NODE_OWNER(cache[msg.final_node].thread_parent.load(std::memory_order_seq_cst)) == THREAD_GOAL);
+  if(last_collision.target != THREAD_GOAL) {
+    msg.final_info.node = last_collision.parent;
+    msg.final_info.extra = last_collision.node;
+  } else {
+    msg.final_info.node = last_collision.node;
+    msg.final_info.extra = -1;
+  }
+
   message_queues[THREAD_GOAL].push(msg);
 
   return found_path;
