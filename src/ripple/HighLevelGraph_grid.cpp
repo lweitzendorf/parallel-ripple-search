@@ -8,7 +8,7 @@
 using glm::vec2;
 
 // Width and height of the grid that is sampled to create the high level graph
-const int GRID_SIZE = 64;
+const int GRID_SIZE = 32;
 
 GridHighLevelGraph::GridHighLevelGraph(Map& map): map(map), grid(GRID_SIZE, GRID_SIZE), adj(GRID_SIZE * GRID_SIZE) {
   cell = vec2((float)map.width() / (GRID_SIZE), (float)map.height() / (GRID_SIZE));
@@ -105,6 +105,10 @@ int GridHighLevelGraph::distance(int i, int j) {
 
 
 std::vector<Point> GridHighLevelGraph::refine_high_level_path(const std::vector<Point>& path, int num) {
+  if(num <= 0) {
+    return {};
+  }
+
   if(path.size() <= num) {
     return path;
   }
