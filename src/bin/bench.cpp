@@ -13,8 +13,8 @@
 
 template <typename Search>
 void benchmark_scenario(int index, Map &map, Node source, Node goal) {
+  Search search(map, source, goal);
   for (int i = 0; i < RUNS_PER_SCENARIO; i++) {
-    Search search(map, source, goal);
     LSB_Res();
     auto shortest_path = search.search().value_or(Path<Node>());
     LSB_Rec(index);
@@ -64,8 +64,8 @@ int main() {
   }
 
   benchmark<RippleSearch>("ripple-"+std::to_string(NUM_THREADS), maps, scenarios);
-  benchmark<FringeSearch>("fringe", maps, scenarios);
-  benchmark<FringeSearchSimd>("fringe-simd", maps, scenarios);
-  benchmark<AStarSearch>("a-star", maps, scenarios);
+  //benchmark<FringeSearch>("fringe", maps, scenarios);
+  //benchmark<FringeSearchSimd>("fringe-simd", maps, scenarios);
+  //benchmark<AStarSearch>("a-star", maps, scenarios);
   benchmark<BoostAStarSearch>("boost-a-star", maps, scenarios);
 }

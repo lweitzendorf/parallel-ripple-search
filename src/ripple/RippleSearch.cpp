@@ -9,13 +9,18 @@
 // Ripple search utilities
 RippleSearch::RippleSearch(Map &map, Node source, Node goal)
     : map(map), node_owners(map.size()), collision_graph(map, goal),
-      source(source), goal(goal), message_queues(NUM_THREADS) {
-  for (auto &entry : node_owners) {
-    entry.store(THREAD_NONE, std::memory_order_relaxed);
-  }
+      source(source), goal(goal) {
 }
 
 std::optional<Path<Node>> RippleSearch::search() {
+  for (auto &entry : node_owners) {
+    entry.store(THREAD_NONE, std::memory_order_relaxed);
+  }
+  collision_graph.reset();
+
+  message_queues.clear();
+  message_queues.resize(NUM_THREADS);
+
   Path<Node> high_level_path = { source };
   for (int i = 1; i < NUM_SEARCH_THREADS-1; i++) {
     Node n = i*std::abs(goal-source)/(NUM_SEARCH_THREADS-1);
