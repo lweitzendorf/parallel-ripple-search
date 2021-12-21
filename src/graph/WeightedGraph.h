@@ -42,7 +42,7 @@ public:
 
   auto neighbors(vertex_t);
 
-  std::list<vertex_t> a_star_search(vertex_t, vertex_t);
+  std::optional<Path<Node>> a_star_search(vertex_t, vertex_t);
 
   Map create_map();
   void build_from_map(Map &);

@@ -46,7 +46,7 @@ auto WeightedGraph::neighbors(vertex_t vertex) {
                         });
 }
 
-std::list<vertex_t> WeightedGraph::a_star_search(vertex_t start,
+std::optional<Path<Node>> WeightedGraph::a_star_search(vertex_t start,
                                                  vertex_t goal) {
   if (start < 0 || goal < 0 || start >= num_vertices() ||
       goal >= num_vertices())
@@ -61,11 +61,13 @@ std::list<vertex_t> WeightedGraph::a_star_search(vertex_t start,
         boost::predecessor_map(&p[0]).distance_map(&d[0]).visitor(
             astar_goal_visitor(goal)));
   } catch (found_goal fg) {
-    std::list<vertex_t> shortest_path = {goal};
-    for (vertex_t v = p[goal]; v != shortest_path.front(); v = p[v]) {
-      shortest_path.push_front(v);
+    Path<Node> path = { static_cast<Node>(goal) };
+    for (vertex_t v = p[goal]; v != path.back(); v = p[v]) {
+      path.push_back(v);
     }
-    return shortest_path;
+
+    std::reverse(path.begin(), path.end());
+    return path;
   }
   return {};
 }

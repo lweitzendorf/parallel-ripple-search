@@ -14,13 +14,6 @@ public:
   }
 
   std::optional<Path<Node>> search() {
-    auto list = graph.a_star_search(source, goal);
-
-    if (list.empty())
-      return {};
-
-    std::vector<Node> path;
-    std::copy(list.begin(), list.end(), std::back_inserter(path));
-    return path;
+    return graph.a_star_search(source, goal);
   }
 };

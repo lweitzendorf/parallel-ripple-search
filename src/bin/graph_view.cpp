@@ -212,8 +212,7 @@ int main(int argc, char **argv) {
     textures.push_back(LoadTextureFromImage(img));
   }
 
-  for (unsigned texture_index = 0;
-       !WindowShouldClose();) // Detect window close button or ESC key
+  for (unsigned texture_index = 0; !WindowShouldClose();) // Detect window close button or ESC key
   {
     if (IsKeyPressed(KEY_SPACE))
       ++texture_index %= textures.size();

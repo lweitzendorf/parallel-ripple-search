@@ -1,5 +1,4 @@
 #include "RippleSearch.h"
-#include "HighLevelGraph.h"
 #include "RippleThread.h"
 #include "reference/Astar.h"
 
@@ -9,8 +8,7 @@
 // Ripple search utilities
 RippleSearch::RippleSearch(Map &map, Node source, Node goal)
     : map(map), node_owners(map.size()), collision_graph(map, goal),
-      source(source), goal(goal) {
-}
+      source(source), goal(goal) {}
 
 std::optional<Path<Node>> RippleSearch::search() {
   for (auto &entry : node_owners) {
