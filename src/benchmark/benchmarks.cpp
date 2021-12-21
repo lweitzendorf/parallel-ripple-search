@@ -34,6 +34,8 @@ std::vector<std::pair<std::string, Map>> load_maps(const std::string& dir) {
     result.push_back(std::make_pair(path.filename(), std::move(map)));
   }
 
+  std::sort(result.begin(), result.end(), [](auto& p1, auto &p2) -> bool { return p1.first < p2.first; });
+
   return result;
 }
 

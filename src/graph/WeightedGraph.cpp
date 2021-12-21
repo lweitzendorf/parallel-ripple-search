@@ -46,7 +46,7 @@ auto WeightedGraph::neighbors(vertex_t vertex) {
                         });
 }
 
-Path<Node> WeightedGraph::a_star_search(vertex_t start, vertex_t goal) {
+std::optional<Path<Node>> WeightedGraph::a_star_search(vertex_t start, vertex_t goal) {
   if (start < 0 || goal < 0 || start >= num_vertices() ||
       goal >= num_vertices())
     return {};

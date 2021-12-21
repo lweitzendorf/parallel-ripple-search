@@ -37,6 +37,7 @@ Collision CollisionGraph::get_collision(ThreadId t1, ThreadId t2) {
 
   printf("get_collision failed with %d -> %d\n", t1, t2);
   assert(false);
+  return {};
 }
 
 std::vector<ThreadId> &CollisionGraph::neighbours(int i) {

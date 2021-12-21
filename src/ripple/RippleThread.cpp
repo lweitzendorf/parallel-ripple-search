@@ -106,7 +106,6 @@ FringeInterruptAction RippleThread::check_message_queue() {
           if(!(id == THREAD_SOURCE && message.final_info.node == source)) {
             finalize_path(message.final_info.node, source, true);
           }
-          
           response_action = EXIT;
         } else {
           set_src_and_goal(message.path_info.source, message.path_info.target);
@@ -176,7 +175,7 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
   send_message(message);
 }
 
-void RippleThread::entry() { search(PHASE_1); }
+void RippleThread::entry() { search_list(PHASE_1); }
 
 void RippleThread::search_list(Phase phase) {
   // auto heuristic = nullptr;
@@ -225,7 +224,7 @@ void RippleThread::search_list(Phase phase) {
       switch (check_message_queue()) {
         case RESET:
           assert(phase == PHASE_1);
-          return search(PHASE_2);
+          return search_list(PHASE_2);
         case EXIT:
           assert(phase == PHASE_1);
           return exit();
@@ -260,8 +259,7 @@ void RippleThread::search_list(Phase phase) {
 
         // If we found our goal in phase 2 we are done and can exit;
         if (phase == PHASE_2 && neighbor == goal) {
-          phase_2_conclusion(*node);
-          return;
+          return phase_2_conclusion(*node);
         }
 
         // TODO maybe good for phase 2? can't hit if we initialize cache of the source node
@@ -359,7 +357,7 @@ void RippleThread::phase_1_conclusion() {
   while (true) {
     switch (check_message_queue()) {
       case RESET:
-        return search(PHASE_2);
+        return search_list(PHASE_2);
       case EXIT:
         return exit();
       case NONE:

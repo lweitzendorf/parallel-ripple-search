@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
   // Disable raylib log
   SetTraceLogLevel(LOG_NONE);
 
-#if 0
+#if 1
   if (argc < 4) {
     std::cout << "Usage: " << argv[0] << " PATH START GOAL" << std::endl;
     return 1;

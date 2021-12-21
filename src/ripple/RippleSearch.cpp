@@ -101,6 +101,7 @@ std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
     }
   }
 
+  LogNOID("Done\n");
 
   // TODO: Enable this once we fix the double node problem and the no node for goal problem
   if(!is_valid_path(path)) {
@@ -113,7 +114,7 @@ std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
 
 std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
   Message msg{};
-  int waiting_essential = 0, waiting_non_essential = 0;
+  int waiting_threads = 0;
 
   while (working_threads > 0) {
     while (message_queues[THREAD_COORDINATOR].try_pop(msg)) {
@@ -141,11 +142,7 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
         } break;
 
         case MESSAGE_WAITING: {
-          if (msg.id == THREAD_SOURCE || msg.id == THREAD_GOAL) {
-            waiting_essential++;
-          } else {
-            waiting_non_essential++;
-          }
+          waiting_threads++;
         } break;
 
         default:
@@ -154,8 +151,7 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
       }
     }
 
-    int waiting_threads = waiting_essential + waiting_non_essential;
-    if (waiting_threads == working_threads) { 
+    if (waiting_threads == working_threads) {
       // no path ONLY if no COLLISIONS
       msg = Message { .type = MESSAGE_STOP };
       for (int thread = THREAD_SOURCE; thread <= THREAD_GOAL; thread++) {
