@@ -11,11 +11,11 @@
 template <typename Search>
 void benchmark_scenario(int index, Map &map, Node source, Node goal) {
   for (int i = 0; i < RUNS_PER_SCENARIO; i++) {
-    LSB_Res();
     Search search(map, source, goal);
+    LSB_Res();
     auto shortest_path = search.search().value_or(Path<Node>());
     LSB_Rec(index);
-    LSB_Reg_param("%ld\n", shortest_path.size());
+    //LSB_Reg_param("%ld\n", shortest_path.size());
   }
 }
 
@@ -30,7 +30,7 @@ void benchmark(std::string name, std::vector<std::pair<std::string, Map>> &maps,
     std::cout << scenarios[i].size() << " benchmarks" << std::endl;
     Map &map = maps[i].second;
 
-    for (int j = 0; j < scenarios[i].size(); j++) {
+    for (int j = 0; j < scenarios[i].size(); j+=50) {
       Scenario &scenario = scenarios[i][j];
       Node source_node = map.point_to_node(scenario.source);
       Node goal_node = map.point_to_node(scenario.goal);
@@ -39,7 +39,7 @@ void benchmark(std::string name, std::vector<std::pair<std::string, Map>> &maps,
       std::cout << source_node << " -> " << goal_node;
       std::cout << ", cost = " << scenario.cost << std::endl;
 
-      LSB_Reg_param("Optimal cost: %f\n", scenario.cost);
+      //LSB_Reg_param("Optimal cost: %f\n", scenario.cost);
       benchmark_scenario<Search>(benchmark_index++, map, source_node, goal_node);
     }
     std::cout << std::endl;
@@ -60,7 +60,7 @@ int main() {
     scenarios.push_back(std::move(scen));
   }
 
-  benchmark<FringeSearch>("fringe", maps, scenarios);
   benchmark<RippleSearch>("ripple", maps, scenarios);
+  benchmark<FringeSearch>("fringe_5", maps, scenarios);
   benchmark<FringeSearchSimd>("fringe_simd", maps, scenarios);
 }

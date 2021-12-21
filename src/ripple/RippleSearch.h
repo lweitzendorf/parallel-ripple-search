@@ -17,7 +17,7 @@ private:
   bool is_valid_path(Path<Node> &path) const;
   bool is_adjacent_pair(Node n1, Node n2) const;
 
-  public:
+public:
   // Initialize search on a map
   RippleSearch(Map &map, Node source, Node goal);
 

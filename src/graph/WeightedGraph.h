@@ -45,6 +45,7 @@ public:
   std::list<vertex_t> a_star_search(vertex_t, vertex_t);
 
   Map create_map();
+  void build_from_map(Map &);
 
 private:
   weighted_graph_t g;

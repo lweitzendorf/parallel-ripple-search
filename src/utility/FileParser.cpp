@@ -43,6 +43,7 @@ bool DotParser::build_graph(WeightedGraph& g) {
 
   if (!graph_file.is_open()) {
     std::cout << "File doesn't exist." << std::endl;
+    return false;
   }
 
   std::string block;

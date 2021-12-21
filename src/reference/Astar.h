@@ -49,3 +49,14 @@ std::optional<Path<Node>> a_star_search(Graph &graph, Node start, Node goal) {
   }
   return {};
 }
+
+class AStarSearch {
+private:
+  Map &map;
+  Node source;
+  Node goal;
+
+public:
+  AStarSearch(Map &map, Node source, Node goal) :map(map), source(source), goal(goal) {}
+  std::optional<Path<Node>> search() { return a_star_search(map, source, goal); }
+};

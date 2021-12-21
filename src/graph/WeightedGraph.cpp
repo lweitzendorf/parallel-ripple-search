@@ -92,3 +92,26 @@ Map WeightedGraph::create_map() {
 
   return map;
 }
+
+void WeightedGraph::build_from_map(Map &map) {
+  for (int y = 0; y < map.height(); y++) {
+    for (int x = 0; x < map.width(); x++) {
+      Point p(x, y);
+      add_vertex(p);
+      Node n = map.point_to_node(p);
+
+      if (map.get(p)) {
+        for (auto offset : Map::neighbour_offsets) {
+          Point neighbor = p + offset;
+
+          if (map.in_bounds(neighbor) && map.get(neighbor)) {
+            Node neighbor_node = map.point_to_node(neighbor);
+            if (neighbor_node < n) {
+              add_edge(neighbor_node, n, 1);
+            }
+          }
+        }
+      }
+    }
+  }
+}
