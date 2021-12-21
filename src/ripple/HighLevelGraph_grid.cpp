@@ -8,7 +8,7 @@
 using glm::vec2;
 
 // Width and height of the grid that is sampled to create the high level graph
-const int GRID_SIZE = 32;
+const int GRID_SIZE = 64;
 
 GridHighLevelGraph::GridHighLevelGraph(Map& map): map(map), grid(GRID_SIZE, GRID_SIZE), adj(GRID_SIZE * GRID_SIZE) {
   cell = vec2((float)map.width() / (GRID_SIZE), (float)map.height() / (GRID_SIZE));
