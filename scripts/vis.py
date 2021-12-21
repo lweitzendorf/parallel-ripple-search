@@ -6,6 +6,7 @@ import numpy as np
 import os
 import pickle
 import sys
+from pylab import cm
 
 # Basic Parsing Utilities
 
@@ -69,6 +70,14 @@ def maybe_warn(b):
         print('\033[93mWarning: Ouput files will be force overwritten.\033[0m')
 
 # Basic Plotting Utilities
+
+'''
+# TODO configure the plots for a professional feel
+def plot_init_settings():
+    plt.rcParams['font.family'] = 'DejaVu Sans'
+    plt.rcParams['font.size'] = 18
+    plt.rcParams['axes.linewidth'] = 2
+'''
 
 # FIXME improve the quality of graph
 def boxplot(data_dict, max_samples=10, title='Some Boxplot', oput_fn=None):
