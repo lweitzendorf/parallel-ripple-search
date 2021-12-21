@@ -14,6 +14,7 @@
 #include "benchmark/benchmarks.h"
 
 #include "reference/Astar.h"
+#include "reference/BoostAStarSearch.h"
 
 #ifdef ONLY_EXPORT_IMGS
 #define BOOST_IMG_FN "../imgs/boost_img.png"
@@ -75,102 +76,9 @@ template <typename Iterator> void print_path(Iterator begin, Iterator end) {
   std::cout << std::endl;
 }
 
-Image test_boost_a_star(Map &map, Node source, Node goal) {
-  WeightedGraph graph;
-  graph.build_from_map(map);
-  
-  Timer t;
-  t.start();
-  auto path = graph.a_star_search(source, goal);
-  t.stop();
-  printf("Boost A* search time: %.3fms (%d nodes)\n",
-         t.get_microseconds() / 1000.0, (int)path.size());
-  // print_path(path.begin(), path.end());
-  // std::cout << std::endl;
-
-  // Create image and draw walls
-  Image img = GenImageColor(map.width(), map.height(), WHITE);
-  draw_walls(img, map);
-
-  for (auto it : path) {
-    Point p = map.node_to_point(it);
-    ImageDrawPixel(&img, p.x, p.y, RED);
-  }
-
-  // Draw source and goal
-  Point sp = map.node_to_point(source);
-  Point gp = map.node_to_point(goal);
-  ImageDrawPixel(&img, sp.x, sp.y, GREEN);
-  ImageDrawPixel(&img, gp.x, gp.y, YELLOW);
-
-  return img;
-}
-
-Image test_Astar(Map &map, Node source, Node goal) {
-  Timer t;
-  t.start();
-
-  Path<Node> path = a_star_search(map, source, goal).value_or(Path<Node>());
-
-  t.stop();
-  printf("Astar search time: %.3fms (%d nodes)\n",
-         t.get_microseconds() / 1000.0, (int)path.size());
-  // print_path(path.begin(), path.end());
-  // std::cout << std::endl;
-
-  // Create image and draw walls
-  Image img = GenImageColor(map.width(), map.height(), WHITE);
-  draw_walls(img, map);
-
-  // Draw path
-  for (auto it : path) {
-    Point p = map.node_to_point(it);
-    ImageDrawPixel(&img, p.x, p.y, RED);
-  }
-
-  // Draw source and goal
-  Point sp = map.node_to_point(source);
-  Point gp = map.node_to_point(goal);
-  ImageDrawPixel(&img, sp.x, sp.y, GREEN);
-  ImageDrawPixel(&img, gp.x, gp.y, YELLOW);
-
-  return img;
-}
-
-Image test_Astar_2(Map &map, Node source, Node goal) {
-  Timer t;
-  t.start();
-
-  // auto path = search(map, source, goal);
-  Path<Node> path; // placeholder
-
-  t.stop();
-  printf("Astar 2 search time: %.3fms\n", t.get_microseconds() / 1000.0);
-  // print_path(path.begin(), path.end());
-  // std::cout << std::endl;
-
-  // Create image and draw walls
-  Image img = GenImageColor(map.width(), map.height(), WHITE);
-  draw_walls(img, map);
-
-  // Draw path
-  for (auto it : path) {
-    Point p = map.node_to_point(it);
-    ImageDrawPixel(&img, p.x, p.y, RED);
-  }
-
-  // Draw source and goal
-  Point sp = map.node_to_point(source);
-  Point gp = map.node_to_point(goal);
-  ImageDrawPixel(&img, sp.x, sp.y, GREEN);
-  ImageDrawPixel(&img, gp.x, gp.y, YELLOW);
-
-  return img;
-}
-
 template <typename Search>
 Image test_search(std::string name, Map &map, Node source, Node goal,
-                  std::function<void(Image &, Map &, Search &)> draw) {
+                  std::function<void(Image &, Map &, Search &)> draw = [](Image &, Map &, Search &) -> void {}) {
 
   Search search(map);
   
@@ -312,8 +220,8 @@ int main(int argc, char **argv) {
                                     fringe_draw<FringeSearchSimd>),
       test_search<FringeSearch>("Fringe", map, source, goal,
                                 fringe_draw<FringeSearch>),
-      test_boost_a_star(map, source, goal),
-      test_Astar(map, source, goal),
+      test_search<BoostAStarSearch>("Boost A*", map, source, goal),
+      test_search<AStarSearch>("A*", map, source, goal),
   };
 
 #ifdef ONLY_EXPORT_IMGS
