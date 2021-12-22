@@ -2,7 +2,7 @@
 
 #include "Collision.h"
 #include "Message.h"
-#include "Contants.h"
+#include "Constants.h"
 #include "graph/Map.h"
 #include "reference/FringeSearch.h"
 #include "utility/Timer.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Contants.h"
+#include "Constants.h"
 #include "graph/Map.h"
 
 // Message type
