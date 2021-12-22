@@ -2,13 +2,22 @@
 
 import argparse
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 import os
 import pickle
-import sys
 from pylab import cm
+import sys
+
+# Configurations
+
+colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:purple', 'tab:red', 'tab:olive', 'tab:cyan', 'tab:pink']
+fill_color = 'white'
 
 # Basic Parsing Utilities
+
+def lmap(f, ls):
+    return list(map(f, ls))
 
 def not_at_end(fd):
     pos = fd.tell()
@@ -65,38 +74,63 @@ def store_as_pickle(d, fn, force=False):
     with open(fn, 'wb') as fd:
         pickle.dump(d, fd)
 
-def maybe_warn(b):
+def maybe_warn(b, s):
     if b:
-        print('\033[93mWarning: Ouput files will be force overwritten.\033[0m')
+        print(f'\033[93m{s}\033[0m')
 
 # Basic Plotting Utilities
 
-'''
 # TODO configure the plots for a professional feel
 def plot_init_settings():
     plt.rcParams['font.family'] = 'DejaVu Sans'
-    plt.rcParams['font.size'] = 18
+    plt.rcParams['font.size'] = 12
     plt.rcParams['axes.linewidth'] = 2
-'''
 
 # FIXME improve the quality of graph
-def boxplot(data_dict, max_samples=10, title='Some Boxplot', oput_fn=None):
+def boxplot(data_dicts, label_names, max_samples=3, title='Some Boxplot', oput_fn=None):
+    off = 0.2
+    center = -0.2
+    width = 0.15
+
     fig, ax = plt.subplots()
     ax.set_title(title)
-    times = np.array(list(map(lambda p: p[0], data_dict.values())))
-    data_array = np.transpose(times[0:max_samples,])
-    pos = np.arange(data_array.shape[1])
-    ax.boxplot(data_array, patch_artist=True, positions=pos)
+
+    labels = lmap(lambda s: s.split(".")[0], label_names)
+    custom_lines = [Line2D([0], [0], color=color, lw=2) for color in colors]
+
+    for idx, data_dict in enumerate(data_dicts):
+        times = np.array(lmap(lambda p: p[0], data_dict.values()))
+        times = times[times.shape[0]-max_samples:times.shape[0],]
+        data_array = np.transpose(times)
+        pos = np.arange(data_array.shape[1]) + (idx * off) + center
+        flierprops = dict(marker='o', markerfacecolor=colors[idx], markersize=1,
+                          linestyle='none', markeredgecolor=colors[idx])
+        bp = ax.boxplot(data_array, widths=width, patch_artist=True,
+                        positions=pos, manage_ticks=False, showfliers=True,
+                        flierprops=flierprops, meanline=True)
+        for element in ['boxes', 'whiskers', 'fliers', 'medians', 'caps']:
+            plt.setp(bp[element], color=colors[idx])
+        for patch in bp['boxes']:
+            patch.set(facecolor=fill_color)
+
     if oput_fn is not None:
         plt.savefig(oput_fn+'.png', bbox_inches='tight')
+
+    # ax.legend(frameon=False, loc='upper right', ncol=2)
+    plt.xticks(range(max_samples))
+    plt.legend(custom_lines, labels, loc='upper right', prop={'size':7})
+    # ax.legend(custom_lines, ['Cold', 'Medium', 'Hot'])
     plt.show()
+
 
 # MAIN
 parser = argparse.ArgumentParser(description='DPHPC data processing utility.')
-parser.add_argument('filename', metavar='FILENAME', type=str, help='data file to be parsed')
+parser.add_argument('files', nargs='+', metavar='FILENAME', type=str, help='data file to be parsed')
 parser.add_argument('-pickled', dest='parser', action='store_const',
                     const=from_pickled, default=parse_file,
                     help='parse data from pickled object (default: parse file)')
+parser.add_argument('-title', dest='title',
+                    default='Default Title', help='plot title')
 parser.add_argument('-p-out', dest='picklefn', nargs='?',
                     default=None, help='filename to store the parsed file as pickled object')
 parser.add_argument('-g-out', dest='graphfn', nargs='?',
@@ -106,9 +140,13 @@ parser.add_argument('-Y', dest='force', action='store_const',
                     help='force output actions skipping confirmation on file overwrite')
 
 arg = parser.parse_args()
-maybe_warn(arg.force)
-data = arg.parser(arg.filename)
-if arg.picklefn is not None:
-    store_as_pickle(data, arg.picklefn, arg.force)
+maybe_warn(arg.force, 'Warning: Ouput files will be force overwritten.')
+data_sets = lmap(arg.parser, arg.files)
+
+if arg.picklefn is not None and len(arg.files) == 1:
+    store_as_pickle(data_sets[0], arg.picklefn, arg.force)
+
 # TODO add support for multiple graphs
-boxplot(data, oput_fn=arg.graphfn)
+plot_init_settings()
+
+boxplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
