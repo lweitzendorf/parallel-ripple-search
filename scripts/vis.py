@@ -6,6 +6,7 @@ from matplotlib.lines import Line2D
 import numpy as np
 import os
 import pickle
+import scipy.stats
 from pylab import cm
 from statistics import median, mean
 import sys
@@ -175,8 +176,8 @@ def grouped_boxplot(data_dicts, costs, label_names, max_samples=3, title='Some B
     labels = lmap(lambda s: s.split(".")[0], label_names)
     custom_lines = [Line2D([0], [0], color=color, lw=2) for color in colors]
 
-    indices = np.arange(len(data_dict))
-    values = np.array(lmap(lambda t: median(t[0]), data_dict.values()))
+    indices = np.arange(len(data_dicts))
+    values = np.array(lmap(lambda t: median(t[0]), data_dicts.values()))
     values = np.transpose(values)
     plt.bar(indices + idx * width, values, width=width)
 
@@ -205,34 +206,60 @@ def grouped_boxplot(data_dicts, costs, label_names, max_samples=3, title='Some B
     plt.legend(custom_lines, labels, loc='upper right', prop={'size':7})
     plt.show()
 
-# MAIN
-parser = argparse.ArgumentParser(description='DPHPC data processing utility.')
-parser.add_argument('files', nargs='+', metavar='FILENAME', type=str, help='data file to be parsed')
-parser.add_argument('-pickled', dest='parser', action='store_const',
-                    const=from_pickled, default=parse_file,
-                    help='parse data from pickled object (default: parse file)')
-parser.add_argument('-title', dest='title',
-                    default='Default Title', help='plot title')
-parser.add_argument('-costs', nargs=1, dest='costfn', help='todo')
-parser.add_argument('-p-out', dest='picklefn', nargs='?',
-                    default=None, help='filename to store the parsed file as pickled object')
-parser.add_argument('-g-out', dest='graphfn', nargs='?',
-                    default=None, help='filename to store the generated plot')
-parser.add_argument('-Y', dest='force', action='store_const',
-                    const=True, default=False,
-                    help='force output actions skipping confirmation on file overwrite')
+def needed_measurements(data_dicts, confidence):
+    data = []
 
-arg = parser.parse_args()
-maybe_warn(arg.force, 'Warning: Ouput files will be force overwritten.')
+    for algorithm_data in data_dicts:
+        n_measurements = []
+        for runtimes, overheads in algorithm_data.values():
+            n = len(runtimes)
+            s = np.std(runtimes)
 
-data_sets = lmap(arg.parser, arg.files)
-# costs = arg.parser(arg.files)
+            ex = 0.1 * np.mean(runtimes)
+            alpha = 1 - confidence
 
-if arg.picklefn is not None and len(arg.files) == 1:
-    store_as_pickle(data_sets[0], arg.picklefn, arg.force)
+            n_needed = (s * scipy.stats.t.ppf(alpha/2, n-1) / ex)**2
+            n_measurements.append(n_needed)
 
-# TODO add support for multiple graphs
-# plot_init_settings()
-# barplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
-# boxplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
-# grouped_boxplot(data_sets, costs, arg.files, oput_fn=arg.graphfn, title=arg.title)
+        min = np.ceil(np.min(n_measurements))
+        mean = np.ceil(np.mean(n_measurements))
+        max = np.ceil(np.max(n_measurements))
+        data.append((min, mean, max))
+
+    return data
+
+def main():
+    parser = argparse.ArgumentParser(description='DPHPC data processing utility.')
+    parser.add_argument('files', nargs='+', metavar='FILENAME', type=str, help='data file to be parsed')
+    parser.add_argument('-pickled', dest='parser', action='store_const',
+                        const=from_pickled, default=parse_file,
+                        help='parse data from pickled object (default: parse file)')
+    parser.add_argument('-title', dest='title',
+                        default='Default Title', help='plot title')
+    parser.add_argument('-costs', nargs=1, dest='costfn', help='todo')
+    parser.add_argument('-p-out', dest='picklefn', nargs='?',
+                        default=None, help='filename to store the parsed file as pickled object')
+    parser.add_argument('-g-out', dest='graphfn', nargs='?',
+                        default=None, help='filename to store the generated plot')
+    parser.add_argument('-Y', dest='force', action='store_const',
+                        const=True, default=False,
+                        help='force output actions skipping confirmation on file overwrite')
+
+    arg = parser.parse_args()
+    maybe_warn(arg.force, 'Warning: Ouput files will be force overwritten.')
+
+    data_sets = lmap(arg.parser, arg.files)
+    # costs = arg.parser(arg.files)
+
+    if arg.picklefn is not None and len(arg.files) == 1:
+        store_as_pickle(data_sets[0], arg.picklefn, arg.force)
+
+    # TODO add support for multiple graphs
+    # plot_init_settings()
+    # barplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
+    # boxplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
+    # grouped_boxplot(data_sets, costs, arg.files, oput_fn=arg.graphfn, title=arg.title)
+    print(needed_measurements(data_sets, 0.99))
+
+if __name__ == '__main__':
+    main()
