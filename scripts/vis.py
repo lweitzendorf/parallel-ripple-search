@@ -7,6 +7,7 @@ import numpy as np
 import os
 import pickle
 from pylab import cm
+from statistics import median
 import sys
 
 # Configurations
@@ -86,18 +87,35 @@ def plot_init_settings():
     plt.rcParams['font.size'] = 12
     plt.rcParams['axes.linewidth'] = 2
 
+def barplot(data_dicts, label_names, max_samples=100, title='Some Bar', oput_fn=None):
+    width = 0.30
+    labels = lmap(lambda s: s.split(".")[0], label_names)
+    custom_lines = [Line2D([0], [0], color=color, lw=2) for color in colors]
+    for idx, data_dict in enumerate(data_dicts):
+        indices = np.arange(len(data_dict))
+        values = np.array(lmap(lambda t: median(t[0]), data_dict.values()))
+        values = np.transpose(values)
+        plt.bar(indices + idx * width, values, width=width)
+    # plt.xticks(ticks=indices)
+    plt.xlabel("run index")
+    plt.ylabel("median search time (ms)")
+    plt.title(title)
+    plt.savefig("plot.png")
+    if oput_fn is not None:
+        plt.savefig(oput_fn+'.png', bbox_inches='tight')
+
+    plt.legend(custom_lines, labels, loc='upper right', prop={'size':7})
+    plt.show()
+
 # FIXME improve the quality of graph
 def boxplot(data_dicts, label_names, max_samples=3, title='Some Boxplot', oput_fn=None):
     off = 0.2
     center = -0.2
     width = 0.15
-
     fig, ax = plt.subplots()
     ax.set_title(title)
-
     labels = lmap(lambda s: s.split(".")[0], label_names)
     custom_lines = [Line2D([0], [0], color=color, lw=2) for color in colors]
-
     for idx, data_dict in enumerate(data_dicts):
         times = np.array(lmap(lambda p: p[0], data_dict.values()))
         times = times[times.shape[0]-max_samples:times.shape[0],]
@@ -112,12 +130,12 @@ def boxplot(data_dicts, label_names, max_samples=3, title='Some Boxplot', oput_f
             plt.setp(bp[element], color=colors[idx])
         for patch in bp['boxes']:
             patch.set(facecolor=fill_color)
-
     if oput_fn is not None:
         plt.savefig(oput_fn+'.png', bbox_inches='tight')
-
     # ax.legend(frameon=False, loc='upper right', ncol=2)
     plt.xticks(range(max_samples))
+    # plt.xlabel()
+    # plt.ylabel()
     plt.legend(custom_lines, labels, loc='upper right', prop={'size':7})
     # ax.legend(custom_lines, ['Cold', 'Medium', 'Hot'])
     plt.show()
@@ -149,4 +167,5 @@ if arg.picklefn is not None and len(arg.files) == 1:
 # TODO add support for multiple graphs
 plot_init_settings()
 
-boxplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
+barplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
+# boxplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
