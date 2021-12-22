@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-import numpy as np
 import os
 import pickle
+from statistics import median
+
+import matplotlib.pyplot as plt
+import numpy as np
 import scipy.stats
-from pylab import cm
-from statistics import median, mean
-import sys
+from matplotlib.lines import Line2D
 
 # Configurations
 
@@ -206,7 +205,9 @@ def grouped_boxplot(data_dicts, costs, label_names, max_samples=3, title='Some B
     plt.legend(custom_lines, labels, loc='upper right', prop={'size':7})
     plt.show()
 
-def needed_measurements(data_dicts, confidence):
+# calculates number of measurements needed for the (100*confidence)% confidence interval
+# to be within (100*acceptable_deviaton)% of the mean
+def needed_measurements(data_dicts, confidence, acceptable_deviaton):
     data = []
 
     for algorithm_data in data_dicts:
@@ -215,7 +216,7 @@ def needed_measurements(data_dicts, confidence):
             n = len(runtimes)
             s = np.std(runtimes)
 
-            ex = 0.1 * np.mean(runtimes)
+            ex = acceptable_deviaton * np.mean(runtimes)
             alpha = 1 - confidence
 
             n_needed = (s * scipy.stats.t.ppf(alpha/2, n-1) / ex)**2
@@ -259,7 +260,7 @@ def main():
     # barplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
     # boxplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
     # grouped_boxplot(data_sets, costs, arg.files, oput_fn=arg.graphfn, title=arg.title)
-    print(needed_measurements(data_sets, 0.99))
+    print(needed_measurements(data_sets, 0.99, 0.05))
 
 if __name__ == '__main__':
     main()
