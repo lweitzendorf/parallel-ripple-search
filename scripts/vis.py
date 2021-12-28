@@ -122,6 +122,22 @@ def verify(map_dict, records):
             records -= len(times)
     assert records == 0, f"Not all records stored, final count {records}"
 
+# The data format returned for each file has the follwoing structure:
+#
+# {
+#   'system-info' : { ... }
+#   'data' :
+#     {
+#       map-name :
+#         {
+#           scenario :
+#             {
+#               'lengths' : [int]
+#               'times'   : [float]
+#             }
+#         }
+#     }
+# }
 def parse_bench_file(filename):
     with open(filename, 'r') as fd:
         system_info = parse_machine_information(fd)
