@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import ast
 import os
 import pickle
 from statistics import median
@@ -16,61 +17,122 @@ colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:purple', 'tab:red', 'tab:o
 fill_color = 'white'
 group_bounds = [50, 150, 500, 1000, 100000000000000]
 
-# Basic Parsing Utilities
-
 def lmap(f, ls):
     return list(map(f, ls))
+
+# Basic Parsing Utilities
 
 def parse_costs(fn):
     costs = []
     with open(fn, 'rb') as fd:
-        while not_at_end(fd):
+        while not at_end(fd):
             line = fd.readline()
             cost = int(line)
             costs.append(cost)
     return costs
 
-def not_at_end(fd):
+def at_end(fd):
     pos = fd.tell()
     l = fd.readline().strip()
-    if l is None or len(l) == 0 or l[0] == '#':
-        return False
-    fd.seek(pos)
-    return True
+    pos = fd.seek(pos)
+    return l is None or len(l) == 0 or l[0] == '#'
 
-def ignore_leading_lines(fd):
-    pos, line = None, ""
-    while line == "" or line[0] == '#':
-        pos = fd.tell()
-        line = fd.readline().strip()
-    fd.seek(pos)
+def split_with_head(line, on=":"):
+    sides = line.split(on)
+    try:
+        return (sides[0].split()[-1], sides[1].split())
+    except:
+        return ("", sides)
 
-def parse_id_set(fd):
-    initial_id, time, overhead = fd.readline().split()
-    times, ohds = [float(time)], [float(overhead)]
-    while not_at_end(fd):
+def parse_machine_information(fd):
+    info, pos = {}, None
+    kws = ['sysname', 'nodename', 'release', 'version',
+           'machine', 'execution', '(utc)', '(local)']
+    while True:
         pos = fd.tell()
-        new_id, time, overhead = fd.readline().split()
-        if new_id != initial_id:
+        (hd, tl) = split_with_head(fd.readline())
+        hd = hd.lower()
+        if hd in kws:
+            info[hd] = ' '.join(tl)
+        else:
             fd.seek(pos)
-            break
-        times.append(float(time))
-        ohds.append(float(overhead))
-    return initial_id, times, ohds
+            return info
 
-def parse_all_sets(fd):
-    dct = {}
-    while not_at_end(fd):
-        id, time, ovhds = parse_id_set(fd)
-        dct[int(id)] = (time, ovhds)
-    return dct
+def parse_map_lengths(fd):
+    def parse_lengths():
+        lengths, pos = [], None
+        while True:
+            pos = fd.tell()
+            (hd, tl) = split_with_head(fd.readline(), on="=")
+            if hd.lower() == 'length':
+                lengths.append(int(tl[0]))
+            else:
+                fd.seek(pos)
+                return lengths
 
-def parse_file(fn):
-    with open(fn, 'r') as fd:
-        ignore_leading_lines(fd)
-        _ = fd.readline() # NOTE header line
-        data_sets = parse_all_sets(fd)
-    return data_sets
+    def parse_scenarios(im):
+        mi = {}
+        while True:
+            pos = fd.tell()
+            (hd, tl) = split_with_head(fd.readline(), on="=")
+            if hd.lower() == 'scenario':
+                scenario = ast.literal_eval(' '.join(tl).replace("[", "(").replace("]", ")"))
+                lengths = parse_lengths()
+                im.append((map_name, scenario))
+                mi[scenario] = { 'lengths': lengths }
+            else:
+                fd.seek(pos)
+                return mi
+
+    map_dict, id_map, pos = {}, [], None
+    while True:
+        pos = fd.tell()
+        hd, tl = split_with_head(fd.readline(), on="=")
+        if hd.lower() != 'map':
+            fd.seek(pos)
+            return (map_dict, id_map)
+        else:
+            map_name = tl[0].split(".")[0]
+            map_info = parse_scenarios(id_map)
+            map_dict[map_name] = map_info
+
+def parse_and_include_times(fd, map_dict, ip_map):
+    def parse_one():
+        initial_id, time, overhead = fd.readline().split()
+        times, ohds = [float(time)], [float(overhead)]
+        while not at_end(fd):
+            pos = fd.tell()
+            new_id, time, overhead = fd.readline().split()
+            if new_id != initial_id:
+                fd.seek(pos)
+                break
+            times.append(float(time))
+            ohds.append(float(overhead))
+        map_name, scenario = ip_map[int(initial_id)]
+        map_dict[map_name][scenario]['times'] = times
+    while not at_end(fd):
+        parse_one()
+
+def verify(map_dict, records):
+    for scenarios in map_dict.values():
+        for scenario in scenarios.values():
+            times = scenario['times']
+            lengths = scenario['lengths']
+            assert len(times) == len(lengths), f"LENGTHS UNEQUAL:\n{len(times)}: {times}\n{len(lengths)}: {lengths}"
+            records -= len(times)
+    assert records == 0, f"Not all records stored, final count {records}"
+
+def parse_bench_file(filename):
+    with open(filename, 'r') as fd:
+        system_info = parse_machine_information(fd)
+        (results, id_map) = parse_map_lengths(fd)
+        _ = fd.readline() # reported time measurements ...
+        _ = fd.readline() # pretty output format
+        _ = fd.readline() # header line
+        parse_and_include_times(fd, results, id_map)
+        records = int(fd.readline().split()[-2])
+        verify(results, records)
+        return { 'system-info' : system_info, 'data' : results }
 
 def from_pickled(fn):
     with open(fn, 'rb') as fd:
@@ -78,10 +140,12 @@ def from_pickled(fn):
     return data_set
 
 def store_as_pickle(d, fn, force=False):
+    fn = '-'.join(fn.split(".")[:-1]) + '.pickle'
     if not force and os.path.isfile(fn):
         resp = input(f"Overwrite existing file: {fn}? [y/n] ")
         if resp.lower() not in ['y', 'yes']:
            return
+
     with open(fn, 'wb') as fd:
         pickle.dump(d, fd)
 
@@ -192,7 +256,6 @@ def grouped_bar(data_dicts, costs, label_names, max_samples=3, title='Some Boxpl
         indices = np.arange(len(group_bounds))
         plt.bar(indices + idx * width, algorithm_results, width=width)
 
-
     plt.title(title)
     plt.xticks(range(len(group_bounds)), ['<50', '<150', '<500', '<1000', '>=1000'])
     plt.xlabel("path length")
@@ -202,39 +265,6 @@ def grouped_bar(data_dicts, costs, label_names, max_samples=3, title='Some Boxpl
         plt.savefig(oput_fn+'.png', bbox_inches='tight')
     plt.show()
 
-# MAIN
-# parser = argparse.ArgumentParser(description='DPHPC data processing utility.')
-# parser.add_argument('files', nargs='+', metavar='FILENAME', type=str, help='data file to be parsed')
-# parser.add_argument('-pickled', dest='parser', action='store_const',
-#                     const=from_pickled, default=parse_file,
-#                     help='parse data from pickled object (default: parse file)')
-# parser.add_argument('-title', dest='title',
-#                     default='Default Title', help='plot title')
-# parser.add_argument('-costs', dest='costfn', help='todo')
-# parser.add_argument('-p-out', dest='picklefn', nargs='?',
-#                     default=None, help='filename to store the parsed file as pickled object')
-# parser.add_argument('-g-out', dest='graphfn', nargs='?',
-#                     default=None, help='filename to store the generated plot')
-# parser.add_argument('-Y', dest='force', action='store_const',
-#                     const=True, default=False,
-#                     help='force output actions skipping confirmation on file overwrite')
-
-# arg = parser.parse_args()
-# maybe_warn(arg.force, 'Warning: Ouput files will be force overwritten.')
-
-# data_sets = lmap(arg.parser, arg.files)
-# costs = arg.parser(arg.costfn)
-
-# if arg.picklefn is not None and len(arg.files) == 1:
-#     store_as_pickle(data_sets[0], arg.picklefn, arg.force)
-
-# # TODO add support for multiple graphs
-# # plot_init_settings()
-# # barplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
-# # boxplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
-# # grouped_boxplot(data_sets, costs, arg.files, oput_fn=arg.graphfn, title=arg.title)
-
-# grouped_bar(data_sets, costs, arg.files, title=arg.title, oput_fn=arg.graphfn)
 # calculates number of measurements needed for the (100*confidence)% confidence interval
 # to be within (100*acceptable_deviaton)% of the mean
 def needed_measurements(data_dicts, confidence, acceptable_deviaton):
@@ -260,37 +290,35 @@ def needed_measurements(data_dicts, confidence, acceptable_deviaton):
     return data
 
 def main():
-    parser = argparse.ArgumentParser(description='DPHPC data processing utility.')
+    parser = argparse.ArgumentParser(description='DPHPC data processing utility')
     parser.add_argument('files', nargs='+', metavar='FILENAME', type=str, help='data file to be parsed')
-    parser.add_argument('-pickled', dest='parser', action='store_const',
-                        const=from_pickled, default=parse_file,
-                        help='parse data from pickled object (default: parse file)')
+    parser.add_argument('-make', dest='make_pickled', action='store_true', default=False,
+                        help='parse data from file (default: parse pickled)')
     parser.add_argument('-title', dest='title',
                         default='Default Title', help='plot title')
     parser.add_argument('-costs', nargs=1, dest='costfn', help='todo')
-    parser.add_argument('-p-out', dest='picklefn', nargs='?',
-                        default=None, help='filename to store the parsed file as pickled object')
     parser.add_argument('-g-out', dest='graphfn', nargs='?',
                         default=None, help='filename to store the generated plot')
-    parser.add_argument('-Y', dest='force', action='store_const',
-                        const=True, default=False,
+    parser.add_argument('-Y', dest='force', action='store_true', default=False,
                         help='force output actions skipping confirmation on file overwrite')
-
     arg = parser.parse_args()
-    maybe_warn(arg.force, 'Warning: Ouput files will be force overwritten.')
+    parser = parse_bench_file if arg.make_pickled else from_pickled
+    maybe_warn(arg.force, 'Warning: Ouput files will be force overwritten')
+    parsed_sets = lmap(parser, arg.files)
 
-    data_sets = lmap(arg.parser, arg.files)
+    if arg.make_pickled:
+        lmap(lambda d: store_as_pickle(d[0], d[1], force=arg.force), zip(parsed_sets, arg.files))
+        print(f"Done, successfully pickled {len(arg.files)} files!")
+        return
+
     # costs = arg.parser(arg.files)
-
-    if arg.picklefn is not None and len(arg.files) == 1:
-        store_as_pickle(data_sets[0], arg.picklefn, arg.force)
 
     # TODO add support for multiple graphs
     # plot_init_settings()
     # barplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
     # boxplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
     # grouped_boxplot(data_sets, costs, arg.files, oput_fn=arg.graphfn, title=arg.title)
-    print(needed_measurements(data_sets, 0.99, 0.05))
+    # print(needed_measurements(data_sets, 0.99, 0.05))
 
 if __name__ == '__main__':
     main()
