@@ -114,13 +114,15 @@ def parse_and_include_times(fd, map_dict, ip_map):
         parse_one()
 
 def verify(map_dict, records):
+    print("\tVerifying parsed records ...")
+    _or = records
     for scenarios in map_dict.values():
         for scenario in scenarios.values():
             times = scenario['times']
             lengths = scenario['lengths']
-            assert len(times) == len(lengths), f"LENGTHS UNEQUAL:\n{len(times)}: {times}\n{len(lengths)}: {lengths}"
+            assert len(times) == len(lengths), f"Sample lengths unequal:\n{len(times)}: {times}\n{len(lengths)}: {lengths}"
             records -= len(times)
-    assert records == 0, f"Not all records stored, final count {records}"
+    assert records == 0, f"Number of records incorrect, expected: {_or} but got: {records + _or}"
 
 # The data format returned for each file has the follwoing structure:
 #
@@ -139,6 +141,7 @@ def verify(map_dict, records):
 #     }
 # }
 def parse_bench_file(filename):
+    print(f"Parsing from file: {filename}")
     with open(filename, 'r') as fd:
         system_info = parse_machine_information(fd)
         (results, id_map) = parse_map_lengths(fd)
@@ -161,7 +164,7 @@ def store_as_pickle(d, fn, force=False):
         resp = input(f"Overwrite existing file: {fn}? [y/n] ")
         if resp.lower() not in ['y', 'yes']:
            return
-
+    print(f"Pickling data to: {fn}")
     with open(fn, 'wb') as fd:
         pickle.dump(d, fd)
 
