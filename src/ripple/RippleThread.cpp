@@ -218,7 +218,6 @@ void RippleThread::search_list(Phase phase) {
   FringeList fringe_list = { source };
   float flimit = heuristic(source);
 
-  int counter = 0;
   while (!fringe_list.empty()) {
     float fmin = std::numeric_limits<float>::max();
 
@@ -278,7 +277,6 @@ void RippleThread::search_list(Phase phase) {
 
         // In phase two we skip all nodes that are not owned by us
         if (phase == PHASE_2 && owner != id) {
-          counter += 100;
           continue;
         }
 
@@ -328,7 +326,6 @@ void RippleThread::search_list(Phase phase) {
         // Update neighbour parent
         cache[neighbor].thread_parent = MAKE_OWNER_PARENT(id, *node);
 
-        counter+= 1;
       }
       // Update current node cache entry
       node_info.in_list = false;
@@ -338,7 +335,6 @@ void RippleThread::search_list(Phase phase) {
       node--;
     }
 
-    counter += 10000;
 
     // Update fringe search threshold with the minimum value present in the new
     // list
@@ -347,8 +343,8 @@ void RippleThread::search_list(Phase phase) {
 
   if (phase == PHASE_2) {
 
-    Logf("Didn't find goal in phase 2! %d (%d) -> %d (%d) [%d]", source, NODE_OWNER(cache[source].thread_parent.load()), 
-          goal, NODE_OWNER(cache[goal].thread_parent.load()), counter);
+    Logf("Didn't find goal in phase 2! %d (%d) -> %d (%d)", source, NODE_OWNER(cache[source].thread_parent.load()), 
+          goal, NODE_OWNER(cache[goal].thread_parent.load()));
           
     assert(false);
   }
@@ -439,7 +435,6 @@ void RippleThread::search(Phase phase) {
 
   now_list.push_back(source);
 
-  int counter = 0;
   while (!now_list.empty()) {
     float fmin = std::numeric_limits<float>::max();
 
@@ -475,7 +470,6 @@ void RippleThread::search(Phase phase) {
         fmin = std::min(fmin, f);
         later_list.push_back(node);
         node_info.list_index = 1 - current_list;
-        counter++;
         continue;
       }
 
@@ -510,7 +504,6 @@ void RippleThread::search(Phase phase) {
 
         // In phase two we skip all nodes that are not owned by us
         if (phase == PHASE_2 && owner != id) {
-          counter += 100;
           continue;
         }
 
@@ -554,12 +547,10 @@ void RippleThread::search(Phase phase) {
 
         // Insert in now list if not already in it
         if(neighbor_cache.list_index != current_list) {
-            counter++;
             now_list.push_back(neighbor);
             neighbor_cache.list_index = current_list;
         }
       }
-      counter += 1;
     } while(!now_list.empty());
 
     std::swap(later_list, now_list);
@@ -568,13 +559,11 @@ void RippleThread::search(Phase phase) {
     // Update fringe search threshold with the minimum value present in the new
     // list
     flimit = fmin;
-
-    counter += 10000;
   }
 
   if (phase == PHASE_2) {
-    Logf("Didn't find goal in phase 2! %d (%d) -> %d (%d) [%d]", source, NODE_OWNER(cache[source].thread_parent.load()), 
-          goal, NODE_OWNER(cache[goal].thread_parent.load()), counter);
+    Logf("Didn't find goal in phase 2! %d (%d) -> %d (%d)", source, NODE_OWNER(cache[source].thread_parent.load()), 
+          goal, NODE_OWNER(cache[goal].thread_parent.load());
     assert(false);
   }
 
