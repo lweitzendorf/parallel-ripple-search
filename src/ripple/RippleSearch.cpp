@@ -120,11 +120,13 @@ std::optional<Path<ThreadId>> RippleSearch::coordinate_threads() {
     while (message_queues[THREAD_COORDINATOR].try_pop(msg)) {
       switch (msg.type) {
         case MESSAGE_COLLISION: {
-          LogfNOID("Message - Collision: %d -> %d | %d -> %d (parent %d owned by %d)", 
+          LogfNOID("Message - Collision: %d -> %d | %d -> %d | (parent %d owned by %d) -> (parent %d owned by %d)", 
                    msg.collision_info.collision_source,
                    msg.collision_info.collision_target, 
                    msg.collision_info.collision_parent, 
                    msg.collision_info.collision_node,
+                   NODE_PARENT(cache[msg.collision_info.collision_parent].thread_parent),
+                   NODE_OWNER(cache[msg.collision_info.collision_parent].thread_parent),
                    NODE_PARENT(cache[msg.collision_info.collision_node].thread_parent),
                    NODE_OWNER(cache[msg.collision_info.collision_node].thread_parent));
 

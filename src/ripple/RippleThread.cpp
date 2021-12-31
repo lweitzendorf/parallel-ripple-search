@@ -208,6 +208,7 @@ void RippleThread::search_list(Phase phase) {
 
   if (phase == PHASE_2) {
     if(source == goal) {
+      Logf("Source == Goal in phase 2 %d -> %d", source, goal);
       AssertUnreachable();
     }
 
@@ -217,6 +218,7 @@ void RippleThread::search_list(Phase phase) {
   FringeList fringe_list = { source };
   float flimit = heuristic(source);
 
+  int counter = 0;
   while (!fringe_list.empty()) {
     float fmin = std::numeric_limits<float>::max();
 
@@ -276,6 +278,7 @@ void RippleThread::search_list(Phase phase) {
 
         // In phase two we skip all nodes that are not owned by us
         if (phase == PHASE_2 && owner != id) {
+          counter += 100;
           continue;
         }
 
@@ -324,6 +327,8 @@ void RippleThread::search_list(Phase phase) {
 
         // Update neighbour parent
         cache[neighbor].thread_parent = MAKE_OWNER_PARENT(id, *node);
+
+        counter+= 1;
       }
       // Update current node cache entry
       node_info.in_list = false;
@@ -333,13 +338,18 @@ void RippleThread::search_list(Phase phase) {
       node--;
     }
 
+    counter += 10000;
+
     // Update fringe search threshold with the minimum value present in the new
     // list
     flimit = fmin;
   }
 
   if (phase == PHASE_2) {
-    Log("Didn't find goal in phase 2!");
+
+    Logf("Didn't find goal in phase 2! %d (%d) -> %d (%d) [%d]", source, NODE_OWNER(cache[source].thread_parent.load()), 
+          goal, NODE_OWNER(cache[goal].thread_parent.load()), counter);
+          
     assert(false);
   }
 
@@ -414,6 +424,7 @@ void RippleThread::search(Phase phase) {
 
   if (phase == PHASE_2) {
     if(source == goal) {
+      Logf("Source == Goal in phase 2 %d -> %d", source, goal);
       AssertUnreachable();
     }
 
@@ -494,11 +505,12 @@ void RippleThread::search(Phase phase) {
         float cost_nb = i >= 4 ? cost + 1 : cost + sqrtf(2);
         
         // Check if already owned, otherwise try to acquire
-        uint64_t thread_parent = cache[neighbor].thread_parent.load(std::memory_order_relaxed);
+        uint64_t thread_parent = cache[neighbor].thread_parent.load();
         ThreadId owner = NODE_OWNER(thread_parent);
 
         // In phase two we skip all nodes that are not owned by us
         if (phase == PHASE_2 && owner != id) {
+          counter += 100;
           continue;
         }
 
@@ -547,6 +559,7 @@ void RippleThread::search(Phase phase) {
             neighbor_cache.list_index = current_list;
         }
       }
+      counter += 1;
     } while(!now_list.empty());
 
     std::swap(later_list, now_list);
@@ -560,7 +573,8 @@ void RippleThread::search(Phase phase) {
   }
 
   if (phase == PHASE_2) {
-    Logf("Didn't find goal in phase 2! %d -> %d (%d)", source, goal, counter);
+    Logf("Didn't find goal in phase 2! %d (%d) -> %d (%d) [%d]", source, NODE_OWNER(cache[source].thread_parent.load()), 
+          goal, NODE_OWNER(cache[goal].thread_parent.load()), counter);
     assert(false);
   }
 
