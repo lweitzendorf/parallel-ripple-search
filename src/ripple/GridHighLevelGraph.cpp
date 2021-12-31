@@ -129,7 +129,7 @@ std::vector<Point> GridHighLevelGraph::refine_high_level_path(const std::vector<
     Point u = path[i];
     Point v = path[i + 1];
     float dist = glm::distance(vec2(u.x, u.y), vec2(v.x, v.y));
-    if(length_so_far + dist >= target_length && result.back() != v) {
+    if(length_so_far + dist >= target_length && (result.empty() || result.back() != v)) {
       result.push_back(v);
       target_length += segment_length;
     }
@@ -201,7 +201,7 @@ Path<Node> GridHighLevelGraph::create_high_level_path(Node source, Node goal, in
   for(auto p: refined_path) {
     result.push_back(map.point_to_node(p));
   }
-  if(result.back() != goal)
+  if(result.empty() || result.back() != goal)
     result.push_back(goal);
 
   return result;
