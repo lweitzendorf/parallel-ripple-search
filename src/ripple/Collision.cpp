@@ -6,8 +6,8 @@ void CollisionGraph::init(Node g) {
 
   neighbors.clear();
 
-  for(int i = 0; i < NUM_SEARCH_THREADS; i++) {
-    masks[i] = 0;
+  for (int i = 0; i < NUM_SEARCH_THREADS; i++) {
+    masks[i].reset();
   }
   
   goal = g;
@@ -17,14 +17,14 @@ void CollisionGraph::add_collision(ThreadId source, ThreadId target, Node node, 
   assert(source != target);
 
   // Make sure we only store one collision for each pair of threads
-  if (!(masks[source] & (1 << target) || masks[target] & (1 << source))) {
+  if (!(masks[source][target] || masks[target][source])) {
     graph[source].push_back(
             std::make_pair(target, Collision(target, node, parent)));
     graph[target].push_back(
             std::make_pair(source, Collision(target, node, parent)));
 
-    masks[source] |= (1 << target);
-    masks[target] |= (1 << source);
+    masks[source].set(target);
+    masks[target].set(source);
   }
 }
 

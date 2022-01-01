@@ -18,10 +18,6 @@ using oneapi::tbb::concurrent_queue;
 // design?
 enum FringeInterruptAction { NONE, RESET, EXIT };
 
-
-// TODO: test aligning this struct to cache line size to avoid
-// false sharing between threads that are exploring neighbouring nodes
-
 struct RippleNode {
   // Fringe search data
   bool visited = false;
@@ -78,8 +74,7 @@ private:
 
   // Mask of threads that we collided with, the i-th bit is 1 if we collided
   // with the i-th thread
-  uint32_t collision_mask = 0;
-  static_assert(sizeof(collision_mask) * 8 >= NUM_SEARCH_THREADS);
+  std::bitset<NUM_SEARCH_THREADS> collision_mask = 0;
 
   // Segment of the final path owned by the thread
   Path<Node> final_path;
@@ -102,7 +97,6 @@ private:
   void entry();
 
   void search(Phase phase);
-  void search_list(Phase phase);
 
   void phase_1_conclusion();
   void phase_2_conclusion(Node parent_of_goal);
