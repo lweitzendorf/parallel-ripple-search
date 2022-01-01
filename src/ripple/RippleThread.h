@@ -21,13 +21,9 @@ enum FringeInterruptAction { NONE, RESET, EXIT };
 struct RippleNode {
   // Fringe search data
   bool visited = false;
-  bool in_list = false;
-  bool phase = false;
-
   float cost; // Cost from source to node
-  
-  FringeEntry list_entry;
-  int32_t list_index = -1;
+  int list_index = -1;
+  Phase phase = PHASE_1;
 };
 
 static_assert(sizeof(ThreadId) <= 4 && sizeof(Node) <= 4);

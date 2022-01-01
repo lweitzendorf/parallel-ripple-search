@@ -1,11 +1,11 @@
-#include "FringeSearchSimd.h"
+#include "FringeSearchVec.h"
 
 #include <cmath>
 
 #include <immintrin.h>
 
 
-std::optional<std::vector<Node>> FringeSearchSimd::search(Node source, Node goal) {
+std::optional<std::vector<Node>> FringeSearchVec::search(Node source, Node goal) {
     cache.clear();
     cache.resize(map.size(), {});
 
@@ -39,7 +39,7 @@ std::optional<std::vector<Node>> FringeSearchSimd::search(Node source, Node goal
 
 
             auto& n = cache[node];
-            if(n.list_index != current_list) {
+            if (n.list_index != current_list) {
                 continue;
             }
 
@@ -109,11 +109,11 @@ std::optional<std::vector<Node>> FringeSearchSimd::search(Node source, Node goal
             __m256 cost = _mm256_add_ps(additional_cost, _mm256_set1_ps(g));
 
             // Gather visited
-            __m256i visited_value = _mm256_mmask_i32gather_epi32(zero, valid, s_scaled, ((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, visited), 1);
+            __m256i visited_value = _mm256_mmask_i32gather_epi32(zero, valid, s_scaled, ((uint8_t*)cache.data()) + offsetof(FringeNodeVec, visited), 1);
             __mmask8 visited = _mm256_cmpneq_epi32_mask(visited_value, zero);
 
             // Gather cost for visited nodes
-            __m256 prev_cost = _mm256_mmask_i32gather_ps(_mm256_setzero_ps(), visited, s_scaled, ((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, g), 1);
+            __m256 prev_cost = _mm256_mmask_i32gather_ps(_mm256_setzero_ps(), visited, s_scaled, ((uint8_t*)cache.data()) + offsetof(FringeNodeVec, g), 1);
 
             // Check if new cost is cheaper
             __mmask8 cheaper = _mm256_cmp_ps_mask(cost, prev_cost, _CMP_LT_OQ);
@@ -122,19 +122,19 @@ std::optional<std::vector<Node>> FringeSearchSimd::search(Node source, Node goal
             __mmask8 update_mask = _kand_mask8(valid, _kor_mask8(cheaper, _knot_mask8(visited)));
 
             // Scatter visited, new cost, and parent for nodes to update
-            _mm256_mask_i32scatter_epi32(((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, visited), update_mask, s_scaled, ones, 1);
-            _mm256_mask_i32scatter_ps   (((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, g      ), update_mask, s_scaled, cost, 1);
-            _mm256_mask_i32scatter_epi32(((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, parent ), update_mask, s_scaled, _mm256_set1_epi32(node), 1);
+            _mm256_mask_i32scatter_epi32(((uint8_t*)cache.data()) + offsetof(FringeNodeVec, visited), update_mask, s_scaled, ones, 1);
+            _mm256_mask_i32scatter_ps   (((uint8_t*)cache.data()) + offsetof(FringeNodeVec, g      ), update_mask, s_scaled, cost, 1);
+            _mm256_mask_i32scatter_epi32(((uint8_t*)cache.data()) + offsetof(FringeNodeVec, parent ), update_mask, s_scaled, _mm256_set1_epi32(node), 1);
 
             // Gather list index
             __m256i curr_list = _mm256_set1_epi32(current_list);
-            __m256i list_index = _mm256_mmask_i32gather_epi32(curr_list, update_mask, s_scaled, ((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, list_index), 1);
+            __m256i list_index = _mm256_mmask_i32gather_epi32(curr_list, update_mask, s_scaled, ((uint8_t*)cache.data()) + offsetof(FringeNodeVec, list_index), 1);
 
             // Check if not in current list
             __mmask8 to_push = _mm256_cmpneq_epi32_mask(curr_list, list_index);
             
             // Store current list
-            _mm256_mask_i32scatter_epi32(((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, list_index), to_push, s_scaled, curr_list, 1);
+            _mm256_mask_i32scatter_epi32(((uint8_t*)cache.data()) + offsetof(FringeNodeVec, list_index), to_push, s_scaled, curr_list, 1);
 
             // Compress and push into current list
             uint32_t mask_size = __builtin_popcount(_cvtmask8_u32(to_push)); 
@@ -211,6 +211,6 @@ std::optional<std::vector<Node>> FringeSearchSimd::search(Node source, Node goal
     }
 }
 
-FringeSearchSimd::FringeSearchSimd(Map& map) : 
+FringeSearchVec::FringeSearchVec(Map& map) :
     map(map) {
 }

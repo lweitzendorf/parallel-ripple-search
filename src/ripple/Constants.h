@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#define LOG_ENABLED false
+#define LOG_ENABLED true
 
 #define AssertUnreachable(...)                                                 \
   do {                                                                         \

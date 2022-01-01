@@ -66,7 +66,7 @@ void RippleThread::finalize_path(Node from, Node to, bool include_to) {
 // other threads
 FringeInterruptAction RippleThread::check_message_queue() {
   FringeInterruptAction response_action = NONE;
-  Message message;
+  Message message{};
 
   if (recv_message(message)) {
     switch (message.type) {
@@ -149,37 +149,36 @@ void RippleThread::handle_collision(Node node, Node parent, ThreadId other) {
 void RippleThread::entry() { search(PHASE_1); }
 
 void RippleThread::search(Phase phase) {
-  if(phase == PHASE_1 && goal_2.has_value()){
+  if (phase == PHASE_1 && goal_2.has_value()){
     heuristic = [this] (Node n){
       return std::min(map.distance(n, goal), map.distance(n, goal_2.value()));
     };
-    // printf("worker heuristic %d", id);
-  }
-  else {
+  } else {
     // Relies on the fact that goal is closer than goal_2
     heuristic = [this](Node n) {
       return map.distance(n, goal);
     };
   }
 
-  if (phase == PHASE_1) {
-    cache[source].node.visited = true;
-    cache[source].node.cost = 0;
-    cache[source].node.in_list = true;
-  }
-
   if (phase == PHASE_2 && source == goal) {
-    Logf("Source == Goal in phase 2 %d -> %d", source, goal);
-    AssertUnreachable();
+    return phase_2_conclusion(source);
   }
 
-  FringeList fringe_list = { source };
-  float flimit = heuristic(source);
+  std::vector<Node> now_list = { source };
+  std::vector<Node> later_list;
 
-  while (!fringe_list.empty()) {
+  float flimit = heuristic(source);
+  int current_list = 0; // 0 or 1
+
+  cache[source].node.visited = true;
+  cache[source].node.cost = 0;
+  cache[source].node.list_index = current_list;
+  cache[source].node.phase = phase;
+
+  while (!now_list.empty()) {
     float fmin = std::numeric_limits<float>::max();
 
-    for (auto node = fringe_list.begin(); node != fringe_list.end(); node++) {
+    while (!now_list.empty()) {
       switch (check_message_queue()) {
         case RESET:
           assert(phase == PHASE_1);
@@ -191,20 +190,31 @@ void RippleThread::search(Phase phase) {
           break;
       }
 
+      Node node = now_list.back();
+      now_list.pop_back();
+
       // Load info for the current node
-      RippleNode &node_info = cache[*node].node;
+      RippleNode &node_info = cache[node].node;
+
+      if (node_info.list_index != current_list) {
+        continue;
+      }
+
+      node_info.list_index = -1;
 
       // Compute fringe heuristic for current node
-      float cost = (*node == source ? 0 : node_info.cost);
-      float f = cost + heuristic(*node);
+      float cost = node_info.cost;
+      float f = cost + heuristic(node);
 
       // Skip node if fringe heuristic lower than the threshold
       if (f > flimit + 1) {
         fmin = std::min(fmin, f);
+        later_list.push_back(node);
+        node_info.list_index = 1 - current_list;
         continue;
       }
 
-      Point point = map.node_to_point(*node);
+      Point point = map.node_to_point(node);
 
       // For each neighbour
       for (int i = 0; i < Map::NEIGHBOURS_COUNT; i++) {
@@ -218,12 +228,7 @@ void RippleThread::search(Phase phase) {
 
         // If we found our goal in phase 2 we are done and can exit;
         if (phase == PHASE_2 && neighbor == goal) {
-          return phase_2_conclusion(*node);
-        }
-
-        // TODO maybe good for phase 2? can't hit if we initialize cache of the source node
-        if (neighbor == source) {
-          continue;
+          return phase_2_conclusion(node);
         }
 
         // Compute cost of path to s
@@ -247,12 +252,10 @@ void RippleThread::search(Phase phase) {
           // and swap if any of first two checks short circuits.
           if (owner != id && 
               (owner != THREAD_NONE ||
-                !cache[neighbor].thread_parent.compare_exchange_strong(thread_parent, MAKE_OWNER_PARENT(id, *node)))) {
+                !cache[neighbor].thread_parent.compare_exchange_strong(thread_parent, MAKE_OWNER_PARENT(id, node)))) {
             // If we failed to acquire the node we need to handle the
             // collision
-            handle_collision(neighbor, *node, NODE_OWNER(thread_parent));
-
-            // Skip the node
+            handle_collision(neighbor, node, NODE_OWNER(thread_parent));
             continue;
           }
         }
@@ -264,46 +267,32 @@ void RippleThread::search(Phase phase) {
           continue;
         }
 
-        // If already in list in this phase, remove it
-        if (neighbor_cache.phase == phase && neighbor_cache.in_list) {
-          assert(int(std::distance(node, neighbor_cache.list_entry)) > 0);
-          fringe_list.erase(neighbor_cache.list_entry);
-          neighbor_cache.in_list = false;
-        }
-
-        // Insert neighbour in the list right after the current node
-        fringe_list.insert(std::next(node), neighbor);
-
         // Update neighbour cache entry
         neighbor_cache.visited = true;
         neighbor_cache.cost = cost_nb;
-        neighbor_cache.list_entry = std::next(node);
-        neighbor_cache.in_list = true;
         neighbor_cache.phase = phase;
 
+        if (cache[neighbor].node.list_index != current_list) {
+          now_list.push_back(neighbor);
+          cache[neighbor].node.list_index = current_list;
+        }
+
         // Update neighbour parent
-        cache[neighbor].thread_parent = MAKE_OWNER_PARENT(id, *node);
-
+        cache[neighbor].thread_parent = MAKE_OWNER_PARENT(id, node);
       }
-      // Update current node cache entry
-      node_info.in_list = false;
-
-      // Remove current node from the list
-      node = fringe_list.erase(node);
-      node--;
     }
 
+    std::swap(now_list, later_list);
+    current_list = 1 - current_list;
 
-    // Update fringe search threshold with the minimum value present in the new
-    // list
+    // Update fringe search threshold with the minimum value present in the new list
     flimit = fmin;
   }
 
   if (phase == PHASE_2) {
-
-    Logf("Didn't find goal in phase 2! %d (%d) -> %d (%d)", source, NODE_OWNER(cache[source].thread_parent.load()),
-          goal, NODE_OWNER(cache[goal].thread_parent.load()));
-          
+    Logf("Didn't find goal in phase 2! %d (%d) -> %d (%d)",
+         source, NODE_OWNER(cache[source].thread_parent.load()),
+         goal, NODE_OWNER(cache[goal].thread_parent.load()));
     assert(false);
   }
 
@@ -332,10 +321,8 @@ void RippleThread::phase_1_conclusion() {
 
 void RippleThread::phase_2_conclusion(Node parent_of_goal) {
   Log("Worker finish");
-
   final_path.push_back(goal);
   finalize_path(parent_of_goal, source, id == THREAD_GOAL);
-
   return exit();
 }
 

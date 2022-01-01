@@ -6,16 +6,16 @@
 
 #include "graph/Map.h"
 
-struct FringeNodeSimd {
+struct FringeNodeVec {
   Node parent;
   float g; // Cost from source to node
   int32_t visited = 0;
   int32_t list_index = -1;
 };
 
-static_assert(sizeof(FringeNodeSimd) == 4 * 4);
+static_assert(sizeof(FringeNodeVec) == 4 * 4);
 
-class FringeSearchSimd {
+class FringeSearchVec {
   // Constants
   Map &map;
 
@@ -24,8 +24,8 @@ class FringeSearchSimd {
   std::vector<Node> later_list;
 
 public:
-  std::vector<FringeNodeSimd> cache;
+  std::vector<FringeNodeVec> cache;
 
-  FringeSearchSimd(Map &map);
+  FringeSearchVec(Map &map);
   std::optional<std::vector<Node>> search(Node source, Node goal);
 };

@@ -24,20 +24,9 @@ std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
   message_queues.clear();
   message_queues.resize(NUM_THREADS);
 
-#if 1
   auto high_level_path = high_level_graph.create_high_level_path(source, goal, NUM_SEARCH_THREADS);
   assert(high_level_path.size() >= 2);
   working_threads = high_level_path.size();
-
-#else
-  Path<Node> high_level_path = { source };
-  for (int i = 1; i < NUM_SEARCH_THREADS-1; i++) {
-    Node n = i*std::abs(goal-source)/(NUM_SEARCH_THREADS-1);
-    while (!map.get(n)) n++;
-    high_level_path.push_back(n);
-  }
-  high_level_path.push_back(goal);
-#endif
 
   // Initialize first node of cache for each thread.
   // we do this here before starting any thread
