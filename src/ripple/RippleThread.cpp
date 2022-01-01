@@ -565,6 +565,7 @@ void RippleThread::search(Phase phase) {
     Logf("Didn't find goal in phase 2! %d (%d) -> %d (%d)", source, NODE_OWNER(cache[source].thread_parent.load()), 
           goal, NODE_OWNER(cache[goal].thread_parent.load());
     assert(false);
+    return exit();
   }
 
   return phase_1_conclusion();

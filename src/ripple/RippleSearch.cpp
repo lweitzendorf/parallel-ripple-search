@@ -102,13 +102,6 @@ std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
   }
 
   LogNOID("Done\n");
-
-  // TODO: Enable this once we fix the double node problem and the no node for goal problem
-  if(!is_valid_path(path)) {
-    return std::nullopt;
-  }
-
-  //assert(is_valid_path(path));
   return path.empty() ? std::nullopt : std::optional<Path<Node>>{path};
 }
 
