@@ -170,10 +170,12 @@ void RippleThread::search(Phase phase) {
   float flimit = heuristic(source);
   int current_list = 0; // 0 or 1
 
-  cache[source].node.visited = true;
-  cache[source].node.cost = 0;
-  cache[source].node.list_index = current_list;
-  cache[source].node.phase = phase;
+  if(phase == PHASE_1) {
+    cache[source].node.visited = true;
+    cache[source].node.cost = 0;
+    cache[source].node.list_index = current_list;
+    cache[source].node.phase = phase;
+  }
 
   while (!now_list.empty()) {
     float fmin = std::numeric_limits<float>::max();
@@ -196,7 +198,7 @@ void RippleThread::search(Phase phase) {
       // Load info for the current node
       RippleNode &node_info = cache[node].node;
 
-      if (node_info.list_index != current_list) {
+      if(node != source && node_info.list_index != current_list) {
         continue;
       }
 
@@ -229,6 +231,11 @@ void RippleThread::search(Phase phase) {
         // If we found our goal in phase 2 we are done and can exit;
         if (phase == PHASE_2 && neighbor == goal) {
           return phase_2_conclusion(node);
+        }
+
+
+        if (neighbor == source) {
+          continue;
         }
 
         // Compute cost of path to s
@@ -266,6 +273,12 @@ void RippleThread::search(Phase phase) {
             cost_nb >= neighbor_cache.cost) {
           continue;
         }
+
+
+        if(neighbor_cache.phase != phase) {
+          neighbor_cache.list_index = -1;
+        }
+
 
         // Update neighbour cache entry
         neighbor_cache.visited = true;
