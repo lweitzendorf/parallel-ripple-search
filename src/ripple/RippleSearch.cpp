@@ -12,6 +12,10 @@ RippleSearch::RippleSearch(Map &map)
 }
 
 std::optional<Path<Node>> RippleSearch::search(Node source, Node goal) {
+  if (source == goal) {
+    return Path<Node>{ goal };
+  }
+
   // Initialize cache
   for (auto &entry : cache) {
     entry.thread_parent.store(MAKE_OWNER_PARENT(THREAD_NONE, -1), std::memory_order_relaxed);
