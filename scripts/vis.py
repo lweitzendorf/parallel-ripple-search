@@ -22,6 +22,11 @@ def lmap(f, ls):
 
 # Basic Parsing Utilities
 
+def format_fn(fn):
+    chunks = fn.split('.')
+    chunks = chunks[0].split('-')
+    return '-'.join(chunks[1:])
+
 def parse_costs(fn):
     costs = []
     with open(fn, 'rb') as fd:
@@ -124,7 +129,7 @@ def verify(map_dict, records):
             records -= len(times)
     assert records == 0, f"Number of records incorrect, expected: {_or} but got: {records + _or}"
 
-# The data format returned for each file has the follwoing structure:
+# The data format returned for each file has the following structure:
 #
 # {
 #   'system-info' : { ... }
@@ -163,7 +168,7 @@ def store_as_pickle(d, fn, force=False):
     if not force and os.path.isfile(fn):
         resp = input(f"Overwrite existing file: {fn}? [y/n] ")
         if resp.lower() not in ['y', 'yes']:
-           return
+            return
     print(f"Pickling data to: {fn}")
     with open(fn, 'wb') as fd:
         pickle.dump(d, fd)
@@ -308,6 +313,51 @@ def needed_measurements(data_dicts, confidence, acceptable_deviaton):
 
     return data
 
+
+def data_stuff(file_names, parsed_sets):
+    overheads = []
+
+    reference = parsed_sets[0]
+
+    for file in parsed_sets:
+        overhead = []
+
+        for map in file['data']:
+            for scenario in file['data'][map]:
+                for ref_length, length, runtime in zip(reference['data'][map][scenario]['lengths'], file['data'][map][scenario]['lengths'],  file['data'][map][scenario]['times']):
+                    overhead.append(length / ref_length)
+
+        overheads.append(100 * (np.mean(overhead) - 1))
+
+    file_names = np.asarray(file_names)[np.argsort(overheads)]
+    overheads = np.asarray(overheads)[np.argsort(overheads)]
+
+    for name, overhead in zip(file_names, overheads):
+        print(name, overhead)
+
+    colors = []
+
+    for name in file_names:
+        if 'a-star' in name:
+            colors.append('olivedrab')
+        elif 'fringe-vec' in name:
+            colors.append('darkorange')
+        elif 'fringe' in name:
+            colors.append('darkorchid')
+        elif 'ripple-vec' in name:
+            colors.append('steelblue')
+        elif 'ripple' in name:
+            colors.append('forestgreen')
+
+    plt.title('Relative path cost error')
+    plt.bar(np.arange(overheads.size), overheads, color=colors)
+    plt.ylabel('percentage over optimal cost')
+    plt.xticks(np.arange(file_names.size), file_names, rotation='vertical')
+    plt.tight_layout()
+
+    plt.show()
+
+
 def main():
     parser = argparse.ArgumentParser(description='DPHPC data processing utility')
     parser.add_argument('files', nargs='+', metavar='FILENAME', type=str, help='data file to be parsed')
@@ -322,7 +372,7 @@ def main():
                         help='force output actions skipping confirmation on file overwrite')
     arg = parser.parse_args()
     parser = parse_bench_file if arg.make_pickled else from_pickled
-    maybe_warn(arg.force, 'Warning: Ouput files will be force overwritten')
+    maybe_warn(arg.force, 'Warning: Output files will be force overwritten')
     parsed_sets = lmap(parser, arg.files)
 
     if arg.make_pickled:
@@ -333,11 +383,12 @@ def main():
     # costs = arg.parser(arg.files)
 
     # TODO add support for multiple graphs
-    # plot_init_settings()
+    plot_init_settings()
     # barplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
     # boxplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
     # grouped_boxplot(data_sets, costs, arg.files, oput_fn=arg.graphfn, title=arg.title)
     # print(needed_measurements(data_sets, 0.99, 0.05))
+    data_stuff(lmap(format_fn, arg.files), parsed_sets)
 
 if __name__ == '__main__':
     main()
