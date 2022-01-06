@@ -7,6 +7,10 @@ import pickle
 from statistics import median
 
 import matplotlib.pyplot as plt
+from matplotlib import cm
+
+from tqdm import tqdm
+
 import numpy as np
 import scipy.stats
 from matplotlib.lines import Line2D
@@ -314,20 +318,108 @@ def needed_measurements(data_dicts, confidence, acceptable_deviaton):
     return data
 
 
-def data_stuff(file_names, parsed_sets):
-    overheads = []
+def ripple_comparison_3d_bar(file_names, parsed_sets):
+    relevant_data = [(file, ds) for file, ds in zip(file_names, parsed_sets) if 'ripple-vec' in file]
+    reference = parsed_sets[0]
 
+    X = np.asarray(lmap(lambda d: int(d[0].split('-')[-1]), relevant_data))
+    Y = np.asarray([0, 100, 250, 500, 1000, 2000])
+    Z = np.zeros((X.size, Y.size))
+
+    for x, (name, file) in enumerate(relevant_data):
+        time_sum = np.zeros(Y.size)
+        time_count = np.zeros(Y.size)
+
+        for map in tqdm(file['data']):
+            for scenario in file['data'][map]:
+                for ref_length, length, runtime in zip(reference['data'][map][scenario]['lengths'], file['data'][map][scenario]['lengths'],  file['data'][map][scenario]['times']):
+                    bin = -1
+                    for bound in Y:
+                        bin += (ref_length >= bound)
+
+                    time_sum[bin] += runtime
+                    time_count[bin] += 1
+
+        Z[x] = time_sum / time_count
+
+    x_label = [str(x) for x in X]
+    y_label = ['[0, 100)', '[100, 250)', '[250, 500)', '[500, 1000)', '[1000, 2000)', '[2000, ∞)']
+
+    _x = np.arange(X.size)
+    _y = np.arange(Y.size)
+    _xx, _yy = np.meshgrid(_x, _y)
+    x, y = _xx.ravel(), _yy.ravel()
+
+    top = Z.T.ravel()
+    bottom = np.zeros_like(top)
+    width = depth = 1
+
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.bar3d(x, y, bottom, width, depth, top, shade=True)
+
+    ax.set_xticks(_x + 0.5)
+    ax.set_xticklabels(x_label)
+
+    ax.set_yticks(_y + 1.5)
+    ax.set_yticklabels(y_label)
+
+    ax.set_title('Average ripple search runtime')
+    ax.set_xlabel('thread count')
+    ax.set_ylabel('optimal path length')
+    ax.set_zlabel('time (µs)')
+
+    plt.show()
+
+
+def ripple_comparison_3d_surface(file_names, parsed_sets):
+    relevant_data = [(file, ds) for file, ds in zip(file_names, parsed_sets) if 'ripple-vec' in file]
+    reference = parsed_sets[0]
+
+    X = np.asarray(lmap(lambda d: int(d[0].split('-')[-1]), relevant_data))
+    Y = np.arange(2200)
+    Z = np.zeros((X.size, Y.size))
+
+    for x, (name, file) in enumerate(relevant_data):
+        time_sum = np.zeros(Y.size)
+        time_count = np.zeros(Y.size)
+
+        for map in tqdm(file['data']):
+            for scenario in file['data'][map]:
+                for ref_length, length, runtime in zip(reference['data'][map][scenario]['lengths'], file['data'][map][scenario]['lengths'],  file['data'][map][scenario]['times']):
+                    time_sum[ref_length] += runtime
+                    time_count[ref_length] += 1
+
+        Z[x] = time_sum / time_count
+
+    X, Y = np.meshgrid(X, Y)
+
+    fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+    ax.plot_surface(X, Y, Z.T, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+
+    ax.set_title('Average ripple search runtime')
+    ax.set_xlabel('thread count', labelpad=10)
+    ax.set_ylabel('optimal path length', labelpad=10)
+    ax.set_zlabel('time (µs)', labelpad=10)
+
+    plt.show()
+
+
+def overhead_bar_plot(file_names, parsed_sets):
+    overheads = []
     reference = parsed_sets[0]
 
     for file in parsed_sets:
-        overhead = []
+        ref_cost = 0
+        cost = 0
 
         for map in file['data']:
             for scenario in file['data'][map]:
                 for ref_length, length, runtime in zip(reference['data'][map][scenario]['lengths'], file['data'][map][scenario]['lengths'],  file['data'][map][scenario]['times']):
-                    overhead.append(length / ref_length)
+                    ref_cost += ref_length
+                    cost += length
 
-        overheads.append(100 * (np.mean(overhead) - 1))
+        overheads.append(100 * (cost / ref_cost - 1))
 
     file_names = np.asarray(file_names)[np.argsort(overheads)]
     overheads = np.asarray(overheads)[np.argsort(overheads)]
@@ -349,9 +441,9 @@ def data_stuff(file_names, parsed_sets):
         elif 'ripple' in name:
             colors.append('forestgreen')
 
-    plt.title('Relative path cost error')
+    plt.title('Relative path length error')
     plt.bar(np.arange(overheads.size), overheads, color=colors)
-    plt.ylabel('percentage over optimal cost')
+    plt.ylabel('overhead in %')
     plt.xticks(np.arange(file_names.size), file_names, rotation='vertical')
     plt.tight_layout()
 
@@ -388,7 +480,13 @@ def main():
     # boxplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
     # grouped_boxplot(data_sets, costs, arg.files, oput_fn=arg.graphfn, title=arg.title)
     # print(needed_measurements(data_sets, 0.99, 0.05))
-    data_stuff(lmap(format_fn, arg.files), parsed_sets)
+    # overhead_bar_plot(lmap(format_fn, arg.files), parsed_sets)
+    ripple_comparison_3d_surface(lmap(format_fn, arg.files), parsed_sets)
+    # ripple_comparison_3d_bar(lmap(format_fn, arg.files), parsed_sets)
+    # TODO runtime bar plot
+    # TODO variance in runtime + cost
+    # TODO expected speedup
+
 
 if __name__ == '__main__':
     main()
