@@ -4,7 +4,6 @@ import argparse
 import ast
 import os
 import pickle
-from statistics import median
 
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -13,16 +12,11 @@ from tqdm import tqdm
 
 import numpy as np
 import scipy.stats
-from matplotlib.lines import Line2D
 
-# Configurations
-
-colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:purple', 'tab:red', 'tab:olive', 'tab:cyan', 'tab:pink']
-fill_color = 'white'
-group_bounds = [50, 150, 500, 1000, 100000000000000]
 
 def lmap(f, ls):
     return list(map(f, ls))
+
 
 # Basic Parsing Utilities
 
@@ -30,6 +24,7 @@ def format_fn(fn):
     chunks = fn.split('.')
     chunks = chunks[0].split('-')
     return '-'.join(chunks[1:])
+
 
 def parse_costs(fn):
     costs = []
@@ -40,11 +35,13 @@ def parse_costs(fn):
             costs.append(cost)
     return costs
 
+
 def at_end(fd):
     pos = fd.tell()
     l = fd.readline().strip()
     pos = fd.seek(pos)
     return l is None or len(l) == 0 or l[0] == '#'
+
 
 def split_with_head(line, on=":"):
     sides = line.split(on)
@@ -52,6 +49,7 @@ def split_with_head(line, on=":"):
         return (sides[0].split()[-1], sides[1].split())
     except:
         return ("", sides)
+
 
 def parse_machine_information(fd):
     info, pos = {}, None
@@ -66,6 +64,7 @@ def parse_machine_information(fd):
         else:
             fd.seek(pos)
             return info
+
 
 def parse_map_lengths(fd):
     def parse_lengths():
@@ -88,7 +87,7 @@ def parse_map_lengths(fd):
                 scenario = ast.literal_eval(' '.join(tl).replace("[", "(").replace("]", ")"))
                 lengths = parse_lengths()
                 im.append((map_name, scenario))
-                mi[scenario] = { 'lengths': lengths }
+                mi[scenario] = {'lengths': lengths}
             else:
                 fd.seek(pos)
                 return mi
@@ -105,6 +104,7 @@ def parse_map_lengths(fd):
             map_info = parse_scenarios(id_map)
             map_dict[map_name] = map_info
 
+
 def parse_and_include_times(fd, map_dict, ip_map):
     def parse_one():
         initial_id, time, overhead = fd.readline().split()
@@ -119,8 +119,10 @@ def parse_and_include_times(fd, map_dict, ip_map):
             ohds.append(float(overhead))
         map_name, scenario = ip_map[int(initial_id)]
         map_dict[map_name][scenario]['times'] = times
+
     while not at_end(fd):
         parse_one()
+
 
 def verify(map_dict, records):
     print("\tVerifying parsed records ...")
@@ -129,9 +131,11 @@ def verify(map_dict, records):
         for scenario in scenarios.values():
             times = scenario['times']
             lengths = scenario['lengths']
-            assert len(times) == len(lengths), f"Sample lengths unequal:\n{len(times)}: {times}\n{len(lengths)}: {lengths}"
+            assert len(times) == len(
+                lengths), f"Sample lengths unequal:\n{len(times)}: {times}\n{len(lengths)}: {lengths}"
             records -= len(times)
     assert records == 0, f"Number of records incorrect, expected: {_or} but got: {records + _or}"
+
 
 # The data format returned for each file has the following structure:
 #
@@ -154,18 +158,20 @@ def parse_bench_file(filename):
     with open(filename, 'r') as fd:
         system_info = parse_machine_information(fd)
         (results, id_map) = parse_map_lengths(fd)
-        _ = fd.readline() # reported time measurements ...
-        _ = fd.readline() # pretty output format
-        _ = fd.readline() # header line
+        _ = fd.readline()  # reported time measurements ...
+        _ = fd.readline()  # pretty output format
+        _ = fd.readline()  # header line
         parse_and_include_times(fd, results, id_map)
         records = int(fd.readline().split()[-2])
         verify(results, records)
-        return { 'system-info' : system_info, 'data' : results }
+        return {'system-info': system_info, 'data': results}
+
 
 def from_pickled(fn):
     with open(fn, 'rb') as fd:
         data_set = pickle.load(fd)
     return data_set
+
 
 def store_as_pickle(d, fn, force=False):
     fn = '-'.join(fn.split(".")[:-1]) + '.pickle'
@@ -177,9 +183,11 @@ def store_as_pickle(d, fn, force=False):
     with open(fn, 'wb') as fd:
         pickle.dump(d, fd)
 
+
 def maybe_warn(b, s):
     if b:
         print(f'\033[93m{s}\033[0m')
+
 
 # Basic Plotting Utilities
 
@@ -189,109 +197,6 @@ def plot_init_settings():
     plt.rcParams['font.size'] = 12
     plt.rcParams['axes.linewidth'] = 2
 
-def barplot(data_dicts, label_names, max_samples=100, title='Some Bar', oput_fn=None):
-    width = 0.30
-    labels = lmap(lambda s: s.split(".")[0], label_names)
-    custom_lines = [Line2D([0], [0], color=color, lw=2) for color in colors]
-    for idx, data_dict in enumerate(data_dicts):
-        indices = np.arange(len(data_dict))
-        values = np.array(lmap(lambda t: median(t[0]), data_dict.values()))
-        values = np.transpose(values)
-        plt.bar(indices + idx * width, values, width=width)
-    # plt.xticks(ticks=indices)
-    plt.xlabel("run index")
-    plt.ylabel("median search time (ms)")
-    plt.title(title)
-    plt.savefig("plot.png")
-    if oput_fn is not None:
-        plt.savefig(oput_fn+'.png', bbox_inches='tight')
-
-    plt.legend(custom_lines, labels, loc='upper right', prop={'size':7})
-    plt.show()
-
-def boxplot(data_dicts, label_names, max_samples=3, title='Some Boxplot', oput_fn=None):
-    off = 0.2
-    center = -0.2
-    width = 0.15
-    fig, ax = plt.subplots()
-    ax.set_title(title)
-    labels = lmap(lambda s: s.split(".")[0], label_names)
-    custom_lines = [Line2D([0], [0], color=color, lw=2) for color in colors]
-    for idx, data_dict in enumerate(data_dicts):
-        times = np.array(lmap(lambda p: p[0], data_dict.values()))
-        times = times[times.shape[0]-max_samples:times.shape[0],]
-        data_array = np.transpose(times)
-        pos = np.arange(data_array.shape[1]) + (idx * off) + center
-        flierprops = dict(marker='o', markerfacecolor=colors[idx], markersize=1,
-                          linestyle='none', markeredgecolor=colors[idx])
-        bp = ax.boxplot(data_array, widths=width, patch_artist=True,
-                        positions=pos, manage_ticks=False, showfliers=True,
-                        flierprops=flierprops, meanline=True)
-        for element in ['boxes', 'whiskers', 'fliers', 'medians', 'caps']:
-            plt.setp(bp[element], color=colors[idx])
-        for patch in bp['boxes']:
-            patch.set(facecolor=fill_color)
-    if oput_fn is not None:
-        plt.savefig(oput_fn+'.png', bbox_inches='tight')
-    # ax.legend(frameon=False, loc='upper right', ncol=2)
-    plt.xticks(range(max_samples))
-    # plt.xlabel()
-    # plt.ylabel()
-    plt.legend(custom_lines, labels, loc='upper right', prop={'size':7})
-    # ax.legend(custom_lines, ['Cold', 'Medium', 'Hot'])
-    plt.show()
-
-def grouped_bar(data_dicts, costs, label_names, max_samples=3, title='Some Boxplot', oput_fn=None):
-
-    cost_idxs = np.argsort(costs[::20])
-    costs = np.array(costs[::20])
-    costs = costs[cost_idxs]
-    def loop(dict):
-        list_of_medians = lmap(lambda t: median(t[0]), dict.values())
-        npa = np.array(list_of_medians)
-        i = 0
-        results = [[] for _ in group_bounds]
-        current_group = []
-        for j, median_rt in  enumerate(npa[cost_idxs]):
-            if costs[j] >= group_bounds[i]:
-                i += 1
-            results[i].append(median_rt)
-
-        results = lmap(median, results)
-        return np.array(results)
-
-    # [[A1, A2, ...],
-    #  [A1, A2, ...],
-    #  [A1, A2, ...],
-    #           ...]
-    grouped_runtimes = np.array(lmap(loop, data_dicts))
-
-    off = 0.2
-    center = -0.2
-    width = 0.15
-    labels = lmap(lambda s: s.split(".")[0], label_names)
-    custom_lines = [Line2D([0], [0], color=color, lw=2) for color in colors]
-
-    indices = np.arange(len(grouped_runtimes))
-    values = grouped_runtimes
-    # indices = np.arange(len(data_dicts))
-    # values = np.array(lmap(lambda t: median(t[0]), data_dicts.values()))
-    # values = np.transpose(values)
-    # plt.bar(indices + idx * width, values, width=width)
-
-    # plt.bar(indices + idx * width, values, width=width)
-    for idx, algorithm_results in enumerate(values):
-        indices = np.arange(len(group_bounds))
-        plt.bar(indices + idx * width, algorithm_results, width=width)
-
-    plt.title(title)
-    plt.xticks(range(len(group_bounds)), ['<50', '<150', '<500', '<1000', '>=1000'])
-    plt.xlabel("path length")
-    plt.ylabel("runtime in microseconds")
-    # plt.legend(custom_lines, labels, loc='upper left', prop={'size':7})
-    if oput_fn is not None:
-        plt.savefig(oput_fn+'.png', bbox_inches='tight')
-    plt.show()
 
 # calculates number of measurements needed for the (100*confidence)% confidence interval
 # to be within (100*acceptable_deviaton)% of the mean
@@ -307,7 +212,7 @@ def needed_measurements(data_dicts, confidence, acceptable_deviaton):
             ex = acceptable_deviaton * np.mean(runtimes)
             alpha = 1 - confidence
 
-            n_needed = (s * scipy.stats.t.ppf(alpha/2, n-1) / ex)**2
+            n_needed = (s * scipy.stats.t.ppf(alpha / 2, n - 1) / ex) ** 2
             n_measurements.append(n_needed)
 
         min = np.ceil(np.min(n_measurements))
@@ -318,28 +223,32 @@ def needed_measurements(data_dicts, confidence, acceptable_deviaton):
     return data
 
 
-def ripple_comparison_3d_bar(file_names, parsed_sets):
+def ripple_comparison_3d_bar(file_names, parsed_sets, ref_idx):
     relevant_data = [(file, ds) for file, ds in zip(file_names, parsed_sets) if 'ripple-vec' in file]
-    reference = parsed_sets[0]
+    reference = parsed_sets[ref_idx]
 
     X = np.asarray(lmap(lambda d: int(d[0].split('-')[-1]), relevant_data))
     Y = np.asarray([0, 100, 250, 500, 1000, 2000])
     Z = np.zeros((X.size, Y.size))
 
-    for x, (name, file) in enumerate(relevant_data):
+    bin_idx = np.zeros(2200)
+    for i in range(bin_idx.size):
+        bin_idx[i] = -1
+        for bound in Y:
+            bin_idx[i] += (i >= bound)
+
+    for x, (name, file) in enumerate(tqdm(relevant_data)):
         time_sum = np.zeros(Y.size)
         time_count = np.zeros(Y.size)
 
-        for map in tqdm(file['data']):
+        for map in file['data']:
             for scenario in file['data'][map]:
-                for ref_length, length, runtime in zip(reference['data'][map][scenario]['lengths'], file['data'][map][scenario]['lengths'],  file['data'][map][scenario]['times']):
-                    bin = -1
-                    for bound in Y:
-                        bin += (ref_length >= bound)
+                for ref_length, runtime in zip(reference['data'][map][scenario]['lengths'], file['data'][map][scenario]['times']):
+                    bin_nr = int(bin_idx[ref_length])
+                    time_sum[bin_nr] += runtime
+                    time_count[bin_nr] += 1
 
-                    time_sum[bin] += runtime
-                    time_count[bin] += 1
-
+        time_count[time_count == 0] = 1
         Z[x] = time_sum / time_count
 
     x_label = [str(x) for x in X]
@@ -365,31 +274,32 @@ def ripple_comparison_3d_bar(file_names, parsed_sets):
     ax.set_yticklabels(y_label)
 
     ax.set_title('Average ripple search runtime')
-    ax.set_xlabel('thread count')
-    ax.set_ylabel('optimal path length')
-    ax.set_zlabel('time (µs)')
+    ax.set_xlabel('thread count', labelpad=10)
+    ax.set_ylabel('optimal path length', labelpad=20)
+    ax.set_zlabel('time (µs)', labelpad=10)
 
     plt.show()
 
 
-def ripple_comparison_3d_surface(file_names, parsed_sets):
+def ripple_comparison_3d_surface(file_names, parsed_sets, ref_idx):
+    reference = parsed_sets[ref_idx]
     relevant_data = [(file, ds) for file, ds in zip(file_names, parsed_sets) if 'ripple-vec' in file]
-    reference = parsed_sets[0]
 
     X = np.asarray(lmap(lambda d: int(d[0].split('-')[-1]), relevant_data))
     Y = np.arange(2200)
     Z = np.zeros((X.size, Y.size))
 
-    for x, (name, file) in enumerate(relevant_data):
+    for x, (name, file) in enumerate(tqdm(relevant_data)):
         time_sum = np.zeros(Y.size)
         time_count = np.zeros(Y.size)
 
-        for map in tqdm(file['data']):
+        for map in file['data']:
             for scenario in file['data'][map]:
-                for ref_length, length, runtime in zip(reference['data'][map][scenario]['lengths'], file['data'][map][scenario]['lengths'],  file['data'][map][scenario]['times']):
+                for ref_length, runtime in zip(reference['data'][map][scenario]['lengths'], file['data'][map][scenario]['times']):
                     time_sum[ref_length] += runtime
                     time_count[ref_length] += 1
 
+        time_count[time_count == 0] = 1
         Z[x] = time_sum / time_count
 
     X, Y = np.meshgrid(X, Y)
@@ -405,27 +315,59 @@ def ripple_comparison_3d_surface(file_names, parsed_sets):
     plt.show()
 
 
-def overhead_bar_plot(file_names, parsed_sets):
-    overheads = []
-    reference = parsed_sets[0]
+def variance_box_plots(file_names, parsed_sets):
+    time_data = np.zeros((len(parsed_sets), 30))
+    cost_data = np.zeros((len(parsed_sets), 30))
 
-    for file in parsed_sets:
+    for x, file in enumerate(tqdm(parsed_sets)):
+        for map in file['data'].values():
+            for scenario in map.values():
+                time_data[x] += scenario['times']
+                cost_data[x] += scenario['lengths']
+
+    plt.title('Variance in runtime')
+    plt.boxplot(time_data.T, patch_artist=True)
+    plt.xticks(np.arange(1, len(file_names) + 1), file_names, rotation='vertical')
+    plt.ylabel('total time (µs)')
+    plt.tight_layout()
+    plt.show()
+
+    plt.title('Variance in path cost')
+    plt.boxplot(cost_data.T, patch_artist=True)
+    plt.xticks(np.arange(1, len(file_names) + 1), file_names, rotation='vertical')
+    plt.ylabel('total cost (nodes)')
+    plt.tight_layout()
+    plt.show()
+
+
+def bar_plots(file_names, parsed_sets, ref_idx):
+    reference = parsed_sets[ref_idx]
+
+    runtimes = np.zeros(parsed_sets.size)
+    counts = np.zeros(parsed_sets.size)
+    overheads = np.zeros(parsed_sets.size)
+
+    min_path_length = 1000
+
+    for x, file in enumerate(tqdm(parsed_sets)):
         ref_cost = 0
         cost = 0
 
         for map in file['data']:
             for scenario in file['data'][map]:
-                for ref_length, length, runtime in zip(reference['data'][map][scenario]['lengths'], file['data'][map][scenario]['lengths'],  file['data'][map][scenario]['times']):
+                for ref_length, length, runtime in zip(reference['data'][map][scenario]['lengths'],
+                                                       file['data'][map][scenario]['lengths'],
+                                                       file['data'][map][scenario]['times']):
                     ref_cost += ref_length
                     cost += length
 
-        overheads.append(100 * (cost / ref_cost - 1))
+                    if ref_length >= min_path_length:
+                        runtimes[x] += runtime
+                        counts[x] += 1
 
-    file_names = np.asarray(file_names)[np.argsort(overheads)]
-    overheads = np.asarray(overheads)[np.argsort(overheads)]
+        overheads[x] = 100 * (cost / ref_cost - 1)
 
-    for name, overhead in zip(file_names, overheads):
-        print(name, overhead)
+    runtimes /= counts
 
     colors = []
 
@@ -441,12 +383,46 @@ def overhead_bar_plot(file_names, parsed_sets):
         elif 'ripple' in name:
             colors.append('forestgreen')
 
+    fringe_idx = np.where(file_names == 'fringe')[0][0]
+    fringe_vec_idx = np.where(file_names == 'fringe-vec')[0][0]
+
+    ripple_idx = np.where([('ripple' in name and 'ripple-vec' not in name) for name in file_names])[0]
+    ripple_vec_idx = np.where(['ripple-vec' in name for name in file_names])[0]
+
+    NUM_CORES = 12
+
+    thread_counts = np.asarray(lmap(lambda f: int(f.split('-')[-1]), file_names[ripple_idx]))
+    expected_speedup = np.ones(thread_counts.size + 1)
+
+    for i in range(thread_counts.size):
+        full_cores = min(thread_counts[i], NUM_CORES) - 1
+        partial_cores = max(0, thread_counts[i] - NUM_CORES)
+        work = 1 if full_cores == 2 else 2
+        expected_speedup[i+1] = (full_cores + 0.5*partial_cores) / work
+
+    expected_x = np.concatenate(([fringe_idx], ripple_idx))
+    expected_runtime = runtimes[fringe_idx] / expected_speedup
+
+    expected_x_vec = np.concatenate(([fringe_vec_idx], ripple_vec_idx))
+    expected_runtime_vec = runtimes[fringe_vec_idx] / expected_speedup
+
+    line, = plt.plot(expected_x, expected_runtime, color='red', marker='o', linestyle='dashed')
+    plt.plot(expected_x_vec, expected_runtime_vec, color='red', marker='o', linestyle='dashed')
+
+    plt.legend(handles=[line], labels=['expected runtime'], loc='upper right')
+
+    plt.title(rf'Average runtime for paths $\geq$ {min_path_length} nodes')
+    plt.bar(np.arange(runtimes.size), runtimes, color=colors)
+    plt.ylabel('time (µs)')
+    plt.xticks(np.arange(file_names.size), file_names, rotation='vertical')
+    plt.tight_layout()
+    plt.show()
+
     plt.title('Relative path length error')
     plt.bar(np.arange(overheads.size), overheads, color=colors)
     plt.ylabel('overhead in %')
     plt.xticks(np.arange(file_names.size), file_names, rotation='vertical')
     plt.tight_layout()
-
     plt.show()
 
 
@@ -472,20 +448,16 @@ def main():
         print(f"Done, successfully pickled {len(arg.files)} files!")
         return
 
-    # costs = arg.parser(arg.files)
+    pruned_names = np.asarray(lmap(format_fn, arg.files))
+    parsed_sets = np.asarray(parsed_sets)
+    ref_idx = np.where(pruned_names == 'a-star')[0][0]
 
-    # TODO add support for multiple graphs
-    plot_init_settings()
-    # barplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
-    # boxplot(data_sets, arg.files, oput_fn=arg.graphfn, title=arg.title)
-    # grouped_boxplot(data_sets, costs, arg.files, oput_fn=arg.graphfn, title=arg.title)
     # print(needed_measurements(data_sets, 0.99, 0.05))
-    # overhead_bar_plot(lmap(format_fn, arg.files), parsed_sets)
-    ripple_comparison_3d_surface(lmap(format_fn, arg.files), parsed_sets)
-    # ripple_comparison_3d_bar(lmap(format_fn, arg.files), parsed_sets)
-    # TODO runtime bar plot
-    # TODO variance in runtime + cost
-    # TODO expected speedup
+    plot_init_settings()
+    bar_plots(pruned_names, parsed_sets, ref_idx)
+    ripple_comparison_3d_surface(pruned_names, parsed_sets, ref_idx)
+    ripple_comparison_3d_bar(pruned_names, parsed_sets, ref_idx)
+    variance_box_plots(pruned_names, parsed_sets)
 
 
 if __name__ == '__main__':
