@@ -340,7 +340,7 @@ def variance_box_plots(file_names, parsed_sets):
     plt.show()
 
 
-def bar_plots(file_names, parsed_sets, ref_idx):
+def performance_plots(file_names, parsed_sets, ref_idx):
     reference = parsed_sets[ref_idx]
 
     runtimes = np.zeros(parsed_sets.size)
@@ -402,13 +402,25 @@ def bar_plots(file_names, parsed_sets, ref_idx):
 
     expected_x = np.concatenate(([fringe_idx], ripple_idx))
     expected_runtime = runtimes[fringe_idx] / expected_speedup
+    actual_speedup = runtimes[fringe_idx] / runtimes[expected_x]
 
     expected_x_vec = np.concatenate(([fringe_vec_idx], ripple_vec_idx))
     expected_runtime_vec = runtimes[fringe_vec_idx] / expected_speedup
+    actual_speedup_vec = runtimes[fringe_vec_idx] / runtimes[expected_x_vec]
 
-    line, = plt.plot(expected_x, expected_runtime, color='red', marker='o', linestyle='dashed')
-    plt.plot(expected_x_vec, expected_runtime_vec, color='red', marker='o', linestyle='dashed')
+    thread_x = np.concatenate(([1], thread_counts))
+    plt.title('Actual vs. expected speedup')
+    plt.plot(thread_x, expected_speedup, color='black', marker='o', linestyle='dashed', label='expected')
+    plt.plot(thread_x, actual_speedup_vec, color='steelblue', marker='o', linestyle='solid', label='ripple-vec')
+    plt.plot(thread_x, actual_speedup, color='forestgreen', marker='o', linestyle='solid', label='ripple')
+    plt.xlabel('thread count')
+    plt.ylabel('speedup')
+    plt.xticks(thread_counts)
+    plt.legend(loc='upper left')
+    plt.show()
 
+    line, = plt.plot(expected_x, expected_runtime, color='black', marker='o', linestyle='dashed')
+    plt.plot(expected_x_vec, expected_runtime_vec, color='black', marker='o', linestyle='dashed')
     plt.legend(handles=[line], labels=['expected runtime'], loc='upper right')
 
     plt.title(rf'Average runtime for paths $\geq$ {min_path_length} nodes')
@@ -454,7 +466,7 @@ def main():
 
     # print(needed_measurements(data_sets, 0.99, 0.05))
     plot_init_settings()
-    bar_plots(pruned_names, parsed_sets, ref_idx)
+    performance_plots(pruned_names, parsed_sets, ref_idx)
     ripple_comparison_3d_surface(pruned_names, parsed_sets, ref_idx)
     ripple_comparison_3d_bar(pruned_names, parsed_sets, ref_idx)
     variance_box_plots(pruned_names, parsed_sets)
