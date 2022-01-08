@@ -273,10 +273,10 @@ def ripple_comparison_3d_bar(file_names, parsed_sets, ref_idx):
     ax.set_yticks(_y + 1.5)
     ax.set_yticklabels(y_label)
 
-    ax.set_title('Average ripple search runtime')
-    ax.set_xlabel('thread count', labelpad=10)
-    ax.set_ylabel('optimal path length', labelpad=20)
-    ax.set_zlabel('time (µs)', labelpad=10)
+    ax.set_title('Average Ripple Search Runtime')
+    ax.set_xlabel('Thread Count', labelpad=10)
+    ax.set_ylabel('Optimal Path Length', labelpad=20)
+    ax.set_zlabel('Time (µs)', labelpad=10)
 
     plt.show()
 
@@ -307,10 +307,10 @@ def ripple_comparison_3d_surface(file_names, parsed_sets, ref_idx):
     fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
     ax.plot_surface(X, Y, Z.T, cmap=cm.coolwarm, linewidth=0, antialiased=False)
 
-    ax.set_title('Average ripple search runtime')
-    ax.set_xlabel('thread count', labelpad=10)
-    ax.set_ylabel('optimal path length', labelpad=10)
-    ax.set_zlabel('time (µs)', labelpad=10)
+    ax.set_title('Average Ripple Search Runtime')
+    ax.set_xlabel('Thread Count', labelpad=10)
+    ax.set_ylabel('Optimal Path Length', labelpad=10)
+    ax.set_zlabel('Time (µs)', labelpad=10)
 
     plt.show()
 
@@ -330,17 +330,17 @@ def variance_box_plots(file_names, parsed_sets):
     time_data /= data_count
     cost_data /= data_count
 
-    plt.title('Variance in runtime')
+    plt.title('Variance in Runtime')
     plt.boxplot(time_data.T, meanline=True)
     plt.xticks(np.arange(1, len(file_names) + 1), file_names, rotation='vertical')
-    plt.ylabel('avg. time (µs)')
+    plt.ylabel('Mean Time (µs)')
     plt.tight_layout()
     plt.show()
 
-    plt.title('Variance in path cost')
+    plt.title('Variance in Path Length')
     plt.boxplot(cost_data.T, meanline=True)
     plt.xticks(np.arange(1, len(file_names) + 1), file_names, rotation='vertical')
-    plt.ylabel('avg. cost (nodes)')
+    plt.ylabel('Mean Length (Vertices)')
     plt.tight_layout()
     plt.show()
 
@@ -416,12 +416,12 @@ def performance_plots(file_names, parsed_sets, ref_idx):
     actual_speedup_vec = runtimes[fringe_vec_idx] / runtimes[expected_x_vec]
 
     thread_x = np.concatenate(([1], thread_counts-1))
-    plt.title('Actual vs. expected speedup')
+    plt.title('Actual vs. Expected Speedup')
     plt.plot(thread_x, expected_speedup, color='black', marker='o', linestyle='dashed', label='expected')
     plt.plot(thread_x, actual_speedup_vec, color='steelblue', marker='o', linestyle='solid', label='ripple-vec')
     plt.plot(thread_x, actual_speedup, color='forestgreen', marker='o', linestyle='solid', label='ripple')
-    plt.xlabel('search thread count')
-    plt.ylabel('speedup')
+    plt.xlabel('Search Thread Count')
+    plt.ylabel('Speedup')
     plt.xticks(thread_x)
     plt.legend(loc='upper left')
     plt.show()
@@ -430,14 +430,14 @@ def performance_plots(file_names, parsed_sets, ref_idx):
     plt.plot(expected_x_vec, expected_runtime_vec, color='black', marker='o', linestyle='dashed')
     plt.legend(handles=[line], labels=['expected runtime'], loc='upper right')
 
-    plt.title(rf'Average runtime for paths $\geq$ {min_path_length} nodes')
+    plt.title(rf'Average Runtime for Paths $\geq$ {min_path_length} Vertices')
     plt.bar(np.arange(runtimes.size), runtimes, color=colors)
-    plt.ylabel('time (µs)')
+    plt.ylabel('Time (µs)')
     plt.xticks(np.arange(file_names.size), file_names, rotation='vertical')
     plt.tight_layout()
     plt.show()
 
-    plt.title('Relative path length error')
+    plt.title('Relative Path Length Error')
     plt.bar(np.arange(overheads.size), overheads, color=colors)
     plt.ylabel('overhead in %')
     plt.xticks(np.arange(file_names.size), file_names, rotation='vertical')
@@ -474,9 +474,9 @@ def main():
     # print(needed_measurements(data_sets, 0.99, 0.05))
     plot_init_settings()
     performance_plots(pruned_names, parsed_sets, ref_idx)
-    ripple_comparison_3d_surface(pruned_names, parsed_sets, ref_idx)
-    ripple_comparison_3d_bar(pruned_names, parsed_sets, ref_idx)
-    variance_box_plots(pruned_names, parsed_sets)
+    # ripple_comparison_3d_surface(pruned_names, parsed_sets, ref_idx)
+    # ripple_comparison_3d_bar(pruned_names, parsed_sets, ref_idx)
+    # variance_box_plots(pruned_names, parsed_sets)
 
 
 if __name__ == '__main__':
