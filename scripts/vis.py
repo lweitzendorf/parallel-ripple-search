@@ -318,24 +318,29 @@ def ripple_comparison_3d_surface(file_names, parsed_sets, ref_idx):
 def variance_box_plots(file_names, parsed_sets):
     time_data = np.zeros((len(parsed_sets), 30))
     cost_data = np.zeros((len(parsed_sets), 30))
+    data_count = 0
 
     for x, file in enumerate(tqdm(parsed_sets)):
         for map in file['data'].values():
             for scenario in map.values():
                 time_data[x] += scenario['times']
                 cost_data[x] += scenario['lengths']
+                data_count += 1
+
+    time_data /= data_count
+    cost_data /= data_count
 
     plt.title('Variance in runtime')
-    plt.boxplot(time_data.T, patch_artist=True)
+    plt.boxplot(time_data.T, meanline=True)
     plt.xticks(np.arange(1, len(file_names) + 1), file_names, rotation='vertical')
-    plt.ylabel('total time (µs)')
+    plt.ylabel('avg. time (µs)')
     plt.tight_layout()
     plt.show()
 
     plt.title('Variance in path cost')
-    plt.boxplot(cost_data.T, patch_artist=True)
+    plt.boxplot(cost_data.T, meanline=True)
     plt.xticks(np.arange(1, len(file_names) + 1), file_names, rotation='vertical')
-    plt.ylabel('total cost (nodes)')
+    plt.ylabel('avg. cost (nodes)')
     plt.tight_layout()
     plt.show()
 
@@ -372,7 +377,9 @@ def performance_plots(file_names, parsed_sets, ref_idx):
     colors = []
 
     for name in file_names:
-        if 'a-star' in name:
+        if 'boost-a-star' in name:
+            colors.append('olive')
+        elif 'a-star' in name:
             colors.append('olivedrab')
         elif 'fringe-vec' in name:
             colors.append('darkorange')
@@ -396,9 +403,9 @@ def performance_plots(file_names, parsed_sets, ref_idx):
 
     for i in range(thread_counts.size):
         full_cores = min(thread_counts[i], NUM_CORES) - 1
-        partial_cores = max(0, thread_counts[i] - NUM_CORES)
+        hyper_threads = max(0, thread_counts[i] - NUM_CORES)
         work = 1 if full_cores == 2 else 2
-        expected_speedup[i+1] = (full_cores + 0.5*partial_cores) / work
+        expected_speedup[i+1] = (full_cores + 0.3*hyper_threads) / work
 
     expected_x = np.concatenate(([fringe_idx], ripple_idx))
     expected_runtime = runtimes[fringe_idx] / expected_speedup
@@ -408,14 +415,14 @@ def performance_plots(file_names, parsed_sets, ref_idx):
     expected_runtime_vec = runtimes[fringe_vec_idx] / expected_speedup
     actual_speedup_vec = runtimes[fringe_vec_idx] / runtimes[expected_x_vec]
 
-    thread_x = np.concatenate(([1], thread_counts))
+    thread_x = np.concatenate(([1], thread_counts-1))
     plt.title('Actual vs. expected speedup')
     plt.plot(thread_x, expected_speedup, color='black', marker='o', linestyle='dashed', label='expected')
     plt.plot(thread_x, actual_speedup_vec, color='steelblue', marker='o', linestyle='solid', label='ripple-vec')
     plt.plot(thread_x, actual_speedup, color='forestgreen', marker='o', linestyle='solid', label='ripple')
-    plt.xlabel('thread count')
+    plt.xlabel('search thread count')
     plt.ylabel('speedup')
-    plt.xticks(thread_counts)
+    plt.xticks(thread_x)
     plt.legend(loc='upper left')
     plt.show()
 
