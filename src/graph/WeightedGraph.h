@@ -77,12 +77,12 @@ class WeightedGraph {
   };
 
   class euclidean_distance_heuristic
-          : public boost::astar_heuristic<weighted_graph_t, double> {
+          : public boost::astar_heuristic<weighted_graph_t, float> {
     public:
     euclidean_distance_heuristic(std::vector<Point> l, vertex_t goal)
             : m_location(std::move(l)), m_goal(goal) {}
 
-    double operator()(vertex_t u) {
+    float operator()(vertex_t u) {
       float dx = m_location[m_goal].x - m_location[u].x;
       float dy = m_location[m_goal].y - m_location[u].y;
       return std::sqrt(dx * dx + dy * dy);

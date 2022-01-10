@@ -56,7 +56,3 @@ int CollisionGraph::distance(int i, int j) {
   return 0;
 }
 
-void CollisionGraph::reset() {
-  graph.clear();
-  graph.resize(NUM_SEARCH_THREADS);
-}
