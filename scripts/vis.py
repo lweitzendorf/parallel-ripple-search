@@ -442,9 +442,9 @@ def performance_plots(file_names, parsed_sets, ref_idx):
     plt.show()
 
     plt.title('Relative Path Length Error')
-    plt.bar(np.arange(overheads.size), overheads, color=colors)
-    plt.ylabel('overhead in %')
-    plt.xticks(np.arange(file_names.size), labels, rotation='vertical')
+    plt.bar(np.arange(overheads.size-1), overheads[1:], color=colors[1:])
+    plt.ylabel('Overhead in %')
+    plt.xticks(np.arange(file_names.size-1), labels[1:], rotation='vertical')
     plt.tight_layout()
     plt.show()
 

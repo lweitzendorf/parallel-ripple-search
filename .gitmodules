@@ -10,6 +10,3 @@
 [submodule "liblsb"]
 	path = liblsb
 	url = https://github.com/spcl/liblsb.git
-[submodule "glm"]
-	path = glm
-	url = https://github.com/g-truc/glm
