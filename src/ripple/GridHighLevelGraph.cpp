@@ -8,7 +8,7 @@
 using glm::vec2;
 
 // Width and height of the grid that is sampled to create the high level graph
-const int GRID_SIZE = 32;
+const int GRID_SIZE = 64;
 
 GridHighLevelGraph::GridHighLevelGraph(Map& map): map(map), grid(GRID_SIZE, GRID_SIZE), adj(GRID_SIZE * GRID_SIZE) {
   cell = vec2((float)map.width() / (GRID_SIZE), (float)map.height() / (GRID_SIZE));
@@ -105,6 +105,10 @@ int GridHighLevelGraph::distance(int i, int j) {
 
 
 std::vector<Point> GridHighLevelGraph::refine_high_level_path(const std::vector<Point>& path, int num) {
+  if(num <= 0) {
+    return {};
+  }
+
   if(path.size() <= num) {
     return path;
   }
@@ -125,7 +129,7 @@ std::vector<Point> GridHighLevelGraph::refine_high_level_path(const std::vector<
     Point u = path[i];
     Point v = path[i + 1];
     float dist = glm::distance(vec2(u.x, u.y), vec2(v.x, v.y));
-    if(length_so_far + dist >= target_length) {
+    if(length_so_far + dist >= target_length && (result.empty() || result.back() != v)) {
       result.push_back(v);
       target_length += segment_length;
     }
@@ -188,16 +192,17 @@ std::vector<Point> GridHighLevelGraph::get_full_path(Point source, Point goal) {
 
 Path<Node> GridHighLevelGraph::create_high_level_path(Node source, Node goal, int num) {
   auto full_path = get_full_path(map.node_to_point(source), map.node_to_point(goal));
-  auto refined_path = refine_high_level_path(full_path, num);
+  auto refined_path = refine_high_level_path(full_path, num - 2);
 
   std::vector<Node> result;
   result.reserve(refined_path.size() + 2);
 
   result.push_back(source);
   for(auto p: refined_path) {
-    result.push_back(goal);
+    result.push_back(map.point_to_node(p));
   }
-  result.push_back(goal);
+  if(result.empty() || result.back() != goal)
+    result.push_back(goal);
 
   return result;
 }

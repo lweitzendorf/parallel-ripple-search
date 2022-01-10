@@ -1,11 +1,11 @@
-#include "FringeSearchSimd.h"
+#include "FringeSearchVec.h"
 
 #include <cmath>
 
 #include <immintrin.h>
 
 
-std::optional<std::vector<Node>> FringeSearchSimd::search() {
+std::optional<std::vector<Node>> FringeSearchVec::search(Node source, Node goal) {
     cache.clear();
     cache.resize(map.size(), {});
 
@@ -20,12 +20,8 @@ std::optional<std::vector<Node>> FringeSearchSimd::search() {
     cache[source].visited = true;
     cache[source].list_index = 0;
 
-    // Lambda for computing heuristic
-    auto h = [&](Node i) {
-        return map.distance(i, goal);
-    };
-
-    float flimit = h(source);
+    Point goalp = map.node_to_point(goal);
+    float flimit = map.distance(source, goal);
     bool found = false;
 
     int32_t current_list = 0;
@@ -43,14 +39,17 @@ std::optional<std::vector<Node>> FringeSearchSimd::search() {
 
 
             auto& n = cache[node];
-            if(n.list_index != current_list) {
+            if (n.list_index != current_list) {
                 continue;
             }
 
             n.list_index = -1;
+            
+
+            Point np = map.node_to_point(node);
 
             float g = n.g;
-            float f = g + h(node);
+            float f = g + map.distance(np, goalp);
 
             if(f > flimit + 1) {
                 fmin = std::min(fmin, f);
@@ -60,7 +59,6 @@ std::optional<std::vector<Node>> FringeSearchSimd::search() {
             }
 
             
-            Point np = map.node_to_point(node);
             
         #if AVX512_ENABLED
             __m256i zero = _mm256_setzero_si256();
@@ -78,6 +76,7 @@ std::optional<std::vector<Node>> FringeSearchSimd::search() {
             __m256i neigh_y = _mm256_add_epi32(n_y, offset_y);
 
             // Check bounds
+            #if 1
             __mmask8 x_ge0 = _mm256_cmpge_epi32_mask(neigh_x, zero);
             __mmask8 y_ge0 = _mm256_cmpge_epi32_mask(neigh_y, zero);
 
@@ -89,6 +88,9 @@ std::optional<std::vector<Node>> FringeSearchSimd::search() {
             
             // inbounds = (x >= 0 && y >= 0) && (x < width, && y < height)
             __mmask8 in_bounds = _kand_mask8(_kand_mask8(x_ge0, y_ge0), _kand_mask8(x_lt_size, y_lt_size));
+            #else
+            __m256i size_x = _mm256_set1_epi32(map.width());
+            #endif
 
             // Compute neighbour index
             // s = x + y * width
@@ -97,6 +99,7 @@ std::optional<std::vector<Node>> FringeSearchSimd::search() {
 
             // Check walls for neighbours in bounds
             __m256i walls32  = _mm256_mmask_i32gather_epi32(zero, in_bounds, s, map.data_ptr(), 1);
+            //__m256i walls32  = _mm256_i32gather_epi32((int*)map.data_ptr(), s, 1);
             __m128i walls = _mm256_cvtepi32_epi8(walls32);
             __mmask8 valid = _mm_cmpneq_epi8_mask(walls, _mm_setzero_si128());
 
@@ -106,11 +109,11 @@ std::optional<std::vector<Node>> FringeSearchSimd::search() {
             __m256 cost = _mm256_add_ps(additional_cost, _mm256_set1_ps(g));
 
             // Gather visited
-            __m256i visited_value = _mm256_mmask_i32gather_epi32(zero, valid, s_scaled, ((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, visited), 1);
+            __m256i visited_value = _mm256_mmask_i32gather_epi32(zero, valid, s_scaled, ((uint8_t*)cache.data()) + offsetof(FringeNodeVec, visited), 1);
             __mmask8 visited = _mm256_cmpneq_epi32_mask(visited_value, zero);
 
             // Gather cost for visited nodes
-            __m256 prev_cost = _mm256_mmask_i32gather_ps(_mm256_setzero_ps(), visited, s_scaled, ((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, g), 1);
+            __m256 prev_cost = _mm256_mmask_i32gather_ps(_mm256_setzero_ps(), visited, s_scaled, ((uint8_t*)cache.data()) + offsetof(FringeNodeVec, g), 1);
 
             // Check if new cost is cheaper
             __mmask8 cheaper = _mm256_cmp_ps_mask(cost, prev_cost, _CMP_LT_OQ);
@@ -119,19 +122,19 @@ std::optional<std::vector<Node>> FringeSearchSimd::search() {
             __mmask8 update_mask = _kand_mask8(valid, _kor_mask8(cheaper, _knot_mask8(visited)));
 
             // Scatter visited, new cost, and parent for nodes to update
-            _mm256_mask_i32scatter_epi32(((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, visited), update_mask, s_scaled, ones, 1);
-            _mm256_mask_i32scatter_ps   (((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, g      ), update_mask, s_scaled, cost, 1);
-            _mm256_mask_i32scatter_epi32(((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, parent ), update_mask, s_scaled, _mm256_set1_epi32(node), 1);
+            _mm256_mask_i32scatter_epi32(((uint8_t*)cache.data()) + offsetof(FringeNodeVec, visited), update_mask, s_scaled, ones, 1);
+            _mm256_mask_i32scatter_ps   (((uint8_t*)cache.data()) + offsetof(FringeNodeVec, g      ), update_mask, s_scaled, cost, 1);
+            _mm256_mask_i32scatter_epi32(((uint8_t*)cache.data()) + offsetof(FringeNodeVec, parent ), update_mask, s_scaled, _mm256_set1_epi32(node), 1);
 
             // Gather list index
             __m256i curr_list = _mm256_set1_epi32(current_list);
-            __m256i list_index = _mm256_mmask_i32gather_epi32(curr_list, update_mask, s_scaled, ((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, list_index), 1);
+            __m256i list_index = _mm256_mmask_i32gather_epi32(curr_list, update_mask, s_scaled, ((uint8_t*)cache.data()) + offsetof(FringeNodeVec, list_index), 1);
 
             // Check if not in current list
             __mmask8 to_push = _mm256_cmpneq_epi32_mask(curr_list, list_index);
             
             // Store current list
-            _mm256_mask_i32scatter_epi32(((uint8_t*)cache.data()) + offsetof(FringeNodeSimd, list_index), to_push, s_scaled, curr_list, 1);
+            _mm256_mask_i32scatter_epi32(((uint8_t*)cache.data()) + offsetof(FringeNodeVec, list_index), to_push, s_scaled, curr_list, 1);
 
             // Compress and push into current list
             uint32_t mask_size = __builtin_popcount(_cvtmask8_u32(to_push)); 
@@ -146,7 +149,20 @@ std::optional<std::vector<Node>> FringeSearchSimd::search() {
                 neigh.y += np.y;
 
                 
-                if (map.in_bounds(neigh)) {
+                if (map.in_bounds(neigh)) 
+                {
+
+                    // Avoid cutting corners
+                    #if 0
+                    if(i < 4) {
+                        Point n1(neigh.x, np.y);
+                        Point n2(np.x, neigh.y);
+                        if(!map.get(n1) || !map.get(n2)) {
+                            continue;
+                        }
+                    }
+                    #endif
+
                     Node s = map.point_to_node(neigh);
 
                     if(!map.get(neigh)) {
@@ -195,6 +211,6 @@ std::optional<std::vector<Node>> FringeSearchSimd::search() {
     }
 }
 
-FringeSearchSimd::FringeSearchSimd(Map& map, Node source, Node goal) : 
-    map(map), source(source), goal(goal) {
+FringeSearchVec::FringeSearchVec(Map& map) :
+    map(map) {
 }

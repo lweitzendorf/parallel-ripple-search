@@ -6,12 +6,15 @@
 
 #include "utility/Timer.h"
 
-#include "reference/BoostAStarSearch.h"
-#include "reference/FringeSearchSimd.h"
+#include "graph/WeightedGraph.h"
+#include "reference/FringeSearch.h"
+#include "reference/FringeSearchVec.h"
 #include "ripple/RippleSearch.h"
 #include "utility/FileParser.h"
+#include "benchmark/benchmarks.h"
 
 #include "reference/Astar.h"
+#include "reference/BoostAStarSearch.h"
 
 #ifdef ONLY_EXPORT_IMGS
 #define BOOST_IMG_FN "../imgs/boost_img.png"
@@ -76,21 +79,18 @@ template <typename Iterator> void print_path(Iterator begin, Iterator end) {
 template <typename Search>
 Image test_search(std::string name, Map &map, Node source, Node goal,
                   std::function<void(Image &, Map &, Search &)> draw = [](Image &, Map &, Search &) -> void {}) {
+
+  Search search(map);
+  
   Timer t;
-
   t.start();
-  Search search(map, source, goal);
+
+  auto path = search.search(source, goal).value_or(Path<Node>());
+
   t.stop();
 
-  printf("%s construction time: %.3fms\n", name.c_str(),
-         (double)t.get_milliseconds());
-
-  t.start();
-  auto path = search.search().value_or(Path<Node>());
-  t.stop();
-
-  printf("%s search time: %.3fms (%d nodes)\n", name.c_str(),
-         (double)t.get_milliseconds(), (int)path.size());
+  printf("%s time: %.3fms (%d nodes)\n", name.c_str(),
+         (double)t.get_nanoseconds() / 1e6, (int)path.size());
 
   //print_path(path.begin(), path.end());
 
@@ -156,6 +156,7 @@ int main(int argc, char **argv) {
   // Disable raylib log
   SetTraceLogLevel(LOG_NONE);
 
+#if true
   if (argc < 4) {
     std::cout << "Usage: " << argv[0] << " PATH START GOAL" << std::endl;
     return 1;
@@ -181,10 +182,42 @@ int main(int argc, char **argv) {
   if (!check_source_and_goal(map, source, goal))
     return 3;
 
+#else
+    std::string bench = "bg512";
+    //std::string bench = "sc1";
+    auto maps = load_maps("../benchmarks/" + bench + "-map");
+    //std::cout << "Benchmark: " << bench <<" - loaded " << maps.size() << " maps" << std::endl;
+
+    std::vector<std::vector<Scenario>> scenarios;
+
+    for(auto &m : maps) {
+      auto& map = m.second;
+      auto scen = load_scenarios("../benchmarks/" + bench + "-scen/", m.first);
+      scenarios.push_back(std::move(scen));
+    }
+
+    if(argc < 2) {
+      printf("Usage: %s <map index>\n", argv[0]);
+      exit(1);
+    }
+
+    int map_index = atoi(argv[1]);
+    auto& m = maps[map_index];
+    auto& map = m.second;
+    auto scen = scenarios[map_index];
+    int scen_index = 498;//scen.size() - 1;
+    
+    Node source = map.point_to_node(scen[scen_index].source);
+    Node goal = map.point_to_node(scen[scen_index].goal);
+
+
+    printf("%s with %d scenario (%d -> %d):\n", m.first.c_str(), (int)scen_index, source, goal);
+#endif
+
   const std::vector<Image> images = {
       test_search<RippleSearch>("Ripple", map, source, goal, ripple_draw),
-      test_search<FringeSearchSimd>("Fringe Vec", map, source, goal,
-                                    fringe_draw<FringeSearchSimd>),
+      test_search<FringeSearchVec>("Fringe Vec", map, source, goal,
+                                    fringe_draw<FringeSearchVec>),
       test_search<FringeSearch>("Fringe", map, source, goal,
                                 fringe_draw<FringeSearch>),
       test_search<BoostAStarSearch>("Boost A*", map, source, goal),
@@ -212,7 +245,8 @@ int main(int argc, char **argv) {
     textures.push_back(LoadTextureFromImage(img));
   }
 
-  for (unsigned texture_index = 0; !WindowShouldClose();) // Detect window close button or ESC key
+  for (unsigned texture_index = 0;
+       !WindowShouldClose();) // Detect window close button or ESC key
   {
     if (IsKeyPressed(KEY_SPACE))
       ++texture_index %= textures.size();

@@ -17,8 +17,27 @@ using oneapi::tbb::concurrent_queue;
 // Question: can we put some of these enums within the class? is this a better
 // design?
 enum FringeInterruptAction { NONE, RESET, EXIT };
-// TODO: test aligning this struct to cache line size to avoid
-// false sharing between threads that are exploring neighbouring nodes
+
+struct RippleNode {
+  // Fringe search data
+  bool visited = false;
+  float cost; // Cost from source to node
+  int list_index = -1;
+  Phase phase = PHASE_1;
+};
+
+static_assert(sizeof(ThreadId) <= 4 && sizeof(Node) <= 4);
+#define NODE_PARENT(v) ((Node)(v & 0xFFFFFFFF))
+#define NODE_OWNER(v) ((ThreadId)(v >> 32))
+#define MAKE_OWNER_PARENT(owner, parent) ((uint64_t)owner << 32 | (uint64_t)parent)
+
+struct RippleCacheNode {
+  // Packed id and parent node for atomic update:
+  // high 32 bits: id of the thread that first discovered the Node and thus owns it
+  // low  32 bits: parent Node 
+  std::atomic<uint64_t> thread_parent;
+  RippleNode node;
+};
 
 // Class representing a thread of the ripple search algorithm
 class RippleThread {
@@ -43,15 +62,15 @@ private:
   std::optional<Node> goal_2;
 
   // Fringe search info
-  std::function<int(Node)> heuristic;
+  std::function<float(Node)> heuristic;
 
-  std::vector<FringeNode> cache;
-  std::vector<std::atomic<ThreadId>> &node_owners;
+  // Reference to vector of node info for fringe search, shared between all
+  // threads
+  std::vector<RippleCacheNode> &cache;
 
   // Mask of threads that we collided with, the i-th bit is 1 if we collided
   // with the i-th thread
-  uint32_t collision_mask = 0;
-  static_assert(sizeof(collision_mask) * 8 >= NUM_SEARCH_THREADS);
+  std::bitset<NUM_SEARCH_THREADS> collision_mask = 0;
 
   // Segment of the final path owned by the thread
   Path<Node> final_path;
@@ -76,12 +95,12 @@ private:
   void search(Phase phase);
 
   void phase_1_conclusion();
-  void phase_2_conclusion();
+  void phase_2_conclusion(Node parent_of_goal);
   void exit();
 
 public:
   RippleThread(
-      ThreadId id, Map &map, std::vector<std::atomic<ThreadId>> &node_owners,
+      ThreadId id, Map &map, std::vector<RippleCacheNode> &cache,
       std::vector<tbb::detail::d2::concurrent_queue<Message>> &message_queues);
 
   bool start();

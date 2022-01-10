@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-std::optional<std::vector<Node>> FringeSearch::search() {
+std::optional<std::vector<Node>> FringeSearch::search(Node source, Node goal) {
     cache.clear();
     cache.resize(map.size(), {});
 
@@ -19,18 +19,16 @@ std::optional<std::vector<Node>> FringeSearch::search() {
     cache[source].visited = true;
 
     // Lambda for computing heuristic
-    auto h = [&](Node i) {
-        return map.distance(i, goal);
-    };
+    Point goalp = map.node_to_point(goal);
 
-    int flimit = h(source);
+    float flimit = map.distance(source, goal);
     int found = false;
     FringeEntry nnode = fringe_list.end();
 
     // int it = 0;
     while(!found && !fringe_list.empty()) {
         //std::cout << "Iteration: " << it++ << std::endl;
-        int fmin = INT_MAX;
+        float fmin = std::numeric_limits<float>::max();
         nnode = fringe_list.begin();
         
         do {
@@ -42,17 +40,17 @@ std::optional<std::vector<Node>> FringeSearch::search() {
 
             auto& n = cache[*nnode];
 
-            int g = n.cost;
-            int f = g + h(*nnode);
+            float g = n.cost;
 
-            if(f > flimit) {
+            Point np = map.node_to_point(*nnode);
+            float f = g + map.distance(np, goalp);
+
+            if(f > flimit + 1) {
                 fmin = std::min(fmin, f);
                 nnode++;
                 continue;
             }
-
             
-            Point np = map.node_to_point(*nnode);
 
             // For each neighbour
             for (int i = 0; i < Map::NEIGHBOURS_COUNT; i++) {
@@ -67,9 +65,9 @@ std::optional<std::vector<Node>> FringeSearch::search() {
                         continue;
                     }
 
-                    int gs = g + 1;
+                    float gs = i >= 4 ? g + 1 : g + sqrtf(2);
                     if(cache[s].visited) {
-                        int gi = cache[s].cost;
+                        float gi = cache[s].cost;
                         if(gs >= gi) {
                             continue;
                         }
@@ -116,6 +114,6 @@ std::optional<std::vector<Node>> FringeSearch::search() {
     }
 }
 
-FringeSearch::FringeSearch(Map& map, Node source, Node goal) : 
-    map(map), source(source), goal(goal) {
+FringeSearch::FringeSearch(Map& map): 
+    map(map) {
 }

@@ -3,17 +3,15 @@
 #include "graph/WeightedGraph.h"
 
 class BoostAStarSearch {
-private:
+  private:
   WeightedGraph graph;
-  vertex_t source;
-  vertex_t goal;
 
-public:
-  BoostAStarSearch(Map &map, Node source, Node goal) : source(source), goal(goal) {
+  public:
+  BoostAStarSearch(Map &map) {
     graph.build_from_map(map);
   }
 
-  std::optional<Path<Node>> search() {
+  std::optional<Path<Node>> search(Node source, Node goal) {
     return graph.a_star_search(source, goal);
   }
 };

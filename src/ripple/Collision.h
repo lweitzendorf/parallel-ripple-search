@@ -4,6 +4,7 @@
 #include "graph/Map.h"
 
 #include <type_traits>
+#include <bitset>
 
 
 // Struct representing a collision between threads.
@@ -25,16 +26,14 @@ class CollisionGraph {
   Node goal;
   std::vector<ThreadId> neighbors;
 
-  std::vector<std::vector<std::pair<ThreadId, Collision>>> graph;
-
-  uint32_t masks[NUM_SEARCH_THREADS] = {};
-  static_assert(sizeof(masks[0]) * 8 >= NUM_SEARCH_THREADS);
+  std::bitset<NUM_SEARCH_THREADS> masks[NUM_SEARCH_THREADS] = {};
 
 public:
+  std::vector<std::vector<std::pair<ThreadId, Collision>>> graph;
 
-  CollisionGraph(Map &map, Node goal) : map(map), goal(goal) {
-    graph.resize(NUM_SEARCH_THREADS);
-  }
+  CollisionGraph(Map &map) : map(map) { }
+
+  void init(Node goal);
 
   size_t size() const { return graph.size(); }
 
@@ -47,6 +46,4 @@ public:
   void add_collision(ThreadId source, ThreadId target, Node node, Node parent);
 
   Collision get_collision(ThreadId t1, ThreadId t2);
-
-  void reset();
 };

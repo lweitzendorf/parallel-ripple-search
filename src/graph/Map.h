@@ -73,7 +73,7 @@ public:
   float distance(Node a, Node b) const;
   static float distance(Point a, Point b);
 
-  double cost(Node from, Node to);
+  float cost(Node from, Node to);
 
   MapNeighbours neighbours(Node i);
 };

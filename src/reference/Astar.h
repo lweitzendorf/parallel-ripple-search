@@ -21,9 +21,9 @@ template <typename Node>
 template <typename Graph, typename Node>
 std::optional<Path<Node>> a_star_search(Graph &graph, Node start, Node goal) {
   Path<Node> came_from(graph.size());
-  std::vector<std::optional<double>> cost_so_far(graph.size(), std::nullopt);
+  std::vector<std::optional<float>> cost_so_far(graph.size(), std::nullopt);
 
-  PriorityQueue<Node, double> frontier;
+  PriorityQueue<Node, float> frontier;
   frontier.put(start, 0);
 
   came_from[start] = start;
@@ -37,11 +37,11 @@ std::optional<Path<Node>> a_star_search(Graph &graph, Node start, Node goal) {
 
     // For each neighbour
     for (Node s : graph.neighbours(current)) {
-      double new_cost = cost_so_far[current].value() + graph.cost(current, s);
+      float new_cost = cost_so_far[current].value() + graph.cost(current, s);
 
       if (!cost_so_far[s] || new_cost < cost_so_far[s].value()) {
         cost_so_far[s] = new_cost;
-        double priority = new_cost + graph.distance(s, goal);
+        float priority = new_cost + graph.distance(s, goal);
         frontier.put(s, priority);
         came_from[s] = current;
       }
@@ -51,12 +51,13 @@ std::optional<Path<Node>> a_star_search(Graph &graph, Node start, Node goal) {
 }
 
 class AStarSearch {
-private:
+  private:
   Map &map;
-  Node source;
-  Node goal;
 
-public:
-  AStarSearch(Map &map, Node source, Node goal) :map(map), source(source), goal(goal) {}
-  std::optional<Path<Node>> search() { return a_star_search(map, source, goal); }
+  public:
+  AStarSearch(Map &map) : map(map) {}
+
+  std::optional<Path<Node>> search( Node source, Node goal) {
+    return a_star_search(map, source, goal);
+  }
 };
