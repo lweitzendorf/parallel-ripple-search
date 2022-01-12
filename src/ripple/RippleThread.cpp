@@ -1,8 +1,8 @@
+#include "RippleThread.h"
+
 #include <cassert>
 #include <memory>
 #include <limits>
-
-#include "RippleThread.h"
 
 RippleThread::RippleThread(
     ThreadId id, Map &map, std::vector<RippleCacheNode> &cache,

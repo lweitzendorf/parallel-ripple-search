@@ -47,7 +47,6 @@ std::vector<ThreadId> &CollisionGraph::neighbours(int i) {
   return neighbors;
 }
 
-// TODO I know the below are wrong
 double CollisionGraph::cost(int i, int j) {
   return 1;
 }

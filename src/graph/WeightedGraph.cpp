@@ -112,7 +112,7 @@ void WeightedGraph::build_from_map(Map &map) {
             Node neighbor_node = map.point_to_node(neighbor);
             if (neighbor_node < n) {
               float cost = neighbor.x == p.x || neighbor.y == p.y ? 1 : sqrtf(2);
-              add_edge(neighbor_node, n, 1);
+              add_edge(neighbor_node, n, cost);
             }
           }
         }

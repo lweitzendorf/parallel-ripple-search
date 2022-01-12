@@ -14,7 +14,6 @@ private:
   std::vector<RippleCacheNode> cache;
   CollisionGraph collision_graph;
 
-
   std::optional<Path<ThreadId>> coordinate_threads();
   std::optional<Path<ThreadId>> check_collision_path();
   bool is_valid_path(Path<Node> &path) const;

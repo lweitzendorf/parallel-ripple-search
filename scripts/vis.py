@@ -327,7 +327,7 @@ def variance_box_plots(file_names, parsed_sets):
                 cost_data[x] += scenario['lengths']
                 data_count += 1
 
-    time_data /= data_count
+    time_data /= 1e6
     cost_data /= data_count
 
     labels = [' '.join([chunk.capitalize() for chunk in name.split('-')]) for name in file_names]
@@ -335,7 +335,7 @@ def variance_box_plots(file_names, parsed_sets):
     plt.title('Variance in Runtime')
     plt.boxplot(time_data.T, meanline=True)
     plt.xticks(np.arange(1, len(file_names) + 1), labels, rotation='vertical')
-    plt.ylabel('Mean Time (µs)')
+    plt.ylabel('Total Time (s)')
     plt.tight_layout()
     plt.show()
 
@@ -378,19 +378,22 @@ def performance_plots(file_names, parsed_sets, ref_idx):
 
     colors = []
 
+    ripple_color = 'tab:blue'
+    ripple_vec_color = 'tab:green'
+
     for name in file_names:
         if 'boost-a-star' in name:
-            colors.append('olive')
+            colors.append('tab:orange')
         elif 'a-star' in name:
-            colors.append('olivedrab')
+            colors.append('tab:brown')
         elif 'fringe-vec' in name:
-            colors.append('darkorange')
+            colors.append('tab:red')
         elif 'fringe' in name:
-            colors.append('darkorchid')
+            colors.append('tab:purple')
         elif 'ripple-vec' in name:
-            colors.append('steelblue')
+            colors.append(ripple_vec_color)
         elif 'ripple' in name:
-            colors.append('forestgreen')
+            colors.append(ripple_color)
 
     fringe_idx = np.where(file_names == 'fringe')[0][0]
     fringe_vec_idx = np.where(file_names == 'fringe-vec')[0][0]
@@ -420,16 +423,16 @@ def performance_plots(file_names, parsed_sets, ref_idx):
     thread_x = np.concatenate(([1], thread_counts-1))
     plt.title('Actual vs. Expected Speedup')
     plt.plot(thread_x, expected_speedup, color='black', marker='o', linestyle='dashed', label='Expected')
-    plt.plot(thread_x, actual_speedup, color='forestgreen', marker='o', linestyle='solid', label='Ripple')
-    plt.plot(thread_x, actual_speedup_vec, color='steelblue', marker='o', linestyle='solid', label='Ripple Vec')
+    plt.plot(thread_x[1:], actual_speedup[1:], color=ripple_color, marker='+', linestyle='none', label='Ripple')
+    plt.plot(thread_x[1:], actual_speedup_vec[1:], color=ripple_vec_color, marker='x', linestyle='none', label='Ripple Vec')
     plt.xlabel('Search Thread Count')
     plt.ylabel('Speedup')
     plt.xticks(thread_x)
     plt.legend(loc='upper left')
     plt.show()
 
-    line, = plt.plot(expected_x, expected_runtime, color='black', marker='o', linestyle='dashed')
-    plt.plot(expected_x_vec, expected_runtime_vec, color='black', marker='o', linestyle='dashed')
+    line, = plt.plot(expected_x, expected_runtime, color='black', marker='_', linestyle='none', markersize=10, markeredgewidth=1.5)
+    plt.plot(expected_x_vec, expected_runtime_vec, color='black', marker='_', linestyle='none', markersize=10, markeredgewidth=1.5)
     plt.legend(handles=[line], labels=['Expected Runtime'], loc='upper right')
 
     labels = [' '.join([chunk.capitalize() for chunk in name.split('-')]) for name in file_names]
@@ -478,9 +481,9 @@ def main():
     # print(needed_measurements(data_sets, 0.99, 0.05))
     plot_init_settings()
     performance_plots(pruned_names, parsed_sets, ref_idx)
-    ripple_comparison_3d_surface(pruned_names, parsed_sets, ref_idx)
+    # ripple_comparison_3d_surface(pruned_names, parsed_sets, ref_idx)
     # ripple_comparison_3d_bar(pruned_names, parsed_sets, ref_idx)
-    variance_box_plots(pruned_names, parsed_sets)
+    # variance_box_plots(pruned_names, parsed_sets)
 
 
 if __name__ == '__main__':

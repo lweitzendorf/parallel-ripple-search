@@ -8,6 +8,7 @@
 #include "benchmark/benchmarks.h"
 #include "reference/Astar.h"
 #include "reference/BoostAStarSearch.h"
+#include "reference/AstarJHJ.h"
 
 #define RUNS_PER_SCENARIO 30
 
@@ -69,4 +70,5 @@ int main() {
   benchmark<FringeSearchVec>("fringe-vec", maps, scenarios);
   benchmark<AStarSearch>("a-star", maps, scenarios);
   benchmark<BoostAStarSearch>("boost-a-star", maps, scenarios);
+  benchmark<AstarJHJ>("jhj-a-star", maps, scenarios);
 }
