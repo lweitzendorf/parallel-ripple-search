@@ -3,7 +3,7 @@
 #include <string>
 
 #include "graph/Map.h"
-#include "reference/FringeSearchVec.h"
+#include "reference/FringeVecSearch.h"
 #include "ripple/RippleSearch.h"
 #include "benchmark/benchmarks.h"
 #include "reference/Astar.h"
@@ -67,7 +67,7 @@ int main() {
 
   benchmark<RippleSearch>("ripple-vec-" + std::to_string(NUM_THREADS), maps, scenarios);
   benchmark<FringeSearch>("fringe", maps, scenarios);
-  benchmark<FringeSearchVec>("fringe-vec", maps, scenarios);
+  benchmark<FringeVecSearch>("fringe-vec", maps, scenarios);
   benchmark<AstarSearch>("a-star", maps, scenarios);
   benchmark<BoostAstarSearch>("boost-a-star", maps, scenarios);
   benchmark<JHJAstarSearch>("jhj-a-star", maps, scenarios);

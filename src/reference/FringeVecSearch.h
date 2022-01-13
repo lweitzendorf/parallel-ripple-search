@@ -15,7 +15,7 @@ struct FringeNodeVec {
 
 static_assert(sizeof(FringeNodeVec) == 4 * 4);
 
-class FringeSearchVec {
+class FringeVecSearch {
   // Constants
   Map &map;
 
@@ -26,6 +26,6 @@ class FringeSearchVec {
 public:
   std::vector<FringeNodeVec> cache;
 
-  FringeSearchVec(Map &map);
+  FringeVecSearch(Map &map);
   std::optional<std::vector<Node>> search(Node source, Node goal);
 };

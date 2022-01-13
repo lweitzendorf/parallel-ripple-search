@@ -1,11 +1,11 @@
-#include "FringeSearchVec.h"
+#include "FringeVecSearch.h"
 
 #include <cmath>
 
 #include <immintrin.h>
 
 
-std::optional<std::vector<Node>> FringeSearchVec::search(Node source, Node goal) {
+std::optional<std::vector<Node>> FringeVecSearch::search(Node source, Node goal) {
     cache.clear();
     cache.resize(map.size(), {});
 
@@ -211,6 +211,6 @@ std::optional<std::vector<Node>> FringeSearchVec::search(Node source, Node goal)
     }
 }
 
-FringeSearchVec::FringeSearchVec(Map& map) :
+FringeVecSearch::FringeVecSearch(Map& map) :
     map(map) {
 }

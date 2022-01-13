@@ -1,5 +1,4 @@
 #include "JHJAstarSearch.h"
-#include <stdio.h>
 
 bool JHJAstarSearch::MapSearchNode::IsSameState(MapSearchNode &rhs) {
   return pos == rhs.pos;

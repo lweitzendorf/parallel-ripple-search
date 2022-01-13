@@ -8,7 +8,7 @@
 
 #include "graph/WeightedGraph.h"
 #include "reference/FringeSearch.h"
-#include "reference/FringeSearchVec.h"
+#include "reference/FringeVecSearch.h"
 #include "ripple/RippleSearch.h"
 #include "utility/FileParser.h"
 #include "benchmark/benchmarks.h"
@@ -216,8 +216,8 @@ int main(int argc, char **argv) {
 
   const std::vector<Image> images = {
       test_search<RippleSearch>("Ripple", map, source, goal, ripple_draw),
-      test_search<FringeSearchVec>("Fringe Vec", map, source, goal,
-                                   fringe_draw<FringeSearchVec>),
+      test_search<FringeVecSearch>("Fringe Vec", map, source, goal,
+                                   fringe_draw<FringeVecSearch>),
       test_search<FringeSearch>("Fringe", map, source, goal,
                                 fringe_draw<FringeSearch>),
       test_search<BoostAstarSearch>("Boost A*", map, source, goal),
