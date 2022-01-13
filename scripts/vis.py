@@ -249,7 +249,7 @@ def ripple_comparison_3d_bar(file_names, parsed_sets, ref_idx):
                     time_count[bin_nr] += 1
 
         time_count[time_count == 0] = 1
-        Z[x] = time_sum / time_count
+        Z[x] = time_sum / (1000 * time_count)
 
     x_label = [str(x) for x in X]
     y_label = ['[0, 100)', '[100, 250)', '[250, 500)', '[500, 1000)', '[1000, 2000)', '[2000, ∞)']
@@ -276,7 +276,7 @@ def ripple_comparison_3d_bar(file_names, parsed_sets, ref_idx):
     ax.set_title('Average Ripple Search Runtime')
     ax.set_xlabel('Thread Count', labelpad=10)
     ax.set_ylabel('Optimal Path Length', labelpad=20)
-    ax.set_zlabel('Time (µs)', labelpad=10)
+    ax.set_zlabel('Time (ms)', labelpad=10)
 
     plt.show()
 
@@ -300,7 +300,7 @@ def ripple_comparison_3d_surface(file_names, parsed_sets, ref_idx):
                     time_count[ref_length] += 1
 
         time_count[time_count == 0] = 1
-        Z[x] = time_sum / time_count
+        Z[x] = time_sum / (1000 * time_count)
 
     X, Y = np.meshgrid(X, Y)
 
@@ -310,39 +310,67 @@ def ripple_comparison_3d_surface(file_names, parsed_sets, ref_idx):
     ax.set_title('Average Ripple Search Runtime')
     ax.set_xlabel('Thread Count', labelpad=10)
     ax.set_ylabel('Optimal Path Length', labelpad=10)
-    ax.set_zlabel('Time (µs)', labelpad=10)
+    ax.set_zlabel('Time (ms)', labelpad=10)
 
     plt.show()
 
 
 def variance_box_plots(file_names, parsed_sets):
-    time_data = np.zeros((len(parsed_sets), 30))
-    cost_data = np.zeros((len(parsed_sets), 30))
+    time_data = np.zeros((parsed_sets.size, 30))
+    cost_data = np.zeros((parsed_sets.size, 30))
     data_count = 0
 
+    scenario_time = np.zeros((parsed_sets.size, 30))
+    scenario_length = np.zeros((parsed_sets.size, 30))
+
+    map_idx = 45
+    map_name = 'Predators.map'
+    scenario_idx = 1500
+
     for x, file in enumerate(tqdm(parsed_sets)):
-        for map in file['data'].values():
-            for scenario in map.values():
+        for i, map in enumerate(file['data'].values()):
+            for j, scenario in enumerate(map.values()):
                 time_data[x] += scenario['times']
                 cost_data[x] += scenario['lengths']
                 data_count += 1
 
+                if i == map_idx and j == scenario_idx:
+                    scenario_time[x] = scenario['times']
+                    scenario_length[x] = scenario['lengths']
+
     time_data /= 1e6
     cost_data /= data_count
+
+    scenario_time /= 1000
+    scenario_length = 100 * (scenario_length / np.min(scenario_length) - 1)
 
     labels = [' '.join([chunk.capitalize() for chunk in name.split('-')]) for name in file_names]
 
     plt.title('Variance in Runtime')
-    plt.boxplot(time_data.T, meanline=True)
+    plt.boxplot(time_data.T, meanline=True, sym=".")
     plt.xticks(np.arange(1, len(file_names) + 1), labels, rotation='vertical')
     plt.ylabel('Total Time (s)')
     plt.tight_layout()
     plt.show()
 
     plt.title('Variance in Path Length')
-    plt.boxplot(cost_data.T, meanline=True)
+    plt.boxplot(cost_data.T, meanline=True, sym=".")
     plt.xticks(np.arange(1, len(file_names) + 1), labels, rotation='vertical')
     plt.ylabel('Mean Length (Vertices)')
+    plt.tight_layout()
+    plt.show()
+
+    plt.title(f'Runtime Variance for {map_name}, Scenario {scenario_idx+1}')
+    plt.boxplot(scenario_time.T, meanline=True, sym=".")
+    plt.xticks(np.arange(1, len(file_names) + 1), labels, rotation='vertical')
+    plt.ylabel('Time (ms)')
+    plt.tight_layout()
+    plt.show()
+
+    plt.title(f'Length Variance for {map_name}, Scenario {scenario_idx+1}')
+    plt.boxplot(scenario_length.T, meanline=True, sym=".")
+    plt.xticks(np.arange(1, len(file_names) + 1), labels, rotation='vertical')
+    plt.ylabel('Overhead in %')
     plt.tight_layout()
     plt.show()
 
@@ -374,7 +402,7 @@ def performance_plots(file_names, parsed_sets, ref_idx):
 
         overheads[x] = 100 * (cost / ref_cost - 1)
 
-    runtimes /= counts
+    runtimes /= (1000 * counts)
 
     colors = []
 
@@ -439,7 +467,7 @@ def performance_plots(file_names, parsed_sets, ref_idx):
 
     plt.title(rf'Average Runtime for Paths $\geq$ {min_path_length} Vertices')
     plt.bar(np.arange(runtimes.size), runtimes, color=colors)
-    plt.ylabel('Time (µs)')
+    plt.ylabel('Time (ms)')
     plt.xticks(np.arange(file_names.size), labels, rotation='vertical')
     plt.tight_layout()
     plt.show()
@@ -481,9 +509,9 @@ def main():
     # print(needed_measurements(data_sets, 0.99, 0.05))
 
     plot_init_settings()
-    performance_plots(pruned_names, parsed_sets, ref_idx)
-    ripple_comparison_3d_surface(pruned_names, parsed_sets, ref_idx)
-    ripple_comparison_3d_bar(pruned_names, parsed_sets, ref_idx)
+    # performance_plots(pruned_names, parsed_sets, ref_idx)
+    # ripple_comparison_3d_surface(pruned_names, parsed_sets, ref_idx)
+    # ripple_comparison_3d_bar(pruned_names, parsed_sets, ref_idx)
     variance_box_plots(pruned_names, parsed_sets)
 
 

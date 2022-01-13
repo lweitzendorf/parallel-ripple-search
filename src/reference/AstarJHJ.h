@@ -1,7 +1,7 @@
 #pragma once
 
+#include "AStarJHJTemp.h"
 #include "graph/Map.h"
-#include "stlastar.h"
 #include <optional>
 
 class AstarJHJ {

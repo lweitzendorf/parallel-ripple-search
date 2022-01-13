@@ -183,8 +183,8 @@ int main(int argc, char **argv) {
     return 3;
 
 #else
-    std::string bench = "bg512";
-    //std::string bench = "sc1";
+    //std::string bench = "bg512";
+    std::string bench = "sc1";
     auto maps = load_maps("../benchmarks/" + bench + "-map");
     //std::cout << "Benchmark: " << bench <<" - loaded " << maps.size() << " maps" << std::endl;
 
@@ -201,11 +201,11 @@ int main(int argc, char **argv) {
       exit(1);
     }
 
-    int map_index = atoi(argv[1]);
+    int map_index = 45;
     auto& m = maps[map_index];
     auto& map = m.second;
     auto scen = scenarios[map_index];
-    int scen_index = 498;//scen.size() - 1;
+    int scen_index = 1500;
     
     Node source = map.point_to_node(scen[scen_index].source);
     Node goal = map.point_to_node(scen[scen_index].goal);
@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
   const std::vector<Image> images = {
       test_search<RippleSearch>("Ripple", map, source, goal, ripple_draw),
       test_search<FringeSearchVec>("Fringe Vec", map, source, goal,
-                                    fringe_draw<FringeSearchVec>),
+                                   fringe_draw<FringeSearchVec>),
       test_search<FringeSearch>("Fringe", map, source, goal,
                                 fringe_draw<FringeSearch>),
       test_search<BoostAStarSearch>("Boost A*", map, source, goal),
