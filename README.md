@@ -1,16 +1,16 @@
 # Parallel Ripple Search
 
-Project by Gavin Gray, Lorenzo Liso, Dario Mylonopoulos, Ishaan Shamanna and Lucas Weitzendorf for the course Design of Parallel and High-Performance Computing (263-2800-00L) HS 2021 at ETH Zurich
+Project by Gavin Gray, Lorenzo Liso, Dario Mylonopoulos, Ishaan Shamanna and Lucas Weitzendorf for the course Design of Parallel and High-Performance Computing (263-2800-00L) HS 2021 at ETH Zurich.
 
 
 ## Build
 The project requires CMake version 3.16 (or newer).
 The repository and all the submodules can be cloned with the following command:
-```bash
+```
 git clone --recursive <url>
 ```
 Due to the long compilation time of oneTBB, it was not included as a build dependency. If a version of oneTBB is not already present on your system, it can be built and installed with the following commands (see [here](https://github.com/oneapi-src/oneTBB/blob/master/INSTALL.md) for the complete installation reference):
-```bash
+```
 cd oneTBB
 mkdir build && cd build
 cmake ..
@@ -19,7 +19,7 @@ sudo make install
 ```
 
 Parallel Ripple Search and the other binaries can then be built with the following commands from the root directory of the repository:
-```bash
+```
 mkdir build && cd build
 cmake ..
 make
@@ -28,7 +28,7 @@ make
 ## Run
 
 The build process described above produces the following binaries in the `build` directory
-```bash
+```
 ./bench # Runs the benchmarks for each algorithm and outputs measurements into <algorithm>.lsb
 ./graph_view <file path> <source> <goal> # Runs the algorithms and displays results
 ./high  # Generates the high level graph and displays it on top of the original graph
