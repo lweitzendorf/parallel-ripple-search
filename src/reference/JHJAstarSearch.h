@@ -1,10 +1,10 @@
 #pragma once
 
-#include "AStarJHJTemp.h"
+#include "AStarJHJ.h"
 #include "graph/Map.h"
 #include <optional>
 
-class AstarJHJ {
+class JHJAstarSearch {
   // Constants
   Map &map;
 
@@ -13,7 +13,7 @@ class AstarJHJ {
     Map *map;
     Node pos;
 
-    MapSearchNode() : map(NULL) {}
+    MapSearchNode() : map(nullptr) {}
     MapSearchNode(Map *map, Node n) : map(map), pos(n) {}
 
     float GoalDistanceEstimate(MapSearchNode &nodeGoal);
@@ -29,5 +29,5 @@ class AstarJHJ {
 public:
   std::optional<std::vector<Node>> search(Node source, Node goal);
 
-  AstarJHJ(Map &map) : map(map){};
+  JHJAstarSearch(Map &map) : map(map){};
 };

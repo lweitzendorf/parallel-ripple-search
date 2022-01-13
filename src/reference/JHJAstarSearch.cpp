@@ -1,19 +1,19 @@
-#include "AstarJHJ.h"
+#include "JHJAstarSearch.h"
 #include <stdio.h>
 
-bool AstarJHJ::MapSearchNode::IsSameState(MapSearchNode &rhs) {
+bool JHJAstarSearch::MapSearchNode::IsSameState(MapSearchNode &rhs) {
   return pos == rhs.pos;
 }
 
-float AstarJHJ::MapSearchNode::GoalDistanceEstimate(MapSearchNode &nodeGoal) {
+float JHJAstarSearch::MapSearchNode::GoalDistanceEstimate(MapSearchNode &nodeGoal) {
   return map->distance(pos, nodeGoal.pos);
 }
 
-bool AstarJHJ::MapSearchNode::IsGoal(MapSearchNode &nodeGoal) {
+bool JHJAstarSearch::MapSearchNode::IsGoal(MapSearchNode &nodeGoal) {
   return pos == nodeGoal.pos;
 }
 
-bool AstarJHJ::MapSearchNode::GetSuccessors(
+bool JHJAstarSearch::MapSearchNode::GetSuccessors(
     AStarJHJSearch<MapSearchNode> *astarsearch, MapSearchNode *parent_node) {
 
   auto ns = map->neighbours(pos);
@@ -30,16 +30,16 @@ bool AstarJHJ::MapSearchNode::GetSuccessors(
   return true;
 }
 
-float AstarJHJ::MapSearchNode::GetCost(MapSearchNode &successor) {
+float JHJAstarSearch::MapSearchNode::GetCost(MapSearchNode &successor) {
   return 1;
   // return map->cost(pos, successor.pos);
 }
 
-int AstarJHJ::MapSearchNode::Hash() { return pos; }
+int JHJAstarSearch::MapSearchNode::Hash() { return pos; }
 
-void AstarJHJ::MapSearchNode::PrintNodeInfo() { return; }
+void JHJAstarSearch::MapSearchNode::PrintNodeInfo() { return; }
 
-std::optional<std::vector<Node>> AstarJHJ::search(Node source, Node goal) {
+std::optional<std::vector<Node>> JHJAstarSearch::search(Node source, Node goal) {
 
   AStarJHJSearch<MapSearchNode> astarsearch;
 

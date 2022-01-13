@@ -7,8 +7,8 @@
 #include "ripple/RippleSearch.h"
 #include "benchmark/benchmarks.h"
 #include "reference/Astar.h"
-#include "reference/BoostAStarSearch.h"
-#include "reference/AstarJHJ.h"
+#include "reference/BoostAstarSearch.h"
+#include "reference/JHJAstarSearch.h"
 
 #define RUNS_PER_SCENARIO 30
 
@@ -65,10 +65,10 @@ int main() {
     scenarios.push_back(std::move(scen));
   }
 
-  benchmark<RippleSearch>("ripple-vec-"+std::to_string(NUM_THREADS), maps, scenarios);
+  benchmark<RippleSearch>("ripple-vec-" + std::to_string(NUM_THREADS), maps, scenarios);
   benchmark<FringeSearch>("fringe", maps, scenarios);
   benchmark<FringeSearchVec>("fringe-vec", maps, scenarios);
-  benchmark<AStarSearch>("a-star", maps, scenarios);
-  benchmark<BoostAStarSearch>("boost-a-star", maps, scenarios);
-  benchmark<AstarJHJ>("jhj-a-star", maps, scenarios);
+  benchmark<AstarSearch>("a-star", maps, scenarios);
+  benchmark<BoostAstarSearch>("boost-a-star", maps, scenarios);
+  benchmark<JHJAstarSearch>("jhj-a-star", maps, scenarios);
 }

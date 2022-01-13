@@ -50,12 +50,12 @@ std::optional<Path<Node>> a_star_search(Graph &graph, Node start, Node goal) {
   return {};
 }
 
-class AStarSearch {
+class AstarSearch {
   private:
   Map &map;
 
   public:
-  AStarSearch(Map &map) : map(map) {}
+  AstarSearch(Map &map) : map(map) {}
 
   std::optional<Path<Node>> search( Node source, Node goal) {
     return a_star_search(map, source, goal);

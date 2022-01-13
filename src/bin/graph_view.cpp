@@ -14,7 +14,7 @@
 #include "benchmark/benchmarks.h"
 
 #include "reference/Astar.h"
-#include "reference/BoostAStarSearch.h"
+#include "reference/BoostAstarSearch.h"
 
 #ifdef ONLY_EXPORT_IMGS
 #define BOOST_IMG_FN "../imgs/boost_img.png"
@@ -220,8 +220,8 @@ int main(int argc, char **argv) {
                                    fringe_draw<FringeSearchVec>),
       test_search<FringeSearch>("Fringe", map, source, goal,
                                 fringe_draw<FringeSearch>),
-      test_search<BoostAStarSearch>("Boost A*", map, source, goal),
-      test_search<AStarSearch>("A*", map, source, goal),
+      test_search<BoostAstarSearch>("Boost A*", map, source, goal),
+      test_search<AstarSearch>("A*", map, source, goal),
   };
 
 #ifdef ONLY_EXPORT_IMGS

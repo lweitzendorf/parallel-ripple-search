@@ -2,12 +2,12 @@
 
 #include "graph/WeightedGraph.h"
 
-class BoostAStarSearch {
+class BoostAstarSearch {
   private:
   WeightedGraph graph;
 
   public:
-  BoostAStarSearch(Map &map) {
+  BoostAstarSearch(Map &map) {
     graph.build_from_map(map);
   }
 
