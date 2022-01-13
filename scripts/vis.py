@@ -479,11 +479,12 @@ def main():
     ref_idx = np.where(pruned_names == 'a-star')[0][0]
 
     # print(needed_measurements(data_sets, 0.99, 0.05))
+
     plot_init_settings()
     performance_plots(pruned_names, parsed_sets, ref_idx)
-    # ripple_comparison_3d_surface(pruned_names, parsed_sets, ref_idx)
-    # ripple_comparison_3d_bar(pruned_names, parsed_sets, ref_idx)
-    # variance_box_plots(pruned_names, parsed_sets)
+    ripple_comparison_3d_surface(pruned_names, parsed_sets, ref_idx)
+    ripple_comparison_3d_bar(pruned_names, parsed_sets, ref_idx)
+    variance_box_plots(pruned_names, parsed_sets)
 
 
 if __name__ == '__main__':
