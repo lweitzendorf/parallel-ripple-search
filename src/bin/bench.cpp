@@ -45,7 +45,7 @@ void benchmark(const std::string &name, std::vector<std::pair<std::string, Map>>
       std::cout << ", cost = " << scenario.cost << std::endl;
 
       LSB_Reg_param("scenario = [%d, %d]", source_node, goal_node);
-      benchmark_scenario<Search>(benchmark_index++, search, source_node, goal_node);
+      benchmark_scenario(benchmark_index++, search, source_node, goal_node);
     }
     std::cout << std::endl;
   }

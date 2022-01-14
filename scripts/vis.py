@@ -474,7 +474,7 @@ def performance_plots(file_names, parsed_sets, ref_idx):
 
     plt.title('Relative Path Length Error')
     plt.bar(np.arange(overheads.size-1), overheads[1:], color=colors[1:])
-    plt.ylabel('Overhead in %')
+    plt.ylabel('Mean Overhead in %')
     plt.xticks(np.arange(file_names.size-1), labels[1:], rotation='vertical')
     plt.tight_layout()
     plt.show()
@@ -509,9 +509,9 @@ def main():
     # print(needed_measurements(data_sets, 0.99, 0.05))
 
     plot_init_settings()
-    # performance_plots(pruned_names, parsed_sets, ref_idx)
-    # ripple_comparison_3d_surface(pruned_names, parsed_sets, ref_idx)
-    # ripple_comparison_3d_bar(pruned_names, parsed_sets, ref_idx)
+    performance_plots(pruned_names, parsed_sets, ref_idx)
+    ripple_comparison_3d_surface(pruned_names, parsed_sets, ref_idx)
+    ripple_comparison_3d_bar(pruned_names, parsed_sets, ref_idx)
     variance_box_plots(pruned_names, parsed_sets)
 
 
