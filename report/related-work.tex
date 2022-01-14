@@ -1,0 +1,26 @@
+Pathfinding is a very old problem and many good serial implementations exist.
+Important serial algorithms, such as Dijkstra and A*, don't always translate well to a multi-core setting. 
+Algorithms that sacrifice path length for performance gains such as fringe search \cite{Fringe} show more promise in this regard.
+
+\mypar{A*} 
+The natural serial algorithm to pick for pathfinding is A* \cite{A*}, its use of a heuristic cost function $h(n)$ that estimates the cost from vertex $n$ to the target, makes extending the explored space simple and efficient. 
+Common implementations keep a \textit{min-heap} of open vertices, choosing a path that optimizes the cost function $f(n) = g(n) + h(n)$, where $g(n)$ is the actual cost from source to vertex $n$.
+This allows A* to explore the unvisited neighboring vertices closest to the target in each iteration, finding the best path in an efficient manner.
+
+\mypar{Parallelized A*} 
+Many attempts have been made to parallelize A*. However, due to its reliance on a sorted data structure, there is no efficient way to distribute work among cores. In fact, handling concurrent updates to this structure becomes such a bottleneck that a serial version of A* often outperforms its various parallelizations \cite{parallel-astar}. 
+
+\mypar{Fringe} 
+At its core, fringe search is very similar to A*; it merely sacrifices optimality for runtime \cite{Fringe}.
+Instead of keeping a sorted data structure that needs to have invariants re-established when the mininum element is removed, fringe simply keeps a list of all vertices in the search boundary. 
+The algorithm then explores those that have better heuristics than a certain threshold value.
+This saves computational time for exploration by removing the necessity to keep a data structure sorted but still expands the search space in an informed manner.
+
+\mypar{Distributed Fringe} 
+A parallel version of fringe search was proposed by S. Brand \cite{distributed-fringe}. As the vertices to be explored are unsorted, work can be distributed over multiple cores. 
+However, the author showed many shortcomings of this approach. In particular, the fact that work is typically not distributed evenly across cores. 
+In fact, the heuristic restricts the search boundary only in the most promising direction, which can only be followed by a single core at a time.
+
+\mypar{Bidirectional} 
+To make use of at least \textit{two} CPU cores when generating a path, one can start any serial algorithm twice: one search from the source towards the target, the other in reverse.
+Typically, A* is used for this and the path is recreated from wherever the two searches meet. This is trivially parallelizable and referred to as parallel bidirectional search \cite{PRS}. The obvious shortcoming of this algorithm is that modern architectures have far more than two available cores and the scalability requirement is not met.

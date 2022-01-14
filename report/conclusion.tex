@@ -1,0 +1,15 @@
+In this report, an implementation of the multi-core \textit{Parallel Ripple Search} was described, accompanied by benchmarks against several serial algorithms. 
+PRS is able to efficiently utilize multi-core architectures without the need for expensive synchronization primitives such as locks.
+It was found that PRS achieves significant speedup with acceptable degradation in path quality. 
+PRS serves as a demonstration of how old problems can be re-solved using parallel technologies and architectures fully utilizing the capabilities of modern systems.
+
+\mypar{Future Work}
+Within PRS there are many ways the implementation can be tailored and here only a few of them discussed or explained.
+In this project, the decision was made to implement the individual search threads using a fringe search in its core loop. 
+While this was the serial algorithm that performed best in benchmarks, the work distribution strategy of PRS can be applied to most other pathfinding algorithms.
+Future work could investigate different choices for the core algorithm and for the heuristic used, which could lead to better trade-offs between path quality and speed. 
+In particular, the heuristic used for the search threads containing the global source or target vertex appeared to be sub-optimal in some cases. An example of this can be seen in \figref{fig:ripple_example}.
+Even though only graphs with a grid structure were considered for benchmarking, this implementation is also applicable to general graphs. 
+A domain specific application of PRS could optimize certain aspects of the algorithm, tailoring them to the domain and known characteristics of the underlying graphs.
+Finally, more sophisticated collision handling could lead to improved path quality. For example, one could remember multiple collisions between distinct pairs of threads and use these to find a lower cost path through the collision graph.
+

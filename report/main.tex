@@ -1,0 +1,82 @@
+% IEEE standard conference template; to be used with:
+%   spconf.sty  - LaTeX style file, and
+%   IEEEbib.bst - IEEE bibliography style file.
+% --------------------------------------------------------------------------
+
+\documentclass[letterpaper]{article}
+\usepackage{spconf,amsmath,amssymb,graphicx}
+\usepackage{minted}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{verbatim}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{hyperref}
+
+\urlstyle{same}
+
+\captionsetup{compatibility=false}
+% Example definitions.
+% --------------------
+% nice symbols for real and complex numbers
+\newcommand{\R}[0]{\mathbb{R}}
+\newcommand{\C}[0]{\mathbb{C}}
+\newcommand{\figref}[1]{\textit{figure \ref{#1}}}
+\newcommand{\secref}[1]{\textit{section \ref{#1}}}
+\newcommand{\mypar}[1]{{\bf #1.}}
+
+% Title.
+% ------
+\title{Multi-core Parallel Ripple Search}
+%
+% Single address.
+% ---------------
+\name{Gavin Gray, Lorenzo Liso, Dario Mylonopoulos, \\ \emph{Ishaan Shamanna, Lucas Weitzendorf} }
+
+\address{DPHPC Project Report HS21 \\ ETH Z\"urich\\Z\"urich, Switzerland}
+
+
+\begin{document}
+
+%
+\maketitle
+%
+
+\begin{abstract}
+Pathfinding is a heavily researched area of Computer Science where sequential algorithms have since long been the focus.
+Commonly used algorithms are difficult to parallelize effectively and therefore fail to take full advantage of modern computer architectures.
+This report documents an implementation of parallel ripple search and demonstrates its significant performance increase compared to sequential references.
+Parallel ripple search is an efficient approach to parallel pathfinding for a single source-target pair and provides opportunities for even further optimization to future problems.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+\input{introduction}
+
+\section{Related Work}\label{sec:relatedwork}
+\input{related-work}
+
+\section{Parallel Ripple Search}\label{sec:ripplesearch}
+\input{parallel-ripple-search}
+
+\section{Implementation}\label{sec:implementation}
+\input{implementation}
+
+\section{Benchmark Environment}\label{sec:experimental}
+\input{benchmark}
+
+\section{Results}
+\input{results}
+
+\section{Conclusion}
+\input{conclusion}
+
+% References should be produced using the bibtex program from suitable
+% BiBTeX files (here: bibl_conf). The IEEEbib.bst bibliography
+% style file from IEEE produces unsorted bibliography list.
+% -------------------------------------------------------------------------
+\bibliographystyle{IEEEbib}
+\bibliography{bibl_conf}
+
+\end{document}
+

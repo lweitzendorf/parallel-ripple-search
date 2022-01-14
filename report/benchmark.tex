@@ -1,0 +1,25 @@
+\mypar{Data Set and Scenarios} 
+In order to benchmark this ripple search implementation with the aim of making results comparable to future and past papers, it was decided to use the public data set proposed in \cite{6194296}, comprised of different grid-based video game maps. 
+In particular, testing was conducted on the maps of \emph{StarCraft (SC)}, a popular real-time strategy game published in 1998 by Blizzard Entertainment, Inc. The repository contains 75 maps, most of which span at least $512 \times 512$ vertices.
+For each map, multiple scenarios are tested, where a scenario is described by two $(x, y)$ coordinates representing the source and target respectively.
+The total number of scenarios in the data set is $211,390$ and optimal path lengths range from $1$ to $2,155$.
+
+\mypar{System Specifications}
+All benchmarks were run on Windows Subsytem for Linux (5.10.16.3-microsoft-standard-WSL2, Ubuntu 20.04.3 LTS, Windows 11 Pro 22000.376).
+The system was equipped with an AMD Ryzen 5900X 12-core CPU @ 3.70 GHz with 2x 16GB DDR4-3600 RAM and the project was compiled using CMake 3.16.3 and g++ 9.3.0 with the -O3 optimization flag. 
+Runtime measurements were taken with LibSciBench \cite{libscibench} version 0.2.2. Further third-party libraries used: Boost 1.78.0 \cite{boost}, oneTBB 2021.5.0 \cite{oneTBB}, and GLM 0.9.9.8 \cite{glm}.
+
+\mypar{Reference Implementations}
+As a reference point for performance on the benchmark maps, PRS was compared with several sequential algorithms.
+Specifically, 
+\lstinline{astar_search} from the Boost C++ library
+%% Footnote
+\footnote{It should be noted that Boost's \lstinline{astar_search} works on generalized graphs as the underlying structure rather than a grid which is utilized by the other sequential references.},
+%%%
+a custom A* implementation,
+the custom \textit{fringe} implementation as used in the search threads of PRS,
+similarly the \textit{fringe vec} fringe search variant using a linear vector instead of a doubly linked list.
+Lastly, an A* implementation adapted from \cite{heyesAStar} was also tested, this being used in several real-time applications. However, while highly optimized for smaller paths, the algorithm scaled too poorly to be included in the full benchmark run.
+
+\mypar{Configuration}
+The number of data points necessary was estimated from a limited test run over a subset of the benchmark suite, using confidence intervals on a t-distribution, as described by Hoefler et al. \cite{hoefler2015}. This resulted in an estimated minimum of $30$ runs per scenario to achieve a median variance within less than $5\%$ of the mean runtime with $99\%$ confidence.
